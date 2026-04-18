@@ -35,31 +35,44 @@ class BigButton extends StatelessWidget {
           fontSize: 18,
         );
 
+    final labelWidget = Text(
+      label,
+      style: textStyle,
+      textAlign: TextAlign.center,
+      softWrap: true,
+      // Two lines covers max-font + long labels; buttons that need more
+      // probably need a shorter label.
+      maxLines: 2,
+    );
     final child = icon == null
-        ? Text(label, style: textStyle)
+        ? labelWidget
         : Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Icon(icon, color: foreground, size: 24),
               const SizedBox(width: 12),
-              Text(label, style: textStyle),
+              Flexible(child: labelWidget),
             ],
           );
 
-    return SizedBox(
-      width: double.infinity,
-      height: 64,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: background,
-          foregroundColor: foreground,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 64),
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: background,
+            foregroundColor: foreground,
+            minimumSize: const Size(0, 64),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          onPressed: onPressed,
+          child: child,
         ),
-        onPressed: onPressed,
-        child: child,
       ),
     );
   }

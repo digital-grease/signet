@@ -349,43 +349,99 @@ class _ScanningPaneState extends State<_ScanningPane> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        MobileScanner(
-          controller: _controller,
-          onDetect: (capture) => unawaited(_handleCapture(capture)),
-        ),
-        Positioned.fill(
-          child: CustomPaint(painter: _ViewfinderPainter()),
-        ),
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 32,
-          child: Column(
-            children: <Widget>[
-              if (_error != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(12),
+    return ValueListenableBuilder<MobileScannerState>(
+      valueListenable: _controller,
+      builder: (context, state, _) {
+        final error = state.error;
+        if (error?.errorCode == MobileScannerErrorCode.permissionDenied) {
+          return _PermissionDeniedPane(onCancel: widget.onCancel);
+        }
+        return Stack(
+          children: <Widget>[
+            MobileScanner(
+              controller: _controller,
+              onDetect: (capture) => unawaited(_handleCapture(capture)),
+            ),
+            Positioned.fill(
+              child: CustomPaint(painter: _ViewfinderPainter()),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 32,
+              child: Column(
+                children: <Widget>[
+                  if (_error != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  FilledButton.tonal(
+                    onPressed: widget.onCancel,
+                    child: const Text('Cancel'),
                   ),
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              FilledButton.tonal(
-                onPressed: widget.onCancel,
-                child: const Text('Cancel'),
+                ],
               ),
-            ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PermissionDeniedPane extends StatelessWidget {
+  const _PermissionDeniedPane({required this.onCancel});
+
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(
+            Icons.no_photography_outlined,
+            size: 64,
+            color: colors.error,
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          Text(
+            'Camera permission is turned off.',
+            style: textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Signet needs the camera only to scan pairing QR codes. '
+            'Turn it on in your phone settings: Apps → Signet → '
+            'Permissions → Camera.',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24),
+          BigButton(
+            label: 'Back',
+            icon: Icons.arrow_back,
+            onPressed: onCancel,
+          ),
+        ],
+      ),
     );
   }
 }

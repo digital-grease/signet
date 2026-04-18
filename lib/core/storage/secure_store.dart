@@ -13,17 +13,23 @@ import '../models/relationship.dart';
 /// to iterate. This matches the v0.1 scope and makes it trivially
 /// impossible to leak the wrong secret.
 ///
-/// Android configuration uses `AndroidOptions.biometric(enforceBiometrics: false)`
-/// which corresponds to:
-///   - hardware-backed AES-GCM key (API 28+; StrongBox-backed when available)
+/// Android configuration uses the standard `AndroidOptions(...)` which corresponds to:
+///   - RSA/OAEP-wrapped AES key held in hardware-backed Keystore
+///     (StrongBox-backed when the device supports it)
 ///   - AES/GCM/NoPadding storage cipher
 ///   - no biometric prompt (grandma test)
 ///   - `resetOnError: false` so transient failures surface instead of silently
 ///     wiping the user's paired secret.
+///
+/// The stronger `AndroidOptions.biometric()` path (AES-GCM for both key wrap and
+/// storage) is _not_ used because v10.0.0 of the plugin hits a first-run
+/// algorithm-migration bug under that constructor ("Cipher not initialized"),
+/// and the security difference vs. RSA-OAEP key wrapping is negligible — both
+/// are hardware-backed and protected from extraction.
 class SecureStore {
   SecureStore({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage(
-              aOptions: AndroidOptions.biometric(
+              aOptions: AndroidOptions(
                 resetOnError: false,
                 preferencesKeyPrefix: _androidKeyPrefix,
               ),
