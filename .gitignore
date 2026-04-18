@@ -1,3 +1,16 @@
+# Flutter / Dart / Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+app.*.symbols
+app.*.map.json
+migrate_working_dir/
+.DS_Store
+
 # Gradle files
 .gradle/
 build/
