@@ -9,19 +9,23 @@ import '../../core/crypto/totp_words.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
+import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/words_display.dart';
 import 'word_input.dart';
 
-/// Two-sided verify UI.
+/// Verify — "operator" layout.
 ///
 /// Primary action is type-and-verify: the caller reads their 4 words aloud,
 /// the receiver types them into a 4-slot autocomplete input, and `TotpWords`
 /// returns a binary ✅/❌ with ±1 window tolerance absorbing clock drift
-/// silently.
+/// silently. Result surfaces as a STATUS-prefixed banner with a tactical
+/// left-bar accent.
 ///
 /// Secondary (collapsed by default) is show-my-own-words for when the other
 /// party wants to verify *this* device. The rotating 4 words tick once a
-/// second, same cadence as the pair-time ticker pattern.
+/// second, same cadence as the pair-time ticker pattern. An amber
+/// `FLAG_SECURE` badge on the section signals that screenshots are blocked
+/// while this panel is open (platform call lands in Task 9.4).
 class VerifyScreen extends ConsumerStatefulWidget {
   const VerifyScreen({super.key});
 
@@ -37,7 +41,8 @@ class _VerifyResult {
   final DateTime at;
 }
 
-class _VerifyScreenState extends ConsumerState<VerifyScreen> {
+class _VerifyScreenState extends ConsumerState<VerifyScreen>
+    with WidgetsBindingObserver {
   static const int _windowSeconds = TotpWords.defaultTimeStepSeconds;
 
   Relationship? _relationship;
@@ -54,7 +59,34 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_bootstrap());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Suspend the 1s ticker while the app is not in the foreground. Without
+    // this the verify screen keeps re-deriving TOTP words every second even
+    // when it's not visible, which burns CPU and (with FLAG_SECURE) leaves
+    // the most recent words derived in Dart memory longer than necessary.
+    // On resume, re-derive immediately (the next-window cutover may have
+    // happened while backgrounded) and restart the periodic tick.
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        _ticker?.cancel();
+        _ticker = null;
+      case AppLifecycleState.resumed:
+        if (_secret != null && _relationship != null && _ticker == null) {
+          unawaited(_tick());
+          _ticker = Timer.periodic(
+            const Duration(seconds: 1),
+            (_) => unawaited(_tick()),
+          );
+        }
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -130,31 +162,43 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       // verification and guarantees every real attempt actually runs.
       _resetKey++;
     });
-    if (ok) {
-      unawaited(HapticFeedback.lightImpact());
-    } else {
-      unawaited(HapticFeedback.heavyImpact());
+    // Silent-mode: per-relationship opt-in to suppress haptics. A buzzing
+    // phone is an observable tell in coercion / surveillance scenarios —
+    // journalist/activist audience wants this off. Default (false) matches
+    // grandma-test expectations.
+    if (!relationship.silentHaptics) {
+      if (ok) {
+        unawaited(HapticFeedback.lightImpact());
+      } else {
+        unawaited(HapticFeedback.heavyImpact());
+      }
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verify'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+    // FLAG_SECURE wraps the entire Verify screen: rotating words + the
+    // collapsed Show-my-words pane + any banner text are all inside and
+    // therefore covered. The flag clears when the user navigates away.
+    return SecureScreen(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('VERIFY'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: _buildBody(context),
+        body: SafeArea(
+          child: _buildBody(context),
+        ),
       ),
     );
   }
@@ -172,35 +216,48 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final textTheme = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          const Align(
+            alignment: Alignment.centerRight,
+            child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+          ),
+          const SizedBox(height: 16),
+          const _SectionHeader('CHALLENGE'),
+          const SizedBox(height: 6),
           Text(
             'Ask ${relationship.label} for their 4 words.',
-            style: textTheme.titleLarge,
-            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Type what you hear. Tap a suggestion to fill a slot.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
+            style: TextStyle(
+              fontSize: 13,
+              color: scheme.onSurfaceVariant,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          if (_lastResult != null) _ResultBanner(result: _lastResult!),
-          if (_lastResult != null) const SizedBox(height: 16),
+          if (_lastResult != null) ...<Widget>[
+            _ResultBanner(result: _lastResult!),
+            const SizedBox(height: 20),
+          ],
+          const _SectionHeader('INPUT'),
+          const SizedBox(height: 8),
           WordInput(
             onSubmit: _handleSubmit,
             resetKey: _resetKey,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           _OwnWordsSection(
             label: relationship.label,
             expanded: _showOwnWords,
@@ -209,6 +266,17 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             secondsRemaining: _secondsRemaining,
           ),
           const SizedBox(height: 24),
+          Divider(color: scheme.outlineVariant),
+          const SizedBox(height: 12),
+          Text(
+            'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 10,
+              color: scheme.onSurfaceVariant,
+              letterSpacing: 1.5,
+            ),
+          ),
         ],
       ),
     );
@@ -222,15 +290,14 @@ class _ResultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOk = result.status == _VerifyStatus.verified;
 
-    // Tokens are defined in core/theme/signet_theme.dart. Material 3's
-    // primaryContainer derivation is not usable here — we need an
-    // unambiguously "verified/OK" tone distinct from any neutral surface,
-    // and an unambiguously "failed" tone distinct from generic error states
-    // elsewhere in the app.
+    // Tokens live in core/theme/signet_theme.dart. The banner intentionally
+    // uses hard-coded tokens rather than scheme-derived roles: the ✅/❌
+    // affordance must read as *unambiguous* across light/dark, and Material
+    // 3's `primaryContainer` / `errorContainer` derivations drift against
+    // our palette in ways that blur that semantics.
     final bg = isOk
         ? (isDark ? SignetTokens.okBg : SignetTokens.okBgL)
         : (isDark ? SignetTokens.failBg : SignetTokens.failBgL);
@@ -238,9 +305,8 @@ class _ResultBanner extends StatelessWidget {
         ? (isDark ? SignetTokens.okFg : SignetTokens.okFgL)
         : (isDark ? SignetTokens.failFg : SignetTokens.failFgL);
     final accent = isOk ? SignetTokens.ok : SignetTokens.fail;
-    final icon = isOk ? Icons.verified : Icons.gpp_bad;
-    final headline =
-        isOk ? 'Verified' : 'Not verified — be suspicious.';
+    final statusCode = isOk ? 'STATUS // 200 OK' : 'STATUS // 403 MISMATCH';
+    final headline = isOk ? 'VERIFIED' : 'NOT VERIFIED — BE SUSPICIOUS';
     final subline = isOk
         ? 'The words match. You can trust this call.'
         : 'The words did not match. Someone may be impersonating them.';
@@ -250,36 +316,45 @@ class _ResultBanner extends StatelessWidget {
       container: true,
       label: '$headline. $subline',
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: bg,
           border: Border(left: BorderSide(color: accent, width: 4)),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(icon, size: 32, color: accent),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    headline,
-                    style: textTheme.titleLarge?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subline,
-                    style: textTheme.bodyMedium?.copyWith(color: fg),
-                  ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                statusCode,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  color: accent,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                headline,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subline,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: fg,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -303,26 +378,20 @@ class _OwnWordsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      color: scheme.surfaceContainerHighest,
       child: Column(
         children: <Widget>[
           InkWell(
             onTap: onToggle,
-            borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: <Widget>[
                   Icon(
                     expanded ? Icons.expand_less : Icons.expand_more,
-                    color: colors.onSurfaceVariant,
+                    color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -331,18 +400,31 @@ class _OwnWordsSection extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           'Show my 4 words',
-                          style: textTheme.titleMedium?.copyWith(
+                          style: TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'If $label wants to verify you, read these.',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  Text(
+                    'FLAG_SECURE',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      color: scheme.secondary,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -402,6 +484,65 @@ class _VerifyError extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton(onPressed: onBack, child: const Text('Back to home')),
         ],
+      ),
+    );
+  }
+}
+
+// -------- Private operator primitives. Dup of home_screen.dart's privates;
+// hoist to lib/shared/widgets/operator_primitives.dart when a third consumer
+// needs them (probably the pair flow redesign follow-up). Keeping duplicated
+// for now to avoid a no-op abstraction.
+
+enum _Tone { ok, warn, fail }
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.tone});
+  final String label;
+  final _Tone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = switch (tone) {
+      _Tone.ok => scheme.primary,
+      _Tone.warn => scheme.secondary,
+      _Tone.fail => scheme.error,
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 11,
+            color: color,
+            letterSpacing: 1.8,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$label //',
+      style: TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 10,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        letterSpacing: 2,
+        fontWeight: FontWeight.w600,
       ),
     );
   }

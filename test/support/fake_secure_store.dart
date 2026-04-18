@@ -39,6 +39,12 @@ class FakeSecureStore implements SecureStore {
   }
 
   @override
+  Future<void> updateRelationshipMetadata(Relationship relationship) async {
+    if (_relationship == null) return;
+    _relationship = relationship;
+  }
+
+  @override
   Future<void> deleteRelationship() async {
     _relationship = null;
     _secret = null;

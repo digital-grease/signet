@@ -162,6 +162,44 @@ void main() {
       expect(_findRichContaining('role:A'), findsOneWidget);
     });
 
+    testWidgets('HAPTICS row reads ON by default; tap toggles to OFF',
+        (tester) async {
+      final store = FakeSecureStore(
+        seeded: mom,
+        secret: List<int>.generate(32, (i) => i),
+      );
+      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
+      await tester.pumpAndSettle();
+
+      expect(_findRichContaining('HAPTICS //'), findsOneWidget);
+      expect(find.text('ON'), findsOneWidget);
+
+      await tester.tap(find.text('ON'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFF'), findsOneWidget);
+      final stored = await store.getRelationship();
+      expect(stored?.silentHaptics, isTrue);
+    });
+
+    testWidgets('HAPTICS toggle persists back to ON on second tap',
+        (tester) async {
+      final store = FakeSecureStore(
+        seeded: mom.copyWith(silentHaptics: true),
+        secret: List<int>.generate(32, (i) => i),
+      );
+      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFF'), findsOneWidget);
+      await tester.tap(find.text('OFF'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ON'), findsOneWidget);
+      final stored = await store.getRelationship();
+      expect(stored?.silentHaptics, isFalse);
+    });
+
     testWidgets('shows the OFFLINE-FREE status chip', (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(

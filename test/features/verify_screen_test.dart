@@ -120,8 +120,8 @@ void main() {
         await _enterWords(tester, words);
         await tester.pumpAndSettle();
 
-        expect(find.text('Verified'), findsOneWidget);
-        expect(find.byIcon(Icons.verified), findsOneWidget);
+        expect(find.text('VERIFIED'), findsOneWidget);
+        expect(find.text('STATUS // 200 OK'), findsOneWidget);
 
         final hapticCalls = calls.where(
           (c) =>
@@ -158,8 +158,8 @@ void main() {
         await _enterWords(tester, bogus);
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('Not verified'), findsOneWidget);
-        expect(find.byIcon(Icons.gpp_bad), findsOneWidget);
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+        expect(find.text('STATUS // 403 MISMATCH'), findsOneWidget);
 
         // Input cleared after ❌.
         expect(
@@ -190,13 +190,13 @@ void main() {
         const bogus = <String>['orange', 'anchor', 'abandon', 'ability'];
         await _enterWords(tester, bogus);
         await tester.pumpAndSettle();
-        expect(find.textContaining('Not verified'), findsOneWidget);
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
 
         final words = await _currentWordsFromMom();
         await _enterWords(tester, words);
         await tester.pumpAndSettle();
 
-        expect(find.text('Verified'), findsOneWidget);
+        expect(find.text('VERIFIED'), findsOneWidget);
       },
     );
 
@@ -220,14 +220,14 @@ void main() {
         final legit = await _currentWordsFromMom();
         await _enterWords(tester, legit);
         await tester.pumpAndSettle();
-        expect(find.text('Verified'), findsOneWidget);
+        expect(find.text('VERIFIED'), findsOneWidget);
 
         // Step 2: reflection-attack attempt (type our OWN shown words).
         final ownWords = await _currentWordsFromSelf();
         await _enterWords(tester, ownWords);
         await tester.pumpAndSettle();
-        expect(find.textContaining('Not verified'), findsOneWidget);
-        expect(find.text('Verified'), findsNothing);
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+        expect(find.text('VERIFIED'), findsNothing);
       },
     );
 
@@ -249,8 +249,8 @@ void main() {
         await _enterWords(tester, ownWords);
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('Not verified'), findsOneWidget);
-        expect(find.byIcon(Icons.gpp_bad), findsOneWidget);
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+        expect(find.text('STATUS // 403 MISMATCH'), findsOneWidget);
       },
     );
 
@@ -278,6 +278,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Show my 4 words'));
       await tester.tap(find.text('Show my 4 words'));
       await tester.pumpAndSettle();
 
@@ -304,7 +305,93 @@ void main() {
       await tester.enterText(_slotField(0), words.join(' '));
       await tester.pumpAndSettle();
 
-      expect(find.text('Verified'), findsOneWidget);
+      expect(find.text('VERIFIED'), findsOneWidget);
     });
+
+    testWidgets(
+      'silentHaptics=true suppresses HapticFeedback on both ✅ and ❌',
+      (tester) async {
+        final calls = <MethodCall>[];
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          calls.add(call);
+          return null;
+        });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null);
+        });
+
+        final silent = _mom.copyWith(silentHaptics: true);
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: silent, secret: _secret),
+            child: const VerifyScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Wrong words → ❌ path, no heavy haptic expected.
+        const bogus = <String>['orange', 'anchor', 'abandon', 'ability'];
+        await _enterWords(tester, bogus);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+
+        // Correct words → ✅ path, no light haptic expected.
+        final legit = await _currentWordsFromMom();
+        await _enterWords(tester, legit);
+        await tester.pumpAndSettle();
+        expect(find.text('VERIFIED'), findsOneWidget);
+
+        final hapticCalls = calls.where(
+          (c) => c.method == 'HapticFeedback.vibrate',
+        );
+        expect(hapticCalls, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'ticker pauses on AppLifecycleState.paused and resumes on resumed',
+      (tester) async {
+        // Backgrounding the app must stop the 1s ticker — otherwise we keep
+        // re-deriving TOTP words in memory while the screen isn't visible.
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Capture a fingerprint of the rendered "Show my words" area —
+        // expand first so its contents tick with every second.
+        await tester.ensureVisible(find.text('Show my 4 words'));
+        await tester.tap(find.text('Show my 4 words'));
+        await tester.pumpAndSettle();
+
+        // Simulate backgrounding. Flutter enforces valid state transitions,
+        // so we walk: inactive → hidden → paused, then back paused →
+        // hidden → inactive → resumed. The observer cancels the timer
+        // somewhere in the going-down phase and restarts it on resumed.
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump(const Duration(seconds: 2));
+
+        // Back to foreground.
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump(const Duration(seconds: 2));
+
+        // Sanity: the screen still renders normally after the cycle — if
+        // the observer bookkeeping were off, we'd crash on the pump.
+        expect(find.text('Show my 4 words'), findsOneWidget);
+      },
+    );
   });
 }

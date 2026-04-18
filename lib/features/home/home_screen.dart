@@ -15,6 +15,16 @@ import '../../core/providers.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  Future<void> _toggleSilentHaptics(
+    WidgetRef ref,
+    Relationship relationship,
+  ) async {
+    final updated =
+        relationship.copyWith(silentHaptics: !relationship.silentHaptics);
+    await ref.read(secureStoreProvider).updateRelationshipMetadata(updated);
+    ref.invalidate(relationshipProvider);
+  }
+
   Future<void> _unpair(
     BuildContext context,
     WidgetRef ref,
@@ -90,6 +100,8 @@ class HomeScreen extends ConsumerWidget {
                       : _PairedState(
                           relationship: relationship,
                           onUnpair: () => _unpair(context, ref, relationship),
+                          onToggleSilentHaptics: () =>
+                              _toggleSilentHaptics(ref, relationship),
                         ),
                 ),
               ),
@@ -159,10 +171,15 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _PairedState extends StatelessWidget {
-  const _PairedState({required this.relationship, required this.onUnpair});
+  const _PairedState({
+    required this.relationship,
+    required this.onUnpair,
+    required this.onToggleSilentHaptics,
+  });
 
   final Relationship relationship;
   final VoidCallback onUnpair;
+  final VoidCallback onToggleSilentHaptics;
 
   String get _fingerprintPrefix {
     // Render first 4 bytes of the id as colon-separated uppercase hex —
@@ -210,6 +227,12 @@ class _PairedState extends StatelessWidget {
         ),
         _MonoKV(k: 'BOUND //', v: _boundAt),
         const _MonoKV(k: 'CIPHER //', v: 'HKDF-SHA256 · BIP39-4w'),
+        _MonoToggleRow(
+          label: 'HAPTICS //',
+          value: relationship.silentHaptics ? 'OFF' : 'ON',
+          active: !relationship.silentHaptics,
+          onToggle: onToggleSilentHaptics,
+        ),
         const Spacer(),
         FilledButton(
           onPressed: () => context.go('/verify'),
@@ -347,6 +370,70 @@ class _MonoKV extends StatelessWidget {
               style: TextStyle(color: scheme.onSurface),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mono KV row whose value is a tappable ON/OFF state. Same visual weight
+/// as `_MonoKV` to sit cleanly inside the peer info block; no consumer-app
+/// Switch widget (too much Material chrome for the operator aesthetic).
+class _MonoToggleRow extends StatelessWidget {
+  const _MonoToggleRow({
+    required this.label,
+    required this.value,
+    required this.active,
+    required this.onToggle,
+  });
+
+  final String label;
+  final String value;
+  final bool active;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: <Widget>[
+              Text(
+                label.padRight(14),
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: scheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: active ? scheme.primary : scheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'tap to toggle',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

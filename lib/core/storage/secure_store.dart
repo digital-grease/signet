@@ -102,6 +102,23 @@ class SecureStore {
     return Uint8List.fromList(base64Decode(encoded));
   }
 
+  /// Rewrite just the relationship metadata blob. Used when toggling a
+  /// non-secret field on the paired relationship (e.g. `silentHaptics`,
+  /// future label edits) without touching the shared secret.
+  ///
+  /// No-op if no relationship is currently paired — we don't materialize
+  /// a stranger relationship from nothing. Caller is expected to only
+  /// invoke this after reading a live `Relationship` from
+  /// `getRelationship()`.
+  Future<void> updateRelationshipMetadata(Relationship relationship) async {
+    final existing = await _storage.read(key: _keyRelationship);
+    if (existing == null) return;
+    await _storage.write(
+      key: _keyRelationship,
+      value: relationship.toJson(),
+    );
+  }
+
   /// Unpair: clear both the metadata and the shared secret.
   Future<void> deleteRelationship() async {
     await _storage.delete(key: _keyRelationship);

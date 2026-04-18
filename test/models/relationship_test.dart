@@ -110,6 +110,65 @@ void main() {
       expect(a, isNot(equals(b)));
     });
 
+    test('silentHaptics defaults to false on both constructor and fresh()',
+        () {
+      final c = Relationship(
+        id: 'x',
+        label: 'L',
+        pairedAt: DateTime.utc(2026, 1, 1),
+        role: PairRole.a,
+      );
+      final f = Relationship.fresh(label: 'L', role: PairRole.a);
+      expect(c.silentHaptics, isFalse);
+      expect(f.silentHaptics, isFalse);
+    });
+
+    test('silentHaptics round-trips through JSON', () {
+      final loud = Relationship(
+        id: 'x',
+        label: 'L',
+        pairedAt: DateTime.utc(2026, 1, 1),
+        role: PairRole.a,
+      );
+      final silent = loud.copyWith(silentHaptics: true);
+      expect(Relationship.fromJson(loud.toJson()).silentHaptics, isFalse);
+      expect(Relationship.fromJson(silent.toJson()).silentHaptics, isTrue);
+    });
+
+    test('Phase-8 JSON blobs without silentHaptics parse to false', () {
+      // Legacy (Phase 8) shape — valid role, no silentHaptics field.
+      const legacy =
+          '{"id":"abc","label":"Mom","pairedAtMs":1776000000000,"role":"a"}';
+      final parsed = Relationship.fromJson(legacy);
+      expect(parsed.silentHaptics, isFalse);
+    });
+
+    test('copyWith toggles silentHaptics without touching other fields', () {
+      final base = Relationship(
+        id: 'x',
+        label: 'L',
+        pairedAt: DateTime.utc(2026, 1, 1),
+        role: PairRole.a,
+      );
+      final toggled = base.copyWith(silentHaptics: true);
+      expect(toggled.silentHaptics, isTrue);
+      expect(toggled.id, base.id);
+      expect(toggled.label, base.label);
+      expect(toggled.pairedAt, base.pairedAt);
+      expect(toggled.role, base.role);
+    });
+
+    test('silentHaptics breaks equality when toggled', () {
+      final loud = Relationship(
+        id: 'x',
+        label: 'L',
+        pairedAt: DateTime.utc(2026, 1, 1),
+        role: PairRole.a,
+      );
+      final silent = loud.copyWith(silentHaptics: true);
+      expect(loud, isNot(equals(silent)));
+    });
+
     test('pairedAt is normalized to UTC on comparison', () {
       final utc = Relationship(
         id: 'x',

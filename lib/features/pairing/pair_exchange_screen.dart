@@ -8,6 +8,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../shared/widgets/big_button.dart';
+import '../../shared/widgets/secure_screen.dart';
 import 'pairing_codec.dart';
 import 'pairing_controller.dart';
 
@@ -294,47 +295,53 @@ class _ShowingPane extends StatelessWidget {
     }
     final payload = PairingCodec.encodePublicKey(ours.publicKey);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        children: <Widget>[
-          Text(
-            'Let them scan this.',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: QrImageView(
-                    data: payload,
-                    version: QrVersions.auto,
-                    backgroundColor: Colors.white,
-                    padding: const EdgeInsets.all(8),
-                    gapless: true,
+    // FLAG_SECURE while the pair-time QR is on screen. The pubkey itself is
+    // not secret, but blocking screen recording here is cheap defense-in-
+    // depth: a recorded pair flow lets an attacker replay the whole
+    // handshake attempt off-device.
+    return SecureScreen(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          children: <Widget>[
+            Text(
+              'Let them scan this.',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: QrImageView(
+                      data: payload,
+                      version: QrVersions.auto,
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.all(8),
+                      gapless: true,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          BigButton(
-            label: "They scanned — I'm done",
-            icon: Icons.check,
-            onPressed: onDone,
-          ),
-          const SizedBox(height: 8),
-          TextButton(onPressed: onDone, child: const Text('Back')),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 16),
+            BigButton(
+              label: "They scanned — I'm done",
+              icon: Icons.check,
+              onPressed: onDone,
+            ),
+            const SizedBox(height: 8),
+            TextButton(onPressed: onDone, child: const Text('Back')),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

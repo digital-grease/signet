@@ -167,6 +167,42 @@ ThemeData signetTheme({required bool dark}) {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: scheme.surfaceContainerHighest,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: scheme.outlineVariant, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: scheme.outlineVariant, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: scheme.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: scheme.error, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: scheme.error, width: 2),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
+      side: BorderSide(color: scheme.outlineVariant, width: 1),
+      backgroundColor: scheme.surface,
+      labelStyle: TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 12,
+        color: scheme.onSurface,
+      ),
+    ),
     dividerTheme: DividerThemeData(
       color: scheme.outlineVariant,
       thickness: 1,
