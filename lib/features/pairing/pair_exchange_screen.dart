@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -10,6 +10,14 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../shared/widgets/big_button.dart';
 import 'pairing_codec.dart';
 import 'pairing_controller.dart';
+
+/// Compile-time flag that exposes a "paste pairing string" developer pane
+/// alongside the camera flow. Enable with:
+///   flutter run --dart-define=SIGNET_DEBUG_PAIRING=true
+/// Intended for two-emulator testing where pointing a physical camera at
+/// another phone is impossible. Never ship a release build with this flag on.
+const bool _debugPairing =
+    bool.fromEnvironment('SIGNET_DEBUG_PAIRING');
 
 /// Step 2 of the pair flow: symmetric QR exchange. Each device needs to
 /// both display its public key and scan the other's. Either step can be
@@ -24,7 +32,7 @@ class PairExchangeScreen extends ConsumerStatefulWidget {
       _PairExchangeScreenState();
 }
 
-enum _ExchangeMode { overview, showing, scanning }
+enum _ExchangeMode { overview, showing, scanning, pasting }
 
 class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
   _ExchangeMode _mode = _ExchangeMode.overview;
@@ -72,6 +80,9 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
               state: pair,
               onShow: () => setState(() => _mode = _ExchangeMode.showing),
               onScan: () => setState(() => _mode = _ExchangeMode.scanning),
+              onPaste: _debugPairing
+                  ? () => setState(() => _mode = _ExchangeMode.pasting)
+                  : null,
             ),
           _ExchangeMode.showing => _ShowingPane(
               state: pair,
@@ -89,6 +100,18 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
                 setState(() => _mode = _ExchangeMode.overview);
               },
             ),
+          _ExchangeMode.pasting => _PastingPane(
+              state: pair,
+              onCancel: () => setState(() => _mode = _ExchangeMode.overview),
+              onSubmit: (payload) async {
+                final notifier = ref.read(pairingControllerProvider.notifier);
+                final key = PairingCodec.decodePublicKey(payload);
+                await notifier.recordTheirPublicKey(key);
+                notifier.markQrShown();
+                if (!mounted) return;
+                setState(() => _mode = _ExchangeMode.overview);
+              },
+            ),
         },
       ),
     );
@@ -100,11 +123,13 @@ class _OverviewPane extends StatelessWidget {
     required this.state,
     required this.onShow,
     required this.onScan,
+    this.onPaste,
   });
 
   final PairingState state;
   final VoidCallback onShow;
   final VoidCallback onScan;
+  final VoidCallback? onPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +164,16 @@ class _OverviewPane extends StatelessWidget {
             done: state.hasScannedTheirKey,
             onTap: onScan,
           ),
+          if (onPaste != null) ...<Widget>[
+            const SizedBox(height: 16),
+            _StepCard(
+              index: 3,
+              title: 'Paste string (dev)',
+              subtitle: 'Two-emulator testing only. Bypasses the camera.',
+              done: state.exchangeComplete,
+              onTap: state.ourKeyPair == null ? null : onPaste,
+            ),
+          ],
           const Spacer(),
           if (state.error != null)
             Container(
@@ -439,6 +474,146 @@ class _PermissionDeniedPane extends StatelessWidget {
             label: 'Back',
             icon: Icons.arrow_back,
             onPressed: onCancel,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PastingPane extends StatefulWidget {
+  const _PastingPane({
+    required this.state,
+    required this.onCancel,
+    required this.onSubmit,
+  });
+
+  final PairingState state;
+  final VoidCallback onCancel;
+  final Future<void> Function(String payload) onSubmit;
+
+  @override
+  State<_PastingPane> createState() => _PastingPaneState();
+}
+
+class _PastingPaneState extends State<_PastingPane> {
+  final TextEditingController _controller = TextEditingController();
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_busy) return;
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = 'Paste the other device’s pairing string.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.onSubmit(text);
+    } on FormatException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _busy = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ours = widget.state.ourKeyPair;
+    if (ours == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final textTheme = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+    final ourPayload = PairingCodec.encodePublicKey(ours.publicKey);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            'Dev: paste-exchange',
+            style: textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Copy the "Your string" value into the other emulator’s paste box, '
+            'then paste theirs below.',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Your string', style: textTheme.labelLarge),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SelectableText(
+              ourPayload,
+              style: textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: ourPayload));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Copied to clipboard'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Their string', style: textTheme.labelLarge),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _controller,
+            enabled: !_busy,
+            maxLines: 3,
+            minLines: 2,
+            style: textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: 'signet:p1:...',
+              errorText: _error,
+            ),
+          ),
+          const SizedBox(height: 20),
+          BigButton(
+            label: _busy ? 'Submitting…' : 'Submit',
+            icon: Icons.check,
+            onPressed: _busy ? null : _handleSubmit,
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _busy ? null : widget.onCancel,
+            child: const Text('Back'),
           ),
         ],
       ),

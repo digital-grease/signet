@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/crypto/pair_role.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets/big_button.dart';
@@ -18,12 +19,24 @@ class PairConfirmScreen extends ConsumerWidget {
     final pair = ref.read(pairingControllerProvider);
     final label = pair.label;
     final secret = pair.totpSecret;
-    if (label == null || secret == null) {
+    final ourPublicKey = pair.ourKeyPair?.publicKey;
+    final theirPublicKey = pair.theirPublicKey;
+    if (label == null ||
+        secret == null ||
+        ourPublicKey == null ||
+        theirPublicKey == null) {
       await _goBackWithError(context, 'Pairing state is incomplete.');
       return;
     }
     try {
-      final relationship = Relationship.fresh(label: label);
+      // Pin the per-device role from the public-key ordering — both sides
+      // compute the same assignment independently. This is what makes the
+      // rotating verify code asymmetric and defeats reflection attacks.
+      final role = PairRole.assign(
+        ourPublicKey: ourPublicKey,
+        theirPublicKey: theirPublicKey,
+      );
+      final relationship = Relationship.fresh(label: label, role: role);
       final store = ref.read(secureStoreProvider);
       await store.saveRelationship(relationship, sharedSecret: secret);
       ref.read(pairingControllerProvider.notifier).reset();

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/features/pairing/pair_confirm_screen.dart';
 import 'package:signet/features/pairing/pair_start_screen.dart';
@@ -151,11 +152,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Snapshot the two public keys before commit so we can compute the
+      // expected role independently.
+      final preCommitState = container.read(pairingControllerProvider);
+      final ourPub = preCommitState.ourKeyPair!.publicKey;
+      final theirPub = preCommitState.theirPublicKey!;
+      final expectedRole = PairRole.assign(
+        ourPublicKey: ourPub,
+        theirPublicKey: theirPub,
+      );
+
       await tester.tap(find.widgetWithText(FilledButton, 'It matches'));
       await tester.pumpAndSettle();
 
       expect(await store.hasRelationship(), isTrue);
-      expect((await store.getRelationship())!.label, 'Mom');
+      final saved = await store.getRelationship();
+      expect(saved!.label, 'Mom');
+      expect(
+        saved.role,
+        expectedRole,
+        reason:
+            'commit must store the role derived from lexicographic compare '
+            'of the two X25519 public keys (reflection-attack defense)',
+      );
       expect(find.text('HOME'), findsOneWidget);
       // Controller should be reset for the next pairing.
       expect(container.read(pairingControllerProvider).label, isNull);

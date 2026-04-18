@@ -23,6 +23,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/storage/secure_store.dart';
 
@@ -46,6 +47,7 @@ void main() {
       id: sentinelId,
       label: sentinelLabel,
       pairedAt: DateTime.utc(2026, 4, 18, 5, 42),
+      role: PairRole.a,
     );
 
     await store.saveRelationship(

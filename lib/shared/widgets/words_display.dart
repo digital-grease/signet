@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 
-/// Massive, high-contrast display of the current 8-digit TOTP code,
+/// Massive, high-contrast display of the current 4-word rotating TOTP code,
 /// with a linear countdown bar for the remaining seconds in the window.
 ///
-/// Digits are shown as two groups of four ("1234 5678") to make them
-/// easier to read aloud and harder to mis-hear over a phone call.
-/// On tap the parent's [onTap] fires (typical action: copy to clipboard
-/// + snackbar).
-class CodeDisplay extends StatelessWidget {
-  const CodeDisplay({
+/// Words are shown stacked (one per line, large typographic weight) so they
+/// can be read aloud cleanly over a voice call and scanned at a glance by a
+/// reader who isn't holding the phone right up to their face. The countdown
+/// bar turns red in the final 5 seconds so the speaker knows to hurry or
+/// wait for the next window.
+class WordsDisplay extends StatelessWidget {
+  const WordsDisplay({
     super.key,
-    required this.code,
+    required this.words,
     required this.secondsRemaining,
     required this.windowSeconds,
     this.onTap,
   });
 
-  final String code;
+  final List<String> words;
   final int secondsRemaining;
   final int windowSeconds;
   final VoidCallback? onTap;
@@ -24,15 +25,18 @@ class CodeDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final progress = windowSeconds == 0
         ? 0.0
         : (secondsRemaining / windowSeconds).clamp(0.0, 1.0);
 
-    final displayCode = code.length == 8 ? '${code.substring(0, 4)} ${code.substring(4)}' : code;
+    final semanticsWords = words.join(' ');
 
     return Semantics(
-      label: 'Verification code $code, $secondsRemaining seconds remaining',
+      label: 'Verification phrase: $semanticsWords, '
+          '$secondsRemaining seconds remaining',
       button: onTap != null,
+      excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -41,21 +45,22 @@ class CodeDisplay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  displayCode,
-                  style: TextStyle(
-                    fontSize: 72,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace',
-                    fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-                    letterSpacing: 2,
-                    color: colors.onSurface,
+              for (final word in words)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      word,
+                      style: textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1,
+                        color: colors.onSurface,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
@@ -70,9 +75,9 @@ class CodeDisplay extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 '$secondsRemaining s',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ),

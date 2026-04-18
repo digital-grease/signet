@@ -2,7 +2,7 @@
 
 Cryptographic multi-factor authentication for **human relationships**, not accounts.
 
-When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her. Each paired contact generates a rotating 8-digit code that only the real person's phone can produce. Works over any channel — voice call, video call, text, email, in person.
+When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her. Each paired contact generates a rotating 4-word phrase that only the real person's phone can produce; you ask her to read her phrase aloud and type what you hear. Works over any channel — voice call, video call, text, email, in person.
 
 The threat: voice and video deepfakes targeting families for financial fraud; vishing attacks that use scraped biographical data to impersonate people you know. The defense: a shared secret that was seeded device-to-device in person, and that no amount of AI voice cloning can recover.
 
@@ -14,9 +14,17 @@ Built on Flutter for future cross-platform support; iOS is generated but not tes
 
 ## How it works
 
-Two phones pair in person by exchanging QR codes containing ephemeral X25519 public keys. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word phrase derived from that secret — a visual confirmation that the pairing wasn't intercepted. Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to produce 8-digit RFC 6238 TOTP codes with a 30-second window.
+Two phones pair in person by exchanging QR codes containing ephemeral X25519 public keys. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word confirmation phrase derived from that secret — a visual check that the pairing wasn't intercepted. Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to generate a **rotating 4 BIP-39 words every 30 seconds** (HKDF-SHA-256, domain-separated from the pair-time phrase, ±1 window tolerance for clock drift).
 
-To verify a caller later: open Signet, tap the contact, ask them to read their current code aloud, compare to yours. Match means authentic. Mismatch means hang up.
+To verify a caller later: open Signet, tap the contact, ask them to read their 4 current words aloud. Type what you hear into the 4-slot input (BIP-39 autocomplete: two letters narrows to a chip you can tap). ✅ green banner = verified, ❌ red banner = not verified. On ❌ the input clears and you can retry immediately.
+
+### Why words, not digits?
+
+The original design called for an 8-digit TOTP code, but 8 digits don't survive a stressed voice channel — "74" vs. "47" under a bad connection is how grandma gets scammed. BIP-39 was specifically designed to transfer high-entropy secrets cleanly over voice (4 words ≈ 44 bits vs. ~27 for 8 digits, and the words are phonetically distinct by construction). Using the same wordlist we already embed for pair-time verification gives Signet a coherent visual/verbal language and makes the ±1 window tolerance do real work via a binary ✅/❌ instead of eyeball-comparing two 8-digit strings.
+
+### Why the two sides see *different* words
+
+A naïve rotating-code design would give both paired devices the same 4 words each window — but then an attacker can say *"grandma, before we talk, read me your words so I know it's really you,"* parrot them back, and pass the verify. Signet binds each rotating code to a direction: at pair time each device independently derives a role (`a` or `b`) from the byte-lexicographic ordering of the two X25519 public keys. The HKDF info string is role-suffixed, so the A→B words and the B→A words for any given window are different. "Show my 4 words" renders your role; the verify input checks against the *other* role. Reflecting the verifier's own displayed words back fails immediately. See `lib/core/crypto/pair_role.dart` and the reflection-attack test in `test/crypto/totp_words_test.dart`.
 
 ### Properties
 
@@ -24,7 +32,7 @@ To verify a caller later: open Signet, tap the contact, ask them to read their c
 - **No telemetry, no analytics, no ads.** This is a trust product. Not now, not ever.
 - **Hardware-backed secrets.** Shared secrets are held in Android Keystore behind AES-GCM, StrongBox-backed on devices that support it.
 - **Offline by construction.** Airplane mode does not affect any flow.
-- **RFC-validated crypto.** TOTP against [RFC 6238 Appendix B](https://www.rfc-editor.org/rfc/rfc6238#appendix-B) (SHA-256 variant); X25519 against [RFC 7748 §6.1](https://www.rfc-editor.org/rfc/rfc7748#section-6.1). All 10 reference vectors pass.
+- **RFC-validated crypto.** X25519 against [RFC 7748 §6.1](https://www.rfc-editor.org/rfc/rfc7748#section-6.1); 8-digit RFC-6238 TOTP against [RFC 6238 Appendix B](https://www.rfc-editor.org/rfc/rfc6238#appendix-B) (SHA-256 variant, retained as a reference implementation); HKDF-SHA-256 via the audited [`cryptography`](https://pub.dev/packages/cryptography) package. BIP-39 wordlist embedded in-tree. All reference vectors pass.
 
 ## Building
 
@@ -86,7 +94,7 @@ lib/
 ├── features/
 │   ├── home/              # home screen — empty or paired
 │   ├── pairing/           # start / exchange (show+scan) / confirm
-│   └── verify/            # live TOTP code display
+│   └── verify/            # type-and-verify input + show-my-words fallback
 └── shared/widgets/        # BigButton, CodeDisplay
 ```
 
@@ -130,7 +138,7 @@ Ordered roughly by shipping impact.
 ### v0.1 (this release)
 
 - In-person QR pairing (two scans, symmetric flow)
-- TOTP-style verification display
+- 4-BIP-39-words type-and-verify with ±1 window tolerance + show-my-own-words fallback
 - Hardware-backed secure storage
 - One relationship per device
 
@@ -168,7 +176,7 @@ Ordered roughly by shipping impact.
 
 Before any real-world distribution, validate on physical hardware:
 
-1. **Full two-device pair + verify roundtrip.** Use two Android 9+ phones. Both should derive identical 4-word phrases and identical 8-digit codes.
+1. **Full two-device pair + verify roundtrip.** Use two Android 9+ phones. Both should derive identical 4-word pair-time phrases; on the Verify screen, typing one phone's current 4 rotating words into the other's 4-slot input should produce a ✅ banner.
 2. **Inspect `/data/data/dev.signet.app/shared_prefs/`** after pairing. Confirm the shared secret never appears in plaintext.
 3. **Accessibility:** complete the pair flow using only TalkBack (screen reader).
 4. **Large text:** set the system font size to max; re-walk the paired state, Verify screen, and Pair-confirm screen (these were not reachable during v0.1 emulator-only QA).

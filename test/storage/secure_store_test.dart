@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/storage/secure_store.dart';
 
@@ -16,7 +17,6 @@ void main() {
     mockStorage = _MockStorage();
     store = SecureStore(storage: mockStorage);
 
-    // Default behavior: delete is a no-op, reads return null unless stubbed.
     when(() => mockStorage.delete(key: any(named: 'key')))
         .thenAnswer((_) async {});
     when(() => mockStorage.write(
@@ -29,6 +29,7 @@ void main() {
     id: 'abc123',
     label: 'Mom',
     pairedAt: DateTime.utc(2026, 4, 16, 12),
+    role: PairRole.a,
   );
   final sharedSecret = List<int>.generate(32, (i) => i);
 
@@ -47,7 +48,8 @@ void main() {
   });
 
   group('saveRelationship', () {
-    test('clears prior slot, writes secret, then writes relationship', () async {
+    test('clears prior slot, writes secret, then writes relationship',
+        () async {
       await store.saveRelationship(relationship, sharedSecret: sharedSecret);
 
       verifyInOrder([
@@ -75,7 +77,8 @@ void main() {
           ));
     });
 
-    test('never persists the shared secret on the relationship metadata', () async {
+    test('never persists the shared secret on the relationship metadata',
+        () async {
       await store.saveRelationship(relationship, sharedSecret: sharedSecret);
       final metadataCall = verify(() => mockStorage.write(
             key: 'signet.v1.relationship',
@@ -83,9 +86,7 @@ void main() {
           ))
         ..called(1);
       final written = metadataCall.captured.single as String;
-      // The base64-encoded secret must not appear in the metadata blob.
       expect(written.contains(base64Encode(sharedSecret)), isFalse);
-      // Nor should the raw bytes leak via any encoding.
       expect(written.contains('shared_secret'), isFalse);
     });
   });
@@ -102,6 +103,38 @@ void main() {
           .thenAnswer((_) async => relationship.toJson());
       expect(await store.getRelationship(), equals(relationship));
     });
+
+    test(
+      'wipes both slots and returns null when the stored blob is pre-Phase-8 '
+      '(no role field)',
+      () async {
+        const legacy =
+            '{"id":"abc","label":"Mom","pairedAtMs":1776000000000}';
+        when(() => mockStorage.read(key: 'signet.v1.relationship'))
+            .thenAnswer((_) async => legacy);
+        expect(await store.getRelationship(), isNull);
+        verify(() => mockStorage.delete(key: 'signet.v1.relationship'))
+            .called(1);
+        verify(() => mockStorage.delete(key: 'signet.v1.shared_secret'))
+            .called(1);
+      },
+    );
+
+    test(
+      'wipes both slots and returns null when the stored blob has an '
+      'unknown role wire name',
+      () async {
+        const bad =
+            '{"id":"abc","label":"Mom","pairedAtMs":1776000000000,"role":"c"}';
+        when(() => mockStorage.read(key: 'signet.v1.relationship'))
+            .thenAnswer((_) async => bad);
+        expect(await store.getRelationship(), isNull);
+        verify(() => mockStorage.delete(key: 'signet.v1.relationship'))
+            .called(1);
+        verify(() => mockStorage.delete(key: 'signet.v1.shared_secret'))
+            .called(1);
+      },
+    );
   });
 
   group('getSharedSecret', () {
@@ -123,8 +156,10 @@ void main() {
   group('deleteRelationship', () {
     test('deletes both metadata and shared-secret slots', () async {
       await store.deleteRelationship();
-      verify(() => mockStorage.delete(key: 'signet.v1.relationship')).called(1);
-      verify(() => mockStorage.delete(key: 'signet.v1.shared_secret')).called(1);
+      verify(() => mockStorage.delete(key: 'signet.v1.relationship'))
+          .called(1);
+      verify(() => mockStorage.delete(key: 'signet.v1.shared_secret'))
+          .called(1);
     });
   });
 }

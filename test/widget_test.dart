@@ -16,7 +16,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Signet'), findsOneWidget);
-    expect(find.text("You haven't paired with anyone yet."), findsOneWidget);
+    expect(find.text('SIGNET'), findsOneWidget);
+    expect(find.text('Nothing paired yet.'), findsOneWidget);
   });
 }

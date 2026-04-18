@@ -74,10 +74,24 @@ class SecureStore {
   }
 
   /// Read the currently paired relationship, if any.
+  ///
+  /// If the stored blob can't be parsed (e.g. it was written by a
+  /// pre-Phase-8 build that doesn't include the `role` field, or it's
+  /// otherwise corrupt), we atomically wipe both slots and return null
+  /// so the app falls back to the empty-home state and the user can
+  /// repair. Pre-alpha, no migration story beyond that.
   Future<Relationship?> getRelationship() async {
     final raw = await _storage.read(key: _keyRelationship);
     if (raw == null) return null;
-    return Relationship.fromJson(raw);
+    try {
+      return Relationship.fromJson(raw);
+    } on FormatException {
+      await deleteRelationship();
+      return null;
+    } on TypeError {
+      await deleteRelationship();
+      return null;
+    }
   }
 
   /// Read the shared secret for the currently paired relationship, if any.

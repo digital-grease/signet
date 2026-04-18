@@ -18,6 +18,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../core/crypto/pair_role.dart';
 import '../core/models/relationship.dart';
 import '../core/storage/secure_store.dart';
 
@@ -58,6 +59,7 @@ class _HarnessAppState extends State<_HarnessApp> {
           id: sentinelId,
           label: sentinelLabel,
           pairedAt: DateTime.utc(2026, 4, 18, 5, 42),
+          role: PairRole.a,
         ),
         sharedSecret: sentinelSecret,
       );

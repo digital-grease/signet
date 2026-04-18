@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/theme/signet_theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/pairing/pair_confirm_screen.dart';
 import 'features/pairing/pair_exchange_screen.dart';
 import 'features/pairing/pair_start_screen.dart';
 import 'features/verify/verify_screen.dart';
 
-/// Root widget. Keeps `main.dart` tiny — all theming and routing live here.
+/// Root widget. Keeps `main.dart` tiny — all routing lives here; the theme
+/// lives in `core/theme/signet_theme.dart`.
 ///
-/// Theming: Material 3 with a distinct seed. Light and dark variants
-/// follow the system setting. Text scaling is explicitly _not_ capped,
-/// so the OS-level "Large text" accessibility setting takes effect.
+/// Theme mode follows the system setting. Text scaling is deliberately not
+/// capped, so the OS-level "Large text" accessibility setting takes effect.
 class SignetApp extends StatelessWidget {
   SignetApp({super.key});
 
@@ -34,27 +35,12 @@ class SignetApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFF2B3F87);
     return MaterialApp.router(
       title: 'Signet',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        visualDensity: VisualDensity.comfortable,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        visualDensity: VisualDensity.comfortable,
-      ),
+      theme: signetTheme(dark: false),
+      darkTheme: signetTheme(dark: true),
       routerConfig: _router,
     );
   }
