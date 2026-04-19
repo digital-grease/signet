@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual trigger (useful when debugging CI itself without a commit).
+  workflow_dispatch:
+
+# A single in-flight CI run per ref is plenty; cancel older queued runs
+# on the same branch when a new commit lands.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin Flutter to the version we develop against. Bump explicitly when
+  # upgrading locally so "works on my machine" matches "works in CI".
+  FLUTTER_VERSION: 3.41.6
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  analyze-and-test:
+    name: Analyze + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Report versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Static analysis
+        # `flutter analyze` exits non-zero on info/warning/error. Project
+        # lint config (analysis_options.yaml) is strict by design.
+        run: flutter analyze
+
+      - name: Run tests with coverage
+        run: flutter test --coverage --reporter expanded
+
+      - name: Upload coverage artifact
+        # Coverage report is consumed locally / by downstream tooling;
+        # we don't push it to codecov because that would add a network
+        # dependency in the CI path that didn't exist before.
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 14
+          if-no-files-found: warn

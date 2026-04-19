@@ -1,0 +1,110 @@
+name: iOS Build
+
+# iOS builds cost 10× the runner-minute multiplier on private repos, so
+# we only run them on `main` and release tags — not every PR. A
+# workflow_dispatch trigger is available for on-demand runs when
+# debugging iOS-specific work on a feature branch.
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.41.6
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  build-ios:
+    name: iOS build (unsigned)
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/.cocoapods/repos
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-
+
+      - name: Report versions
+        run: |
+          flutter --version
+          pod --version
+          xcodebuild -version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Pre-fetch iOS plugin pods
+        # `flutter build ios` runs pod install internally, but doing it
+        # explicitly gives better cache hit ratios and clearer error
+        # messages when a plugin's podspec breaks.
+        working-directory: ios
+        run: |
+          pod install --verbose || {
+            echo "::warning::pod install failed on first attempt; trying --repo-update"
+            pod repo update
+            pod install
+          }
+
+      - name: Build iOS (release, no code signing)
+        # `--no-codesign` builds the `.app` bundle but skips the
+        # code-signing + IPA-packaging step that requires an Apple
+        # Developer Program membership. A signed IPA for TestFlight /
+        # App Store is a post-v1.0 concern; this workflow only proves
+        # the iOS toolchain compiles our source.
+        run: flutter build ios --release --no-codesign
+
+      - name: Package .app as zip
+        run: |
+          cd build/ios/iphoneos
+          if [ ! -d Runner.app ]; then
+            echo "::error::Runner.app not produced by build"
+            exit 1
+          fi
+          zip -qr Runner.app.zip Runner.app
+          sha=$(sha256sum Runner.app.zip | awk '{print $1}')
+          echo "$sha  Runner.app.zip" > Runner.app.zip.sha256
+          echo "iOS Runner.app.zip SHA-256: $sha"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+        id: package
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: signet-ios-${{ github.ref_name }}-${{ github.sha }}
+          path: |
+            build/ios/iphoneos/Runner.app.zip
+            build/ios/iphoneos/Runner.app.zip.sha256
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summarize build
+        run: |
+          {
+            echo "### iOS build (unsigned)"
+            echo ""
+            echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Runner.app.zip SHA-256: \`${{ steps.package.outputs.sha256 }}\`"
+            echo "- Signing: **none** — for compile-verification only"
+          } >> "$GITHUB_STEP_SUMMARY"

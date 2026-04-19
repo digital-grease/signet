@@ -1,5 +1,9 @@
 # Signet
 
+[![CI](https://github.com/digital-grease/signet/actions/workflows/ci.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/ci.yml)
+[![Android Build](https://github.com/digital-grease/signet/actions/workflows/android-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/android-build.yml)
+[![iOS Build](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml)
+
 Cryptographic multi-factor authentication for **human relationships**, not accounts.
 
 When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her. Each paired contact generates a rotating 4-word phrase that only the real person's phone can produce; you ask her to read her phrase aloud and type what you hear. Works over any channel — voice call, video call, text, email, in person.

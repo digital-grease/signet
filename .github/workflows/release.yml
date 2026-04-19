@@ -1,0 +1,269 @@
+name: Release
+
+# Fires only on version tags matching `v<major>.<minor>.<patch>` (with
+# optional pre-release suffix like `-alpha.1`). Pushing a tag triggers
+# a signed Android APK build + unsigned iOS .app build, then creates a
+# GitHub Release with both artifacts + SHA-256 checksums.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#
+#   ANDROID_KEYSTORE_BASE64  — base64-encoded contents of your
+#                              production .jks file. Generate once:
+#                                base64 -w0 ~/keystores/signet-release.jks
+#                              Paste the output as the secret value.
+#   ANDROID_KEYSTORE_PASSWORD — the `-storepass` used when running keytool.
+#   ANDROID_KEY_ALIAS         — the `-alias` used when running keytool
+#                               (e.g. `signet`).
+#   ANDROID_KEY_PASSWORD      — the `-keypass` if different from
+#                               storepass; otherwise same as storepass.
+#
+# See docs/RELEASE.md (Task 12.16) for the full keystore generation
+# + secret-setup + release-tagging playbook.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+# One release build per tag; cancel stale dispatches against the same
+# ref. Intentionally aggressive — we don't want two concurrent signed
+# builds publishing competing artifacts to the same Release.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.41.6
+  FLUTTER_CHANNEL: stable
+  JAVA_VERSION: 17
+
+jobs:
+  build-android:
+    name: Signed Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      apk-sha256: ${{ steps.checksum.outputs.sha256 }}
+
+    steps:
+      - name: Checkout (full history for changelog)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Stage keystore + key.properties from secrets
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::error::One or more release-signing secrets are unset."
+            echo "::error::Set ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD."
+            echo "::error::See .github/workflows/release.yml comment header for the recipe."
+            exit 1
+          fi
+          # Write decoded keystore into the Android source tree. key.properties
+          # points at this absolute path. Both files are removed in a
+          # cleanup step below so they never persist in a cached layer.
+          echo "$KS_B64" | base64 -d > "$GITHUB_WORKSPACE/android/release.jks"
+          cat > "$GITHUB_WORKSPACE/android/key.properties" <<EOF
+          storeFile=$GITHUB_WORKSPACE/android/release.jks
+          storePassword=$KS_PASS
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASS
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build signed release APK
+        run: flutter build apk --release
+
+      - name: Verify signature is NOT debug
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          cert=$(keytool -printcert -jarfile "$apk" | head -5)
+          echo "$cert"
+          if echo "$cert" | grep -qi "CN=Android Debug"; then
+            echo "::error::APK was signed with the Android debug key."
+            echo "::error::Production signing did not apply — check your key.properties wiring."
+            exit 1
+          fi
+
+      - name: Compute APK SHA-256
+        id: checksum
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          sha=$(sha256sum "$apk" | awk '{print $1}')
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "$sha  signet-${{ github.ref_name }}.apk" > "$apk.sha256"
+
+      - name: Rename APK with tag
+        id: rename
+        run: |
+          src=build/app/outputs/flutter-apk/app-release.apk
+          dst=build/app/outputs/flutter-apk/signet-${{ github.ref_name }}.apk
+          mv "$src" "$dst"
+          mv "$src.sha256" "$dst.sha256"
+          echo "apk-path=$dst" >> "$GITHUB_OUTPUT"
+          echo "sha-path=$dst.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ github.ref_name }}
+          path: |
+            ${{ steps.rename.outputs.apk-path }}
+            ${{ steps.rename.outputs.sha-path }}
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Wipe keystore from workspace
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE/android/release.jks"
+          rm -f "$GITHUB_WORKSPACE/android/key.properties"
+
+  build-ios:
+    name: iOS unsigned
+    runs-on: macos-latest
+    timeout-minutes: 40
+    outputs:
+      ios-sha256: ${{ steps.package.outputs.sha256 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/.cocoapods/repos
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Pod install
+        working-directory: ios
+        run: pod install --verbose || { pod repo update && pod install; }
+
+      - name: Build iOS unsigned
+        run: flutter build ios --release --no-codesign
+
+      - name: Package .app as zip
+        id: package
+        run: |
+          cd build/ios/iphoneos
+          zip -qr Runner.app.zip Runner.app
+          sha=$(sha256sum Runner.app.zip | awk '{print $1}')
+          mv Runner.app.zip signet-ios-${{ github.ref_name }}.zip
+          echo "$sha  signet-ios-${{ github.ref_name }}.zip" > signet-ios-${{ github.ref_name }}.zip.sha256
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-${{ github.ref_name }}
+          path: |
+            build/ios/iphoneos/signet-ios-${{ github.ref_name }}.zip
+            build/ios/iphoneos/signet-ios-${{ github.ref_name }}.zip.sha256
+          retention-days: 90
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # `softprops/action-gh-release` writes to the Releases API — the
+      # default GITHUB_TOKEN needs explicit `contents: write` scope.
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-${{ github.ref_name }}
+          path: release-android
+
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-${{ github.ref_name }}
+          path: release-ios
+
+      - name: Assemble release body
+        id: body
+        run: |
+          tag="${{ github.ref_name }}"
+          {
+            echo "## Signet $tag"
+            echo ""
+            echo "| Artifact | SHA-256 |"
+            echo "|----------|---------|"
+            echo "| \`signet-$tag.apk\` | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
+            echo "| \`signet-ios-$tag.zip\` | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
+            echo ""
+            echo "### Verify"
+            echo ""
+            echo '```sh'
+            echo "sha256sum -c signet-$tag.apk.sha256"
+            echo "sha256sum -c signet-ios-$tag.zip.sha256"
+            echo '```'
+            echo ""
+            echo "### Signing"
+            echo ""
+            echo "- **Android APK** — signed with the production upload key."
+            echo "- **iOS .app.zip** — **unsigned** (for verification only; not installable without re-signing under your Apple Developer account)."
+            echo ""
+            echo "### Notes"
+            echo ""
+            echo "Tag message:"
+            echo ""
+            echo '```'
+            git tag -l --format='%(contents)' "$tag" || true
+            echo '```'
+          } > RELEASE_BODY.md
+          echo "path=$PWD/RELEASE_BODY.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Signet ${{ github.ref_name }}
+          body_path: ${{ steps.body.outputs.path }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            release-android/*
+            release-ios/*
+          fail_on_unmatched_files: true

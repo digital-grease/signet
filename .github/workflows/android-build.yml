@@ -1,0 +1,106 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.41.6
+  FLUTTER_CHANNEL: stable
+  # Android toolchain target — matches the JavaVersion in
+  # android/app/build.gradle.kts.
+  JAVA_VERSION: 17
+
+jobs:
+  build-apk:
+    name: Release APK (debug-signed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          # First-run Gradle downloads + NDK cache eat ~30 min; cached
+          # runs land in ~3 min. Keyed on build.gradle.kts so edits to
+          # Android deps invalidate cleanly.
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Report versions
+        run: |
+          flutter --version
+          java -version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        # No android/key.properties present → build.gradle.kts falls
+        # back to debug signing. Production signing secrets are set up
+        # in .github/workflows/release.yml (Task 12.4). APKs produced
+        # here are for CI verification only; do NOT distribute.
+        run: flutter build apk --release
+
+      - name: Compute APK SHA-256
+        id: checksum
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          if [ ! -f "$apk" ]; then
+            echo "::error::APK not found at $apk"
+            exit 1
+          fi
+          sha=$(sha256sum "$apk" | awk '{print $1}')
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "$sha  app-release.apk" > build/app/outputs/flutter-apk/app-release.apk.sha256
+          echo "APK SHA-256: $sha"
+
+      - name: Upload APK + checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: signet-android-${{ github.ref_name }}-${{ github.sha }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-release.apk.sha256
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summarize build
+        run: |
+          {
+            echo "### Android build"
+            echo ""
+            echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- APK SHA-256: \`${{ steps.checksum.outputs.sha256 }}\`"
+            echo "- Signing: debug key (not distributable)"
+          } >> "$GITHUB_STEP_SUMMARY"
