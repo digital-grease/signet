@@ -309,6 +309,59 @@ void main() {
     });
 
     testWidgets(
+      '❌ banner exposes WHAT SHOULD I DO action that opens guidance modal',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const bogus = <String>['orange', 'anchor', 'abandon', 'ability'];
+        await _enterWords(tester, bogus);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+
+        await tester.ensureVisible(find.text('WHAT SHOULD I DO?'));
+        await tester.tap(find.text('WHAT SHOULD I DO?'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('IF VERIFY FAILS //'), findsOneWidget);
+        expect(find.text('Something is wrong with this call.'),
+            findsOneWidget);
+        expect(find.textContaining('Hang up'), findsOneWidget);
+        expect(find.textContaining('Call Mom back on a number'),
+            findsOneWidget);
+        expect(find.text('GOT IT'), findsOneWidget);
+        // Dismiss is standard Material sheet behavior (tap outside /
+        // drag / back button); exercising it in widget-test is a
+        // rabbit hole of viewport-vs-sheet-gesture timing that isn't
+        // carrying meaningful coverage. Trust the framework.
+      },
+    );
+
+    testWidgets(
+      '✅ banner does not show WHAT SHOULD I DO action',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final legit = await _currentWordsFromMom();
+        await _enterWords(tester, legit);
+        await tester.pumpAndSettle();
+        expect(find.text('VERIFIED'), findsOneWidget);
+        expect(find.text('WHAT SHOULD I DO?'), findsNothing);
+      },
+    );
+
+    testWidgets(
       'silentHaptics=true suppresses HapticFeedback on both ✅ and ❌',
       (tester) async {
         final calls = <MethodCall>[];

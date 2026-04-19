@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'core/prefs/app_prefs.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // cryptography_flutter auto-registers itself as Cryptography.instance at
   // plugin-init time and routes HMAC (and thus HKDF) through a platform
@@ -15,5 +16,6 @@ void main() {
   // 32-byte HMACs per pair + one per TOTP tick). Pin the pure-Dart impl.
   // This also matches the project's pinned crypto-is-pure-Dart convention.
   Cryptography.instance = DartCryptography.defaultInstance;
-  runApp(ProviderScope(child: SignetApp()));
+  final prefs = await AppPrefs.load();
+  runApp(ProviderScope(child: SignetApp(prefs: prefs)));
 }

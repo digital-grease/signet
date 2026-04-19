@@ -156,7 +156,26 @@ class HomeScreen extends ConsumerWidget {
     final relationshipAsync = ref.watch(relationshipProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SIGNET')),
+      appBar: AppBar(
+        title: const Text('SIGNET'),
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'intro') {
+                context.go('/onboarding');
+              }
+            },
+            itemBuilder: (context) => const <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'intro',
+                child: Text('Show intro again'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),

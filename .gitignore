@@ -40,6 +40,11 @@ render.experimental.xml
 *.jks
 *.keystore
 
+# Release signing credentials (real keystore file is gitignored via *.jks
+# above; this file holds the passwords to unlock it). Template committed
+# as android/key.properties.example.
+android/key.properties
+
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 

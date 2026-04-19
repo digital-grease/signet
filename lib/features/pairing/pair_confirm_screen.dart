@@ -45,7 +45,11 @@ class PairConfirmScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Paired with $label.')),
       );
-      context.go('/');
+      // Route to /pair/complete instead of /. That screen nudges the user
+      // to do a practice verify while both phones are still in the same
+      // room. One-way ticket — after the user taps VERIFY or SKIP there,
+      // subsequent launches land directly on /.
+      context.go('/pair/complete');
     } catch (error) {
       if (!context.mounted) return;
       await _goBackWithError(context, 'Could not save: $error');

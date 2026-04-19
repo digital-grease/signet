@@ -1,0 +1,32 @@
+# Production release-signing credentials. Copy this file to
+# `android/key.properties` (gitignored) and fill in with your real values
+# BEFORE running `flutter build apk --release` if you want the output
+# signed with your production keystore. If `android/key.properties` is
+# absent, release builds fall back to the debug signing config — fine
+# for local `flutter run --release` but **never distribute those APKs**.
+#
+# To generate a new keystore (one-time; back it up somewhere safe):
+#
+#   keytool -genkey -v \
+#     -keystore ~/keystores/signet-release.jks \
+#     -keyalg RSA -keysize 4096 -validity 10000 \
+#     -alias signet
+#
+# Then copy this file to `android/key.properties` and fill in:
+#
+#   storeFile=/absolute/path/to/signet-release.jks
+#   storePassword=<your store password>
+#   keyAlias=signet
+#   keyPassword=<your key password>
+#
+# WARNING: losing this keystore means you can never ship an update that
+# users can install-over-top of an existing install. Back it up. Print
+# the password. Store the keystore on offline media in at least two
+# locations. The Play Store now supports Play App Signing which takes
+# upload-key rotation pressure off — enroll there if you distribute
+# via Play.
+
+storeFile=
+storePassword=
+keyAlias=
+keyPassword=

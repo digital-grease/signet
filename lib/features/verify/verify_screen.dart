@@ -248,7 +248,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           ),
           const SizedBox(height: 20),
           if (_lastResult != null) ...<Widget>[
-            _ResultBanner(result: _lastResult!),
+            _ResultBanner(
+              result: _lastResult!,
+              relationshipLabel: relationship.label,
+            ),
             const SizedBox(height: 20),
           ],
           const _SectionHeader('INPUT'),
@@ -284,9 +287,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
 }
 
 class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.result});
+  const _ResultBanner({required this.result, required this.relationshipLabel});
 
   final _VerifyResult result;
+  final String relationshipLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -353,9 +357,144 @@ class _ResultBanner extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
+              if (!isOk) ...<Widget>[
+                const SizedBox(height: 12),
+                Builder(builder: (ctx) {
+                  return OutlinedButton(
+                    onPressed: () => _showEducation(ctx, relationshipLabel),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: accent,
+                      side: BorderSide(color: accent, width: 1),
+                    ),
+                    child: const Text('WHAT SHOULD I DO?'),
+                  );
+                }),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  static Future<void> _showEducation(
+    BuildContext context,
+    String label,
+  ) async {
+    final scheme = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'IF VERIFY FAILS //',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: scheme.error,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Something is wrong with this call.',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const _EduStep(
+                  number: '01',
+                  text: 'Hang up. Do not explain why. Do not argue. Do '
+                      "not agree to anything they're asking for.",
+                ),
+                _EduStep(
+                  number: '02',
+                  text: 'Call $label back on a number you have used '
+                      'before — saved in your contacts, written down, '
+                      'something you know. Do not use a number the '
+                      'caller gave you.',
+                ),
+                _EduStep(
+                  number: '03',
+                  text: 'If $label does not answer, call a family '
+                      'member or someone close who can physically '
+                      'check on them. A real $label will never be '
+                      'upset that you checked.',
+                ),
+                _EduStep(
+                  number: '04',
+                  text: 'If you are unsure whether Signet itself is '
+                      'broken: go to the home screen, tap '
+                      '"SHOW BINDING PHRASE", and compare with '
+                      '$label on a channel you trust. If the '
+                      'phrases match, Signet is working correctly '
+                      'and the red banner means the call was fake.',
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.of(sheetCtx).pop(),
+                  child: const Text('GOT IT'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EduStep extends StatelessWidget {
+  const _EduStep({required this.number, required this.text});
+  final String number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 36,
+            child: Text(
+              number,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: scheme.primary,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurface,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

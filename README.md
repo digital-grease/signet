@@ -32,7 +32,8 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 - **No telemetry, no analytics, no ads.** This is a trust product. Not now, not ever.
 - **Hardware-backed secrets.** Shared secrets are held in Android Keystore behind AES-GCM, StrongBox-backed on devices that support it.
 - **Offline by construction.** Airplane mode does not affect any flow.
-- **RFC-validated crypto.** X25519 against [RFC 7748 §6.1](https://www.rfc-editor.org/rfc/rfc7748#section-6.1); 8-digit RFC-6238 TOTP against [RFC 6238 Appendix B](https://www.rfc-editor.org/rfc/rfc6238#appendix-B) (SHA-256 variant, retained as a reference implementation); HKDF-SHA-256 via the audited [`cryptography`](https://pub.dev/packages/cryptography) package. BIP-39 wordlist embedded in-tree. All reference vectors pass.
+- **Role-asymmetric rotating code.** The two sides of a pair see *different* 4 words per window, bound to a per-device role derived at pair time. Reflecting the verifier's displayed words back fails by construction — see ["Why the two sides see different words"](#why-the-two-sides-see-different-words).
+- **RFC-validated crypto.** X25519 against [RFC 7748 §6.1](https://www.rfc-editor.org/rfc/rfc7748#section-6.1); HKDF-SHA-256 via the audited [`cryptography`](https://pub.dev/packages/cryptography) package. BIP-39 wordlist embedded in-tree. All reference vectors pass. The pure-Dart RFC-6238 TOTP implementation is retained in-tree as a reference (validated against [RFC 6238 Appendix B](https://www.rfc-editor.org/rfc/rfc6238#appendix-B) SHA-256 vectors) but not on any live code path — the rotating verifier is 4-word, not 8-digit.
 
 ## Building
 
@@ -67,7 +68,44 @@ First build downloads the Android Gradle Plugin and the NDK; subsequent builds a
 flutter build apk --release
 ```
 
-The APK lands at `build/app/outputs/flutter-apk/app-release.apk`. v0.1 is signed with the debug key; production signing is v1.0 work.
+The APK lands at `build/app/outputs/flutter-apk/app-release.apk`.
+
+**Signing:**
+
+If `android/key.properties` is absent, the release build falls back to the debug signing config. That's fine for `flutter run --release` locally, but **do not distribute debug-signed APKs** — other builds signed with a different debug key can't update-over-top, and the debug key is inherently not identifiable as yours.
+
+To produce a distributable release build:
+
+1. **Generate a keystore** (one time, back it up):
+
+   ```sh
+   keytool -genkey -v \
+     -keystore ~/keystores/signet-release.jks \
+     -keyalg RSA -keysize 4096 -validity 10000 \
+     -alias signet
+   ```
+
+2. **Copy the template and fill in your values:**
+
+   ```sh
+   cp android/key.properties.example android/key.properties
+   ```
+
+   Edit `android/key.properties` — `storeFile` is the absolute path to the `.jks` you just generated; the other fields match what you entered at `keytool` time. The file is gitignored; the example template is committed.
+
+3. **Build:**
+
+   ```sh
+   flutter build apk --release
+   ```
+
+4. **Verify the signature** (optional):
+
+   ```sh
+   keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
+   ```
+
+**Losing the keystore is catastrophic** — you will never again be able to ship an update that installs over an existing install. Back up the `.jks` file on offline media, store the passwords somewhere you can actually find them, and consider enrolling in Play App Signing when you distribute via Play (which takes upload-key rotation pressure off).
 
 ## Testing
 
@@ -87,15 +125,20 @@ lib/
 ├── main.dart              # entrypoint
 ├── app.dart               # MaterialApp + go_router
 ├── core/
-│   ├── crypto/            # pure-Dart TOTP, X25519 ECDH, 4-word phrase, BIP-39 wordlist
+│   ├── crypto/            # pure-Dart TOTP-words, X25519 ECDH, 4-word phrase,
+│   │                      # per-role derivation, BIP-39 wordlist
 │   ├── storage/           # flutter_secure_storage wrapper (single-slot for v0.1)
 │   ├── models/            # Relationship metadata (no secret on model)
+│   ├── prefs/             # non-secret app flags (onboarding, etc.)
+│   ├── theme/             # SignetTokens + signetTheme (operator language)
 │   └── providers.dart     # Riverpod wiring
 ├── features/
 │   ├── home/              # home screen — empty or paired
-│   ├── pairing/           # start / exchange (show+scan) / confirm
+│   ├── onboarding/        # first-run 3-slide walkthrough
+│   ├── pairing/           # start / exchange (show+scan) / confirm / complete
+│   ├── inspect/           # pair-time binding phrase re-check
 │   └── verify/            # type-and-verify input + show-my-words fallback
-└── shared/widgets/        # BigButton, CodeDisplay
+└── shared/widgets/        # BigButton, WordsDisplay, SecureScreen
 ```
 
 ## Security notes
@@ -138,28 +181,34 @@ Ordered roughly by shipping impact.
 ### v0.1 (this release)
 
 - In-person QR pairing (two scans, symmetric flow)
-- 4-BIP-39-words type-and-verify with ±1 window tolerance + show-my-own-words fallback
-- Hardware-backed secure storage
+- 4-BIP-39-words role-asymmetric type-and-verify with ±1 window tolerance + show-my-own-words fallback
+- Hardware-backed secure storage (AES-GCM on a RSA-OAEP-wrapped master key in Android Keystore, StrongBox when available)
 - One relationship per device
+- FLAG_SECURE on sensitive screens (blocks screenshots + recording + recent-apps thumbnail)
+- First-run onboarding + post-pair practice-verify nudge
+- Per-relationship silent-haptics toggle (for journalist / activist audience)
+- Unpair undo window; inline label editing; binding-phrase re-check; `WHAT SHOULD I DO?` education on ❌
 
-### v0.2
+### v0.2 — multi-peer + unified transport package
 
-- Multiple paired contacts
-- Challenge-response wordlist mode (for when the other party can speak but not produce a code)
-- Out-of-band pairing (send an encrypted pairing package via Signal / iMessage / email with a spoken password)
+- **Multiple paired contacts** with a real v1 → v2 storage migration (no wipe).
+- **Unified transport-package primitive** that services two use cases from one wire format:
+  - **Long-distance pairing** for journalists / activists / distributed teams: encrypted pairing package delivered over any channel the two parties already trust (paper courier, encrypted email, Signal attachment, prior-in-person fact). Uses a 6-word BIP-39 PAKE secret — *not* a spoken password over a fresh voice call, which would re-introduce the voice-channel threat Signet exists to defend against.
+  - **Lost-phone recovery** as "transport-to-self": export paper mnemonic, re-import on new device, pairing materializes with the original shared secret preserved. Covers the 2-3-year phone-lifecycle problem that otherwise forces repair-in-person every device change.
+- **In-person rekey** preserving `Relationship.id` + label but rotating the shared secret.
 
-### v0.3
+### v0.3 — liveness, recovery, local backup
 
-- Liveness prompts for video calls (hold up N fingers, say today's day)
-- Printed-paper recovery pairing
-- Same-device encrypted backup/restore
+- **Liveness prompts — prompt-only variant first.** App generates a random "hold up N fingers + say today's day" challenge; verifier reads it to the counterparty over video. Channel-agnostic, no camera pipeline needed. The camera-integrated variant (app detects fingers / motion automatically) is a separate, much harder feature.
+- **Local-file encrypted backup** to USB / SD / the user's PC — *not* platform cloud backup. Google Drive / iCloud subject to subpoena and retention pressure, even with end-to-end encryption; local-file export is consistent with the zero-server posture.
 
 ### v1.0
 
 - Duress codes (pending an abuse-analysis pass)
+- Small-org shared verification (group-key via MLS-equivalent, not hand-rolled)
 - External security audit
-- Reproducible builds
-- iOS parity
+- Reproducible builds (containerized Gradle + NDK, public verify-script)
+- iOS parity + on-device plaintext-leak re-audit against Keychain
 - Play Store / App Store release
 
 ## Known limitations in v0.1
@@ -167,9 +216,9 @@ Ordered roughly by shipping impact.
 - **Android only.** iOS builds but is untested.
 - **One relationship per device.** Intentional for shipping simplicity; multi-contact is v0.2.
 - **StrongBox best-effort.** Some OEMs disable StrongBox even on API 28+ devices; detection / explicit attestation is v1.0 work.
-- **No on-device verification step.** v0.1 shows the code and leaves comparison to the humans. A future version may add "type what they said" for an explicit match UI.
+- **iOS screenshot block not implemented.** On Android, `FLAG_SECURE` blocks screenshots + screen recording + the recent-apps thumbnail on the Verify and pair-QR screens. iOS needs a different mechanism (swap UI on `applicationWillResignActive`) — deferred to post-v1.0 iOS parity.
 - **No duress codes.** Deferred pending misuse analysis.
-- **Debug-signed release builds.** Do not ship to anyone.
+- **Release signing is opt-in.** Without `android/key.properties`, release builds fall back to the debug key and are not distributable — see ["Release build"](#release-build) for the signing setup.
 - **Scanner has no explicit "permission permanently denied" recovery.** The in-app message is friendly but does not offer a deep link to system settings.
 
 ## Pre-release manual QA

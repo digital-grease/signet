@@ -42,6 +42,9 @@ dependencies:
   mobile_scanner: ^7.2.0
   qr_flutter: ^4.1.0
   bip39: ^1.0.6
+  # Non-sensitive app prefs (onboarding-completed flag etc.). Secrets
+  # live in flutter_secure_storage via SecureStore; this is for flags.
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
