@@ -45,6 +45,18 @@ dependencies:
   # Non-sensitive app prefs (onboarding-completed flag etc.). Secrets
   # live in flutter_secure_storage via SecureStore; this is for flags.
   shared_preferences: ^2.5.3
+  # PDF generation + platform print dialogs for the challenge-response
+  # paper card export. Both packages are pure-Dart/offline; print
+  # dialogs render via the OS, no network.
+  pdf: ^3.11.3
+  printing: ^5.13.4
+  # Platform share sheet for exporting backup packages + PAKE to a
+  # destination of the user's choice (Files / Drive / Notes / etc.).
+  # Share sheet is OS-mediated; we don't make network calls.
+  share_plus: ^11.1.0
+  # File picker for importing a saved backup. User opens a picker,
+  # chooses a .txt file, we read it locally. No network.
+  file_picker: ^10.3.1
 
 dev_dependencies:
   flutter_test:

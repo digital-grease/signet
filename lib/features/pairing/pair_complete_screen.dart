@@ -16,14 +16,22 @@ import '../../core/providers.dart';
 /// subsequent launches. We rely on the pair flow routing to land here
 /// only at commit time.
 class PairCompleteScreen extends ConsumerWidget {
-  const PairCompleteScreen({super.key});
+  const PairCompleteScreen({super.key, required this.relationshipId});
+
+  /// The id of the relationship that was just committed.
+  final String relationshipId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final relationshipAsync = ref.watch(relationshipProvider);
-    final label = relationshipAsync.whenOrNull(
-          data: (r) => r?.label,
+    final relationshipsAsync = ref.watch(relationshipsProvider);
+    final label = relationshipsAsync.whenOrNull(
+          data: (list) {
+            for (final r in list) {
+              if (r.id == relationshipId) return r.label;
+            }
+            return null;
+          },
         ) ??
         'your peer';
     return Scaffold(
@@ -100,7 +108,7 @@ class PairCompleteScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () => context.go('/verify'),
+                onPressed: () => context.go('/verify/$relationshipId'),
                 child: Text('VERIFY ${label.toUpperCase()} NOW'),
               ),
               const SizedBox(height: 12),

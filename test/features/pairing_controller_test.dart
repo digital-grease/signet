@@ -21,6 +21,37 @@ void main() {
     });
   });
 
+  group('PairingController.startRekey', () {
+    test('seeds label + rekeyTargetId, wipes other state', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+
+      // Put the controller in a half-way state first.
+      await ctrl.ensureOurKeyPair();
+      ctrl.setLabel('Dad');
+      ctrl.markQrShown();
+
+      ctrl.startRekey(id: 'abc123', label: 'Mom');
+
+      final state = container.read(pairingControllerProvider);
+      expect(state.rekeyTargetId, 'abc123');
+      expect(state.label, 'Mom');
+      expect(state.isRekey, isTrue);
+      expect(state.ourKeyPair, isNull);
+      expect(state.theirPublicKey, isNull);
+      expect(state.didShowQr, isFalse);
+      expect(state.totpSecret, isNull);
+      expect(state.phrase, isNull);
+    });
+
+    test('isRekey is false in a fresh pair flow', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      expect(container.read(pairingControllerProvider).isRekey, isFalse);
+    });
+  });
+
   group('PairingController.ensureOurKeyPair', () {
     test('generates a 32-byte public key on first call', () async {
       final container = ProviderContainer();

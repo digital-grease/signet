@@ -4,12 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'core/prefs/app_prefs.dart';
 import 'core/theme/signet_theme.dart';
 import 'features/home/home_screen.dart';
+import 'features/inspect/backup_export_screen.dart';
+import 'features/inspect/backup_import_screen.dart';
 import 'features/inspect/binding_phrase_screen.dart';
+import 'features/inspect/cr_grid_screen.dart';
+import 'features/liveness/liveness_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/pairing/pair_complete_screen.dart';
 import 'features/pairing/pair_confirm_screen.dart';
 import 'features/pairing/pair_exchange_screen.dart';
 import 'features/pairing/pair_start_screen.dart';
+import 'features/pairing/pair_transport_in_screen.dart';
+import 'features/pairing/pair_transport_out_screen.dart';
 import 'features/verify/verify_screen.dart';
 
 /// Root widget. Keeps `main.dart` tiny — all routing lives here; the theme
@@ -31,10 +37,37 @@ class SignetApp extends StatelessWidget {
               path: '/onboarding',
               builder: (_, _) => OnboardingScreen(prefs: prefs),
             ),
-            GoRoute(path: '/verify', builder: (_, _) => const VerifyScreen()),
+            GoRoute(
+              path: '/verify/:id',
+              builder: (_, state) => VerifyScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
+            ),
             GoRoute(
               path: '/inspect/binding',
               builder: (_, _) => const BindingPhraseScreen(),
+            ),
+            GoRoute(
+              path: '/inspect/export/:id',
+              builder: (_, state) => BackupExportScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
+            ),
+            GoRoute(
+              path: '/inspect/import',
+              builder: (_, _) => const BackupImportScreen(),
+            ),
+            GoRoute(
+              path: '/liveness/:id',
+              builder: (_, state) => LivenessScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
+            ),
+            GoRoute(
+              path: '/inspect/cr-grid/:id',
+              builder: (_, state) => CrGridScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
             ),
             GoRoute(
               path: '/pair/start',
@@ -49,8 +82,18 @@ class SignetApp extends StatelessWidget {
               builder: (_, _) => const PairConfirmScreen(),
             ),
             GoRoute(
-              path: '/pair/complete',
-              builder: (_, _) => const PairCompleteScreen(),
+              path: '/pair/complete/:id',
+              builder: (_, state) => PairCompleteScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
+            ),
+            GoRoute(
+              path: '/pair/transport-in',
+              builder: (_, _) => const PairTransportInScreen(),
+            ),
+            GoRoute(
+              path: '/pair/transport-out',
+              builder: (_, _) => const PairTransportOutScreen(),
             ),
           ],
         );

@@ -133,10 +133,14 @@ lib/
 │   ├── theme/             # SignetTokens + signetTheme (operator language)
 │   └── providers.dart     # Riverpod wiring
 ├── features/
-│   ├── home/              # home screen — empty or paired
+│   ├── home/              # home list — empty / paired-list
 │   ├── onboarding/        # first-run 3-slide walkthrough
-│   ├── pairing/           # start / exchange (show+scan) / confirm / complete
-│   ├── inspect/           # pair-time binding phrase re-check
+│   ├── pairing/           # in-person (start/exchange/confirm/complete) +
+│   │                      # long-distance (transport-in/transport-out) +
+│   │                      # rekey (reuses exchange/confirm via controller)
+│   ├── inspect/           # binding-phrase re-check, backup export/import,
+│   │                      # challenge-response grid viewer + print
+│   ├── liveness/          # prompt-only physical challenge for video calls
 │   └── verify/            # type-and-verify input + show-my-words fallback
 └── shared/widgets/        # BigButton, WordsDisplay, SecureScreen
 ```
@@ -189,18 +193,22 @@ Ordered roughly by shipping impact.
 - Per-relationship silent-haptics toggle (for journalist / activist audience)
 - Unpair undo window; inline label editing; binding-phrase re-check; `WHAT SHOULD I DO?` education on ❌
 
-### v0.2 — multi-peer + unified transport package
+### v0.2 — multi-peer + unified transport package + recovery
 
-- **Multiple paired contacts** with a real v1 → v2 storage migration (no wipe).
-- **Unified transport-package primitive** that services two use cases from one wire format:
-  - **Long-distance pairing** for journalists / activists / distributed teams: encrypted pairing package delivered over any channel the two parties already trust (paper courier, encrypted email, Signal attachment, prior-in-person fact). Uses a 6-word BIP-39 PAKE secret — *not* a spoken password over a fresh voice call, which would re-introduce the voice-channel threat Signet exists to defend against.
-  - **Lost-phone recovery** as "transport-to-self": export paper mnemonic, re-import on new device, pairing materializes with the original shared secret preserved. Covers the 2-3-year phone-lifecycle problem that otherwise forces repair-in-person every device change.
-- **In-person rekey** preserving `Relationship.id` + label but rotating the shared secret.
+Landed in codebase; no store-packaged release yet. See `.devloop/archive/` for the full plan trail.
 
-### v0.3 — liveness, recovery, local backup
+- ✅ **Multiple paired contacts** with a real v1 → v2 storage migration (no wipe). Home is a ListView; FAB + long-press menus drive per-peer actions.
+- ✅ **Unified transport-package primitive** that services two use cases from one wire format (`signet:tp1:...`, AES-256-GCM keyed by HKDF-SHA-256 of an 8-word BIP-39 PAKE secret):
+  - ✅ **Long-distance pairing** for journalists / activists / distributed teams: encrypted LDP package delivered over any channel the two parties already trust (paper courier, encrypted email, Signal attachment, prior-in-person fact). PAKE secret communicated on a *different* trusted channel — never over a fresh voice call, which would re-introduce the voice-channel threat Signet exists to defend against. See `.devloop/spikes/transport-package.md` for the crypto rationale.
+  - ✅ **Lost-phone recovery** as "transport-to-self": export an LPR package (QR + selectable text) with an independently-stored PAKE secret, re-import on the new device, pairing materializes with the original shared secret preserved. Covers the 2-3-year phone-lifecycle problem that otherwise forces repair-in-person every device change.
+- ✅ **In-person rekey** preserving `Relationship.id` + label but rotating the shared secret. Both devices present, QR exchange, pair-time phrase confirmation — flow mirrors the initial pair.
+- ✅ **Challenge-response wordlist mode** — an 8×8 grid (64 cells × 3 BIP-39 words per answer; 33 bits of entropy per query) derived from the shared secret via HKDF. Both devices have the digital grid; either side can print a paper card via the Print action in the app. Used as a fallback when the responder has no phone but can speak. See `.devloop/spikes/challenge-response.md` for the derivation + threat-model write-up.
+- ✅ **Local-file backup export + import** — the LPR package can be shipped to/from any file (Files app, encrypted note, USB stick, etc.) via the platform share sheet and a file picker. Complements the QR / copy-paste / paper paths.
 
-- **Liveness prompts — prompt-only variant first.** App generates a random "hold up N fingers + say today's day" challenge; verifier reads it to the counterparty over video. Channel-agnostic, no camera pipeline needed. The camera-integrated variant (app detects fingers / motion automatically) is a separate, much harder feature.
-- **Local-file encrypted backup** to USB / SD / the user's PC — *not* platform cloud backup. Google Drive / iCloud subject to subpoena and retention pressure, even with end-to-end encryption; local-file export is consistent with the zero-server posture.
+### v0.3 — liveness (camera-integrated remains)
+
+- ✅ **Liveness prompts — prompt-only variant.** App generates a random two-dimensional physical challenge (8 accessible actions × 2048 BIP-39 words ≈ 16,384 prompts — e.g. "Touch your left ear and say 'orbit'"); verifier reads it to the counterparty over video and judges ✅/❌ after a 10-second countdown. Channel-agnostic, no camera pipeline, no ML. Accessibility-filtered corpus (no fine motor, no vision-only cues, no facial expressions).
+- ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
 ### v1.0
 
@@ -211,10 +219,9 @@ Ordered roughly by shipping impact.
 - iOS parity + on-device plaintext-leak re-audit against Keychain
 - Play Store / App Store release
 
-## Known limitations in v0.1
+## Known limitations
 
 - **Android only.** iOS builds but is untested.
-- **One relationship per device.** Intentional for shipping simplicity; multi-contact is v0.2.
 - **StrongBox best-effort.** Some OEMs disable StrongBox even on API 28+ devices; detection / explicit attestation is v1.0 work.
 - **iOS screenshot block not implemented.** On Android, `FLAG_SECURE` blocks screenshots + screen recording + the recent-apps thumbnail on the Verify and pair-QR screens. iOS needs a different mechanism (swap UI on `applicationWillResignActive`) — deferred to post-v1.0 iOS parity.
 - **No duress codes.** Deferred pending misuse analysis.

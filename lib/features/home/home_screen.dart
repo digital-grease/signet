@@ -4,14 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../pairing/pairing_controller.dart';
 
-/// Home — "operator" layout.
+/// Home — "operator" layout, multi-peer capable (Phase 10.4).
 ///
 /// Empty: bordered QR icon placeholder, "Nothing paired yet.", PAIR CONTACT.
-/// Paired: PEER section header, display-sized label, mono metadata rows
-/// (fingerprint prefix, bound timestamp, cipher), VERIFY + UNPAIR actions.
-/// Status chip at top-right asserts OFFLINE-FREE posture — visible trust
-/// affordance that the app has no network permission.
+/// Paired: OFFLINE-FREE chip + RELATIONSHIPS section header + ListView of
+/// per-peer rows (label, fingerprint, bound). Tap row → verify. Long-press
+/// → bottom sheet with RENAME / HAPTICS toggle / SHOW BINDING / UNPAIR.
+/// Floating action button routes to /pair/start for adding another peer.
+/// AppBar overflow "Show intro again" stays.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -21,8 +23,8 @@ class HomeScreen extends ConsumerWidget {
   ) async {
     final updated =
         relationship.copyWith(silentHaptics: !relationship.silentHaptics);
-    await ref.read(secureStoreProvider).updateRelationshipMetadata(updated);
-    ref.invalidate(relationshipProvider);
+    await ref.read(secureStoreProvider).updateRelationshipMetadataV2(updated);
+    ref.invalidate(relationshipsProvider);
   }
 
   Future<void> _editLabel(
@@ -72,17 +74,14 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
-    // Defer dispose until after any in-flight dialog close animation has
-    // settled. Disposing eagerly here has fired an "A TextEditingController
-    // was used after being disposed" assertion when the dialog's exit
-    // transition rebuilds the TextField.
+    // Defer dispose past the dialog exit animation.
     WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
     if (newLabel == null || newLabel == relationship.label) return;
 
     await ref
         .read(secureStoreProvider)
-        .updateRelationshipMetadata(relationship.copyWith(label: newLabel));
-    ref.invalidate(relationshipProvider);
+        .updateRelationshipMetadataV2(relationship.copyWith(label: newLabel));
+    ref.invalidate(relationshipsProvider);
   }
 
   Future<void> _unpair(
@@ -120,15 +119,10 @@ class HomeScreen extends ConsumerWidget {
 
     final store = ref.read(secureStoreProvider);
     // Snapshot the shared secret BEFORE deleting so the Undo action can
-    // restore it. Lives in the closure for the lifetime of the SnackBar
-    // (5 s) — goes out of scope and can be GC'd after that. We're
-    // comfortable holding it transiently: the relationship was just live
-    // in memory anyway for the verify flow, and the alternative (truly
-    // destructive unpair with no undo) loses legitimate work to a
-    // single-tap mistake.
-    final secretSnapshot = await store.getSharedSecret();
-    await store.deleteRelationship();
-    ref.invalidate(relationshipProvider);
+    // restore it. See 9.7 — lives only for the SnackBar window.
+    final secretSnapshot = await store.getSharedSecretById(relationship.id);
+    await store.deleteRelationshipById(relationship.id);
+    ref.invalidate(relationshipsProvider);
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -140,20 +134,180 @@ class HomeScreen extends ConsumerWidget {
             : SnackBarAction(
                 label: 'UNDO',
                 onPressed: () async {
-                  await store.saveRelationship(
+                  await store.saveRelationshipV2(
                     relationship,
                     sharedSecret: secretSnapshot,
                   );
-                  ref.invalidate(relationshipProvider);
+                  ref.invalidate(relationshipsProvider);
                 },
               ),
       ),
     );
   }
 
+  Future<void> _openPairMenu(BuildContext context) async {
+    final scheme = Theme.of(context).colorScheme;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      showDragHandle: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.qr_code_2),
+                title: const Text('Pair in person'),
+                subtitle: const Text('Both phones together, scan each other'),
+                onTap: () => Navigator.of(sheetCtx).pop('in-person'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.alternate_email),
+                title: const Text('Send a package'),
+                subtitle:
+                    const Text('Pair someone far away over a trusted channel'),
+                onTap: () => Navigator.of(sheetCtx).pop('send-package'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.download),
+                title: const Text('I have a package'),
+                subtitle: const Text('Import a package from someone else'),
+                onTap: () => Navigator.of(sheetCtx).pop('have-package'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.history_edu),
+                title: const Text('Restore from backup'),
+                subtitle:
+                    const Text('Recover a paired contact from paper'),
+                onTap: () => Navigator.of(sheetCtx).pop('restore-backup'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'in-person':
+        context.go('/pair/start');
+      case 'send-package':
+        context.go('/pair/transport-out');
+      case 'have-package':
+        context.go('/pair/transport-in');
+      case 'restore-backup':
+        context.go('/inspect/import');
+    }
+  }
+
+  Future<void> _openRowMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Relationship relationship,
+  ) async {
+    final scheme = Theme.of(context).colorScheme;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text('Rename ${relationship.label}'),
+                  onTap: () => Navigator.of(sheetCtx).pop('rename'),
+                ),
+                ListTile(
+                  leading: Icon(relationship.silentHaptics
+                      ? Icons.vibration
+                      : Icons.notifications_paused),
+                  title: Text(relationship.silentHaptics
+                      ? 'Turn haptics on'
+                      : 'Turn haptics off'),
+                  onTap: () => Navigator.of(sheetCtx).pop('haptics'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.fingerprint_outlined),
+                  title: const Text('Show binding phrase'),
+                  onTap: () => Navigator.of(sheetCtx).pop('binding'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.visibility_outlined),
+                  title: const Text('Liveness challenge'),
+                  subtitle: const Text(
+                      'Physical challenge for video calls'),
+                  onTap: () => Navigator.of(sheetCtx).pop('liveness'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.grid_on_outlined),
+                  title: const Text('Challenge-response grid'),
+                  subtitle: const Text(
+                      'Fallback for when the other side has no phone'),
+                  onTap: () => Navigator.of(sheetCtx).pop('cr-grid'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.autorenew),
+                  title: Text('Rekey ${relationship.label}'),
+                  subtitle:
+                      const Text('Rotate the shared secret in person'),
+                  onTap: () => Navigator.of(sheetCtx).pop('rekey'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Back up to paper'),
+                  subtitle: const Text(
+                      'Restore on a new phone if you lose this one'),
+                  onTap: () => Navigator.of(sheetCtx).pop('export'),
+                ),
+                ListTile(
+                  leading: Icon(Icons.link_off, color: scheme.error),
+                  title: Text(
+                    'Unpair from ${relationship.label}',
+                    style: TextStyle(color: scheme.error),
+                  ),
+                  onTap: () => Navigator.of(sheetCtx).pop('unpair'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'rename':
+        await _editLabel(context, ref, relationship);
+      case 'haptics':
+        await _toggleSilentHaptics(ref, relationship);
+      case 'binding':
+        context.go('/inspect/binding');
+      case 'liveness':
+        context.go('/liveness/${relationship.id}');
+      case 'cr-grid':
+        context.go('/inspect/cr-grid/${relationship.id}');
+      case 'rekey':
+        ref.read(pairingControllerProvider.notifier).startRekey(
+              id: relationship.id,
+              label: relationship.label,
+            );
+        context.go('/pair/exchange');
+      case 'export':
+        context.go('/inspect/export/${relationship.id}');
+      case 'unpair':
+        await _unpair(context, ref, relationship);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final relationshipAsync = ref.watch(relationshipProvider);
+    final relationshipsAsync = ref.watch(relationshipsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -191,28 +345,35 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: relationshipAsync.when(
+                child: relationshipsAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, _) => _ErrorState(
-                    message: 'Could not read your paired contact.\n$error',
-                    onRetry: () => ref.invalidate(relationshipProvider),
+                    message: 'Could not read your paired contacts.\n$error',
+                    onRetry: () => ref.invalidate(relationshipsProvider),
                   ),
-                  data: (relationship) => relationship == null
+                  data: (relationships) => relationships.isEmpty
                       ? const _EmptyState()
-                      : _PairedState(
-                          relationship: relationship,
-                          onUnpair: () => _unpair(context, ref, relationship),
-                          onToggleSilentHaptics: () =>
-                              _toggleSilentHaptics(ref, relationship),
-                          onEditLabel: () =>
-                              _editLabel(context, ref, relationship),
+                      : _PairedList(
+                          relationships: relationships,
+                          onTapRow: (r) => context.go('/verify/${r.id}'),
+                          onLongPressRow: (r) => _openRowMenu(context, ref, r),
                         ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+      floatingActionButton: relationshipsAsync.maybeWhen(
+        data: (list) => list.isEmpty
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => _openPairMenu(context),
+                icon: const Icon(Icons.add),
+                label: const Text('PAIR'),
+              ),
+        orElse: () => null,
       ),
     );
   }
@@ -270,28 +431,73 @@ class _EmptyState extends StatelessWidget {
           onPressed: () => context.go('/pair/start'),
           child: const Text('PAIR CONTACT'),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () => context.go('/pair/transport-out'),
+          child: const Text('SEND A PACKAGE'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => context.go('/pair/transport-in'),
+          child: const Text('I HAVE A PACKAGE'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => context.go('/inspect/import'),
+          child: const Text('RESTORE FROM BACKUP'),
+        ),
       ],
     );
   }
 }
 
-class _PairedState extends StatelessWidget {
-  const _PairedState({
+class _PairedList extends StatelessWidget {
+  const _PairedList({
+    required this.relationships,
+    required this.onTapRow,
+    required this.onLongPressRow,
+  });
+
+  final List<Relationship> relationships;
+  final void Function(Relationship) onTapRow;
+  final void Function(Relationship) onLongPressRow;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const _SectionHeader('RELATIONSHIPS'),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.only(bottom: 96),
+            itemCount: relationships.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (_, i) => _RelationshipRow(
+              relationship: relationships[i],
+              onTap: () => onTapRow(relationships[i]),
+              onLongPress: () => onLongPressRow(relationships[i]),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RelationshipRow extends StatelessWidget {
+  const _RelationshipRow({
     required this.relationship,
-    required this.onUnpair,
-    required this.onToggleSilentHaptics,
-    required this.onEditLabel,
+    required this.onTap,
+    required this.onLongPress,
   });
 
   final Relationship relationship;
-  final VoidCallback onUnpair;
-  final VoidCallback onToggleSilentHaptics;
-  final VoidCallback onEditLabel;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   String get _fingerprintPrefix {
-    // Render first 4 bytes of the id as colon-separated uppercase hex —
-    // ssh-style fingerprint prefix, enough to disambiguate visually without
-    // exposing the full id.
     final id = relationship.id;
     final bytes = <String>[];
     for (var i = 0; i + 2 <= id.length && bytes.length < 4; i += 2) {
@@ -305,87 +511,71 @@ class _PairedState extends StatelessWidget {
     final y = dt.year.toString().padLeft(4, '0');
     final mo = dt.month.toString().padLeft(2, '0');
     final d = dt.day.toString().padLeft(2, '0');
-    final h = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return '$y-$mo-$d $h:$mi UTC';
+    return '$y-$mo-$d';
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const _SectionHeader('PEER'),
-        const SizedBox(height: 4),
-        // The label is tappable — single tap opens the rename dialog.
-        // No hint chrome: journalist-operator users will discover it; the
-        // grandma-test cost of an accidental tap is a dialog that
-        // cancels cleanly.
-        InkWell(
-          onTap: onEditLabel,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                Flexible(
-                  child: Text(
-                    relationship.label,
-                    style: TextStyle(
-                      fontSize: 44,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface,
-                      height: 1.0,
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      relationship.label,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface,
+                        height: 1.1,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'role:${relationship.role.wireName.toUpperCase()} · '
+                      '$_fingerprintPrefix · $_boundAt',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    if (relationship.silentHaptics)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'HAPTICS // OFF',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            color: scheme.secondary,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Icon(
-                    Icons.edit_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        _MonoKV(
-          k: 'FINGERPRINT //',
-          v: 'role:${relationship.role.wireName.toUpperCase()} · $_fingerprintPrefix',
-        ),
-        _MonoKV(k: 'BOUND //', v: _boundAt),
-        const _MonoKV(k: 'CIPHER //', v: 'HKDF-SHA256 · BIP39-4w'),
-        _MonoToggleRow(
-          label: 'HAPTICS //',
-          value: relationship.silentHaptics ? 'OFF' : 'ON',
-          active: !relationship.silentHaptics,
-          onToggle: onToggleSilentHaptics,
-        ),
-        _MonoActionRow(
-          label: 'INSPECT //',
-          value: 'SHOW BINDING PHRASE',
-          onTap: () => context.go('/inspect/binding'),
-        ),
-        const Spacer(),
-        FilledButton(
-          onPressed: () => context.go('/verify'),
-          child: Text('VERIFY ${relationship.label.toUpperCase()}'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: onUnpair,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: scheme.error,
-            side: BorderSide(color: scheme.error, width: 1),
-          ),
-          child: const Text('UNPAIR'),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -424,9 +614,9 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-// -------- Private operator primitives (hoist to shared/widgets/ when Verify
-// redesign also needs them in Task 9.3). Keeping inline now to avoid premature
-// abstraction.
+// -------- Private operator primitives (shared with verify_screen; hoist
+// to lib/shared/widgets/operator_primitives.dart later if a third consumer
+// materializes).
 
 enum _Tone { ok, warn, fail }
 
@@ -482,156 +672,3 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
-
-class _MonoKV extends StatelessWidget {
-  const _MonoKV({required this.k, required this.v});
-  final String k;
-  final String v;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 0.5,
-          ),
-          children: <TextSpan>[
-            TextSpan(text: k.padRight(14)),
-            TextSpan(
-              text: v,
-              style: TextStyle(color: scheme.onSurface),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Mono KV row whose value is a tappable action (not a toggle). Used for
-/// navigation out of the info panel — e.g. "INSPECT // SHOW BINDING PHRASE".
-class _MonoActionRow extends StatelessWidget {
-  const _MonoActionRow({
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            children: <Widget>[
-              Text(
-                label.padRight(14),
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  color: scheme.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  color: scheme.primary,
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.arrow_forward,
-                size: 12,
-                color: scheme.primary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Mono KV row whose value is a tappable ON/OFF state. Same visual weight
-/// as `_MonoKV` to sit cleanly inside the peer info block; no consumer-app
-/// Switch widget (too much Material chrome for the operator aesthetic).
-class _MonoToggleRow extends StatelessWidget {
-  const _MonoToggleRow({
-    required this.label,
-    required this.value,
-    required this.active,
-    required this.onToggle,
-  });
-
-  final String label;
-  final String value;
-  final bool active;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onToggle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            children: <Widget>[
-              Text(
-                label.padRight(14),
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  color: scheme.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  color: active ? scheme.primary : scheme.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'tap to toggle',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 10,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-

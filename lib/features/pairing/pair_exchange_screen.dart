@@ -61,9 +61,10 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
       }
     });
 
+    final verb = pair.isRekey ? 'Rekey' : 'Pair';
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pair with ${pair.label ?? 'contact'}'),
+        title: Text('$verb with ${pair.label ?? 'contact'}'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {

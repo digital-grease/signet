@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
+import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/features/pairing/pair_confirm_screen.dart';
 import 'package:signet/features/pairing/pair_start_screen.dart';
@@ -179,5 +180,76 @@ void main() {
       // Controller should be reset for the next pairing.
       expect(container.read(pairingControllerProvider).label, isNull);
     });
+
+    testWidgets(
+      'rekey commit overwrites the existing relationship and preserves id + label',
+      (tester) async {
+        // Seed an existing relationship + secret, then drive a rekey flow
+        // through the controller. The confirm-screen commit handler should
+        // branch on rekeyTargetId and overwrite instead of create-fresh.
+        final existing = Relationship(
+          id: 'feedface00000000deadbeef00000000',
+          label: 'Mom',
+          pairedAt: DateTime.utc(2020, 1, 1),
+          role: PairRole.a,
+        );
+        final oldSecret = List<int>.generate(32, (i) => i + 1);
+        final store = FakeSecureStore(seeded: existing, secret: oldSecret);
+        final container = ProviderContainer(overrides: [
+          secureStoreProvider.overrideWithValue(store),
+        ]);
+        addTearDown(container.dispose);
+        final ctrl = container.read(pairingControllerProvider.notifier);
+
+        ctrl.startRekey(id: existing.id, label: existing.label);
+        await ctrl.ensureOurKeyPair();
+        // A *different* counterparty public key than the original, to
+        // guarantee a different derived secret after rekey.
+        await ctrl.recordTheirPublicKey(
+            Uint8List.fromList(List.filled(32, 99)));
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: _routerFor(
+                initialLocation: '/pair/confirm',
+                screen: (_) => const PairConfirmScreen(),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Confirm screen's app bar reflects rekey mode.
+        expect(find.text('Confirm rekey'), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(FilledButton, 'It matches'));
+        await tester.pumpAndSettle();
+
+        final updated = await store.getRelationshipById(existing.id);
+        expect(updated, isNotNull);
+        expect(updated!.id, existing.id,
+            reason: 'rekey preserves the relationship id');
+        expect(updated.label, existing.label,
+            reason: 'rekey preserves the label');
+        expect(updated.pairedAt.isAfter(existing.pairedAt), isTrue,
+            reason: 'rekey bumps pairedAt to the rekey moment');
+
+        // New shared secret replaced the old one.
+        final newSecret = await store.getSharedSecretById(existing.id);
+        expect(newSecret, isNotNull);
+        expect(newSecret!.toList(), isNot(equals(oldSecret)),
+            reason: 'rekey replaces the shared secret');
+
+        expect(find.text('HOME'), findsOneWidget,
+            reason: 'rekey skips the practice-verify nudge and lands home');
+        // Controller is reset.
+        expect(container.read(pairingControllerProvider).label, isNull);
+        expect(
+            container.read(pairingControllerProvider).rekeyTargetId, isNull);
+      },
+    );
   });
 }
+

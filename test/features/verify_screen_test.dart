@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/crypto/totp_words.dart';
 import 'package:signet/core/models/relationship.dart';
@@ -18,6 +19,38 @@ Widget wrap({required Widget child, required FakeSecureStore store}) {
       secureStoreProvider.overrideWithValue(store),
     ],
     child: MaterialApp(home: child),
+  );
+}
+
+/// Like [wrap] but pumps a real GoRouter so we can test navigation
+/// triggered by the Verify screen (liveness route, home route, etc.).
+Widget wrapWithRouter({
+  required FakeSecureStore store,
+  required String verifyId,
+}) {
+  final router = GoRouter(
+    initialLocation: '/verify/$verifyId',
+    routes: <RouteBase>[
+      GoRoute(
+        path: '/verify/:id',
+        builder: (_, state) => VerifyScreen(
+          relationshipId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/',
+        builder: (_, _) => const Scaffold(body: Text('HOME_ROUTE')),
+      ),
+      GoRoute(
+        path: '/liveness/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('LIVENESS_${state.pathParameters['id']}')),
+      ),
+    ],
+  );
+  return ProviderScope(
+    overrides: [secureStoreProvider.overrideWithValue(store)],
+    child: MaterialApp.router(routerConfig: router),
   );
 }
 
@@ -70,7 +103,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(),
+          child: const VerifyScreen(relationshipId: 'abc'),
         ),
       );
       await tester.pumpAndSettle();
@@ -85,7 +118,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(),
-          child: const VerifyScreen(),
+          child: const VerifyScreen(relationshipId: 'abc'),
         ),
       );
       await tester.pumpAndSettle();
@@ -111,7 +144,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -149,7 +182,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -182,7 +215,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -211,7 +244,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -240,7 +273,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -259,7 +292,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(),
+          child: const VerifyScreen(relationshipId: 'abc'),
         ),
       );
       await tester.pumpAndSettle();
@@ -273,7 +306,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(),
+          child: const VerifyScreen(relationshipId: 'abc'),
         ),
       );
       await tester.pumpAndSettle();
@@ -296,7 +329,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(),
+          child: const VerifyScreen(relationshipId: 'abc'),
         ),
       );
       await tester.pumpAndSettle();
@@ -314,7 +347,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -348,7 +381,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -358,6 +391,39 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('VERIFIED'), findsOneWidget);
         expect(find.text('WHAT SHOULD I DO?'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders the LIVENESS CHALLENGE // entry row',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('LIVENESS CHALLENGE //'), findsOneWidget);
+        expect(find.textContaining('Ask Mom to do a physical'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping LIVENESS CHALLENGE row routes to /liveness/:id',
+      (tester) async {
+        await tester.pumpWidget(wrapWithRouter(
+          store: FakeSecureStore(seeded: _mom, secret: _secret),
+          verifyId: 'abc',
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('LIVENESS CHALLENGE //'));
+        await tester.tap(find.text('LIVENESS CHALLENGE //'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('LIVENESS_abc'), findsOneWidget);
       },
     );
 
@@ -379,7 +445,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: silent, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();
@@ -411,7 +477,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(),
+            child: const VerifyScreen(relationshipId: 'abc'),
           ),
         );
         await tester.pumpAndSettle();

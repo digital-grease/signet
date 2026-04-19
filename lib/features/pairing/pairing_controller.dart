@@ -17,6 +17,7 @@ class PairingState {
     this.totpSecret,
     this.phrase,
     this.error,
+    this.rekeyTargetId,
   });
 
   final String? label;
@@ -26,6 +27,15 @@ class PairingState {
   final Uint8List? totpSecret;
   final List<String>? phrase;
   final String? error;
+
+  /// When non-null, this flow is rekeying an existing relationship rather
+  /// than creating a new one. The `pair_confirm_screen.onMatch` handler
+  /// branches on this: rekey overwrites the existing metadata + secret
+  /// with the new derivation, preserving id and label but bumping
+  /// `pairedAt` and re-deriving `role` from the new public keys.
+  final String? rekeyTargetId;
+
+  bool get isRekey => rekeyTargetId != null;
 
   bool get hasScannedTheirKey => theirPublicKey != null;
   bool get exchangeComplete => didShowQr && hasScannedTheirKey;
@@ -39,10 +49,12 @@ class PairingState {
     Uint8List? totpSecret,
     List<String>? phrase,
     String? error,
+    String? rekeyTargetId,
     bool clearError = false,
     bool clearTheirPublicKey = false,
     bool clearTotpSecret = false,
     bool clearPhrase = false,
+    bool clearRekeyTargetId = false,
   }) {
     return PairingState(
       label: label ?? this.label,
@@ -53,6 +65,9 @@ class PairingState {
       totpSecret: clearTotpSecret ? null : totpSecret ?? this.totpSecret,
       phrase: clearPhrase ? null : phrase ?? this.phrase,
       error: clearError ? null : error ?? this.error,
+      rekeyTargetId: clearRekeyTargetId
+          ? null
+          : rekeyTargetId ?? this.rekeyTargetId,
     );
   }
 }
@@ -121,6 +136,15 @@ class PairingController extends Notifier<PairingState> {
       clearTotpSecret: true,
       clearError: true,
     );
+  }
+
+  /// Seed a rekey attempt for an existing relationship. Wipes any in-flight
+  /// pair state, primes [label] and [rekeyTargetId] so the confirm step
+  /// overwrites rather than creates. Caller then navigates to
+  /// `/pair/exchange`; the rest of the flow is identical to a fresh pair
+  /// apart from the commit handler.
+  void startRekey({required String id, required String label}) {
+    state = PairingState(label: label, rekeyTargetId: id);
   }
 
   /// Wipe everything. Called when the user aborts or after a successful commit.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
@@ -9,172 +10,185 @@ import 'package:signet/features/home/home_screen.dart';
 
 import '../support/fake_secure_store.dart';
 
-Widget _wrap({
-  required Widget child,
-  required FakeSecureStore store,
-}) {
-  return ProviderScope(
-    overrides: [
-      secureStoreProvider.overrideWithValue(store),
+Widget _wrap({required FakeSecureStore store}) {
+  final router = GoRouter(
+    initialLocation: '/',
+    routes: <RouteBase>[
+      GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+      GoRoute(
+        path: '/verify/:id',
+        builder: (_, _) => const Scaffold(body: Text('VERIFY_ROUTE')),
+      ),
+      GoRoute(
+        path: '/pair/start',
+        builder: (_, _) => const Scaffold(body: Text('PAIR_START_ROUTE')),
+      ),
+      GoRoute(
+        path: '/pair/exchange',
+        builder: (_, _) => const Scaffold(body: Text('PAIR_EXCHANGE_ROUTE')),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, _) => const Scaffold(body: Text('ONBOARDING_ROUTE')),
+      ),
+      GoRoute(
+        path: '/inspect/binding',
+        builder: (_, _) => const Scaffold(body: Text('BINDING_ROUTE')),
+      ),
+      GoRoute(
+        path: '/inspect/export/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('EXPORT_${state.pathParameters['id']}')),
+      ),
+      GoRoute(
+        path: '/liveness/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('LIVENESS_${state.pathParameters['id']}')),
+      ),
     ],
-    // Pump under the real Signet theme — HomeScreen depends on theme
-    // (uppercase button letter-spacing comes from here) and the dialog's
-    // scheme-derived error colors are inherited too.
-    child: MaterialApp(
+  );
+  return ProviderScope(
+    overrides: [secureStoreProvider.overrideWithValue(store)],
+    child: MaterialApp.router(
       theme: signetTheme(dark: false),
       darkTheme: signetTheme(dark: true),
-      home: child,
+      routerConfig: router,
     ),
   );
 }
 
+Relationship _rel({
+  required String id,
+  required String label,
+  PairRole role = PairRole.a,
+  bool silentHaptics = false,
+}) =>
+    Relationship(
+      id: id,
+      label: label,
+      pairedAt: DateTime.utc(2026, 4, 16),
+      role: role,
+      silentHaptics: silentHaptics,
+    );
+
 void main() {
+  final mom = _rel(id: 'ab123cdef', label: 'Mom');
+  final secret = List<int>.generate(32, (i) => i);
+
   group('HomeScreen — empty state', () {
-    testWidgets('shows "PAIR CONTACT" primary action', (tester) async {
-      await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(),
-        child: const HomeScreen(),
-      ));
+    testWidgets('shows PAIR CONTACT primary and no relationships', (tester) async {
+      await tester
+          .pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
       expect(find.text('Nothing paired yet.'), findsOneWidget);
       expect(find.text('PAIR CONTACT'), findsOneWidget);
+      // The PAIR FAB is hidden in the empty state (the big primary button is
+      // the entry point).
+      expect(find.byType(FloatingActionButton), findsNothing);
     });
 
-    testWidgets('does not show "VERIFY" or "UNPAIR"', (tester) async {
-      await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(),
-        child: const HomeScreen(),
-      ));
+    testWidgets('tapping PAIR CONTACT routes to /pair/start', (tester) async {
+      await tester
+          .pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('VERIFY '), findsNothing);
-      expect(find.text('UNPAIR'), findsNothing);
+      await tester.tap(find.text('PAIR CONTACT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PAIR_START_ROUTE'), findsOneWidget);
     });
   });
 
-  group('HomeScreen — paired state', () {
-    final mom = Relationship(
-      id: 'abc',
-      label: 'Mom',
-      pairedAt: DateTime.utc(2026, 4, 16),
-      role: PairRole.a,
-    );
-
-    testWidgets('shows the peer label, VERIFY and UNPAIR actions',
-        (tester) async {
+  group('HomeScreen — paired list', () {
+    testWidgets('renders a row for each relationship', (tester) async {
       await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        ),
-        child: const HomeScreen(),
+        store: FakeSecureStore(seeded: mom, secret: secret),
       ));
       await tester.pumpAndSettle();
 
       expect(find.text('Mom'), findsOneWidget);
-      expect(find.text('VERIFY MOM'), findsOneWidget);
-      expect(find.text('UNPAIR'), findsOneWidget);
+      expect(find.text('RELATIONSHIPS //'), findsOneWidget);
+      // Mono metadata line for the row.
+      expect(find.textContaining('role:A'), findsOneWidget);
+      // Chevron indicates tap-to-verify.
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
-    testWidgets('tapping UNPAIR opens a confirmation dialog', (tester) async {
+    testWidgets('shows the OFFLINE-FREE chip and a PAIR FAB', (tester) async {
       await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        ),
-        child: const HomeScreen(),
+        store: FakeSecureStore(seeded: mom, secret: secret),
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('UNPAIR'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Unpair from Mom?'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('OFFLINE-FREE'), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      // FAB label is "PAIR".
+      expect(find.widgetWithText(FloatingActionButton, 'PAIR'),
+          findsOneWidget);
     });
 
-    testWidgets('confirming unpair clears storage and re-renders empty state',
-        (tester) async {
-      final store = FakeSecureStore(
-        seeded: mom,
-        secret: List<int>.generate(32, (i) => i),
-      );
-      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('UNPAIR'));
-      await tester.pumpAndSettle();
-
-      // The destructive "Unpair" button is in the dialog, alongside "Cancel".
-      // The dialog's button text is mixed-case "Unpair" (standard Material
-      // AlertDialog convention) while the home screen's button is "UNPAIR"
-      // (operator style) — intentional, per Task 9.2.
-      final dialogUnpair = find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Unpair'),
-      );
-      await tester.tap(dialogUnpair);
-      await tester.pumpAndSettle();
-
-      expect(await store.hasRelationship(), isFalse);
-      expect(find.text('Nothing paired yet.'), findsOneWidget);
-    });
-
-    testWidgets('cancelling unpair leaves storage alone', (tester) async {
-      final store = FakeSecureStore(
-        seeded: mom,
-        secret: List<int>.generate(32, (i) => i),
-      );
-      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('UNPAIR'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-
-      expect(await store.hasRelationship(), isTrue);
-      expect(find.text('VERIFY MOM'), findsOneWidget);
-    });
-
-    testWidgets('shows the monospace metadata block (fingerprint, bound, cipher)',
-        (tester) async {
+    testWidgets('tapping the FAB opens a bottom-sheet pair menu', (tester) async {
       await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        ),
-        child: const HomeScreen(),
+        store: FakeSecureStore(seeded: mom, secret: secret),
       ));
       await tester.pumpAndSettle();
 
-      // PEER section header
-      expect(find.text('PEER //'), findsOneWidget);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
 
-      // RichText-based KV rows aren't findable with find.text() directly, so
-      // we look for the rendered strings inside RichText widgets via a
-      // predicate that recursively inspects the `text.toPlainText()`.
-      expect(_findRichContaining('FINGERPRINT //'), findsOneWidget);
-      expect(_findRichContaining('BOUND //'), findsOneWidget);
-      expect(_findRichContaining('CIPHER //'), findsOneWidget);
-      // Role-derived fingerprint prefix (id='abc' → "AB" pad-shown).
-      expect(_findRichContaining('role:A'), findsOneWidget);
+      expect(find.text('Pair in person'), findsOneWidget);
+      expect(find.text('Send a package'), findsOneWidget);
+      expect(find.text('I have a package'), findsOneWidget);
+
+      await tester.tap(find.text('Pair in person'));
+      await tester.pumpAndSettle();
+      expect(find.text('PAIR_START_ROUTE'), findsOneWidget);
+    });
+
+    testWidgets('tapping a row routes to /verify', (tester) async {
+      await tester.pumpWidget(_wrap(
+        store: FakeSecureStore(seeded: mom, secret: secret),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Mom'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('VERIFY_ROUTE'), findsOneWidget);
     });
 
     testWidgets(
-      'tapping UNDO within the snackbar window restores the relationship',
+      'long-press opens a bottom sheet menu with Rename / Haptics / Binding / Unpair',
       (tester) async {
-        final store = FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        );
-        await tester
-            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('UNPAIR'));
+        await tester.longPress(find.text('Mom'));
         await tester.pumpAndSettle();
+
+        expect(find.text('Rename Mom'), findsOneWidget);
+        expect(find.text('Turn haptics off'), findsOneWidget);
+        expect(find.text('Show binding phrase'), findsOneWidget);
+        expect(find.text('Unpair from Mom'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Unpair from menu → dialog → confirm deletes and shows UNDO',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Unpair from Mom'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Unpair from Mom?'), findsOneWidget);
         final dialogUnpair = find.descendant(
           of: find.byType(AlertDialog),
           matching: find.widgetWithText(FilledButton, 'Unpair'),
@@ -184,195 +198,159 @@ void main() {
 
         expect(await store.hasRelationship(), isFalse);
         expect(find.text('UNDO'), findsOneWidget);
+      },
+    );
 
+    testWidgets(
+      'UNDO after unpair restores the relationship and re-renders the row',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Unpair from Mom'));
+        await tester.pumpAndSettle();
+        final dialogUnpair = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Unpair'),
+        );
+        await tester.tap(dialogUnpair);
+        await tester.pumpAndSettle();
         await tester.tap(find.text('UNDO'));
         await tester.pumpAndSettle();
 
         expect(await store.hasRelationship(), isTrue);
-        final restored = await store.getRelationship();
-        expect(restored?.id, mom.id);
-        expect(restored?.label, mom.label);
-        final secret = await store.getSharedSecret();
-        expect(secret, isNotNull);
-        expect(secret!.length, 32);
-        // Home re-renders the paired state.
-        expect(find.text('VERIFY MOM'), findsOneWidget);
+        expect(find.text('Mom'), findsOneWidget);
+        expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       },
     );
 
     testWidgets(
-      'letting the undo snackbar expire leaves the relationship deleted',
+      'Rename from menu opens dialog and persists the new label',
       (tester) async {
-        final store = FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        );
-        await tester
-            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('UNPAIR'));
+        await tester.longPress(find.text('Mom'));
         await tester.pumpAndSettle();
-        final dialogUnpair = find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.widgetWithText(FilledButton, 'Unpair'),
-        );
-        await tester.tap(dialogUnpair);
-        await tester.pumpAndSettle();
-
-        expect(await store.hasRelationship(), isFalse);
-        expect(find.text('UNDO'), findsOneWidget);
-
-        // The SnackBar's 5-second duration uses a real Timer; advance
-        // the fake clock past it and let the dismiss animation settle.
-        await tester.pump(const Duration(seconds: 6));
-        await tester.pumpAndSettle(const Duration(seconds: 1));
-
-        expect(await store.hasRelationship(), isFalse);
-        // The home screen is back in the empty state even if the
-        // SnackBar dismiss animation is mid-frame. The store-state
-        // assertion above is the load-bearing check here — the UI
-        // assertion is a belt-and-braces sanity test.
-        expect(find.text('Nothing paired yet.'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'tapping the peer label opens a rename dialog that saves new label',
-      (tester) async {
-        final store = FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        );
-        await tester
-            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Mom'));
+        await tester.tap(find.text('Rename Mom'));
         await tester.pumpAndSettle();
 
         expect(find.text('Rename peer'), findsOneWidget);
-        expect(find.byType(TextField), findsOneWidget);
-
         await tester.enterText(find.byType(TextField), 'Mother');
         await tester.tap(find.widgetWithText(FilledButton, 'Save'));
         await tester.pumpAndSettle();
 
         final stored = await store.getRelationship();
         expect(stored?.label, 'Mother');
-        // Home re-renders with the new label.
         expect(find.text('Mother'), findsOneWidget);
-        expect(find.text('VERIFY MOTHER'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'rename dialog Cancel leaves the label unchanged',
+      'Haptics toggle from menu flips silentHaptics on and shows badge',
       (tester) async {
-        final store = FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        );
-        await tester
-            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Mom'));
-        await tester.pumpAndSettle();
+        expect(find.text('HAPTICS // OFF'), findsNothing);
 
-        await tester.enterText(find.byType(TextField), 'Stepmom');
-        await tester.tap(find.text('Cancel'));
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Turn haptics off'));
         await tester.pumpAndSettle();
 
         final stored = await store.getRelationship();
-        expect(stored?.label, 'Mom');
-        expect(find.text('Mom'), findsOneWidget);
+        expect(stored?.silentHaptics, isTrue);
+        // Silent badge now appears on the row.
+        expect(find.text('HAPTICS // OFF'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'rename dialog refuses an empty name',
+      'Liveness challenge from menu routes to /liveness/:id',
       (tester) async {
-        final store = FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        );
-        await tester
-            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Mom'));
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Liveness challenge'));
         await tester.pumpAndSettle();
 
-        // Clear the field — should make Save reject the input.
-        await tester.enterText(find.byType(TextField), '   ');
-        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Name cannot be empty.'), findsOneWidget);
-        // Dialog still open.
-        expect(find.text('Rename peer'), findsOneWidget);
-        final stored = await store.getRelationship();
-        expect(stored?.label, 'Mom');
+        expect(find.text('LIVENESS_${mom.id}'), findsOneWidget);
       },
     );
 
-    testWidgets('HAPTICS row reads ON by default; tap toggles to OFF',
-        (tester) async {
-      final store = FakeSecureStore(
-        seeded: mom,
-        secret: List<int>.generate(32, (i) => i),
-      );
-      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Back up to paper from menu routes to /inspect/export/:id',
+      (tester) async {
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
+        await tester.pumpAndSettle();
 
-      expect(_findRichContaining('HAPTICS //'), findsOneWidget);
-      expect(find.text('ON'), findsOneWidget);
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Back up to paper'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('ON'));
-      await tester.pumpAndSettle();
+        expect(find.text('EXPORT_${mom.id}'), findsOneWidget);
+      },
+    );
 
-      expect(find.text('OFF'), findsOneWidget);
-      final stored = await store.getRelationship();
-      expect(stored?.silentHaptics, isTrue);
-    });
+    testWidgets(
+      'Rekey from menu seeds controller state and routes to /pair/exchange',
+      (tester) async {
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
+        await tester.pumpAndSettle();
 
-    testWidgets('HAPTICS toggle persists back to ON on second tap',
-        (tester) async {
-      final store = FakeSecureStore(
-        seeded: mom.copyWith(silentHaptics: true),
-        secret: List<int>.generate(32, (i) => i),
-      );
-      await tester.pumpWidget(_wrap(store: store, child: const HomeScreen()));
-      await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Rekey Mom'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('OFF'), findsOneWidget);
-      await tester.tap(find.text('OFF'));
-      await tester.pumpAndSettle();
+        expect(find.text('PAIR_EXCHANGE_ROUTE'), findsOneWidget);
+      },
+    );
 
-      expect(find.text('ON'), findsOneWidget);
-      final stored = await store.getRelationship();
-      expect(stored?.silentHaptics, isFalse);
-    });
+    testWidgets(
+      'Show binding from menu routes to /inspect/binding',
+      (tester) async {
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
+        await tester.pumpAndSettle();
 
-    testWidgets('shows the OFFLINE-FREE status chip', (tester) async {
-      await tester.pumpWidget(_wrap(
-        store: FakeSecureStore(
-          seeded: mom,
-          secret: List<int>.generate(32, (i) => i),
-        ),
-        child: const HomeScreen(),
-      ));
-      await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Show binding phrase'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('OFFLINE-FREE'), findsOneWidget);
-    });
+        expect(find.text('BINDING_ROUTE'), findsOneWidget);
+      },
+    );
   });
-}
 
-Finder _findRichContaining(String needle) {
-  return find.byWidgetPredicate((w) {
-    if (w is! RichText) return false;
-    return w.text.toPlainText().contains(needle);
+  group('HomeScreen — AppBar overflow', () {
+    testWidgets('Show intro again routes to /onboarding', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show intro again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ONBOARDING_ROUTE'), findsOneWidget);
+    });
   });
 }

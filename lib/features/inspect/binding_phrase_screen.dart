@@ -37,8 +37,12 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
   Future<void> _load() async {
     try {
       final store = ref.read(secureStoreProvider);
-      final relationship = await store.getRelationship();
-      final secret = await store.getSharedSecret();
+      final relationships = await store.listRelationships();
+      final relationship =
+          relationships.isEmpty ? null : relationships.first;
+      final secret = relationship == null
+          ? null
+          : await store.getSharedSecretById(relationship.id);
       if (relationship == null || secret == null) {
         if (!mounted) return;
         setState(() => _loadError = StateError('No paired contact.'));

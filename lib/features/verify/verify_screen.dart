@@ -27,7 +27,10 @@ import 'word_input.dart';
 /// `FLAG_SECURE` badge on the section signals that screenshots are blocked
 /// while this panel is open (platform call lands in Task 9.4).
 class VerifyScreen extends ConsumerStatefulWidget {
-  const VerifyScreen({super.key});
+  const VerifyScreen({super.key, required this.relationshipId});
+
+  /// Which relationship to verify. Routed from `/verify/:id` at app.dart.
+  final String relationshipId;
 
   @override
   ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
@@ -92,8 +95,11 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
   Future<void> _bootstrap() async {
     try {
       final store = ref.read(secureStoreProvider);
-      final relationship = await store.getRelationship();
-      final secret = await store.getSharedSecret();
+      final relationship =
+          await store.getRelationshipById(widget.relationshipId);
+      final secret = relationship == null
+          ? null
+          : await store.getSharedSecretById(relationship.id);
       if (!mounted) return;
       if (relationship == null || secret == null) {
         setState(() => _loadError = StateError('No paired contact.'));
@@ -267,6 +273,16 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             onToggle: () => setState(() => _showOwnWords = !_showOwnWords),
             words: _ownWords,
             secondsRemaining: _secondsRemaining,
+          ),
+          const SizedBox(height: 16),
+          // Liveness-challenge entry point. Sibling to Show-my-words —
+          // the user reaches for this when the call has video and they
+          // want to defeat a pre-recorded puppet in addition to the
+          // rotating-word verify.
+          _LivenessEntry(
+            label: relationship.label,
+            onTap: () =>
+                context.go('/liveness/${widget.relationshipId}'),
           ),
           const SizedBox(height: 24),
           Divider(color: scheme.outlineVariant),
@@ -495,6 +511,62 @@ class _EduStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LivenessEntry extends StatelessWidget {
+  const _LivenessEntry({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'LIVENESS CHALLENGE //',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        color: scheme.onSurfaceVariant,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'On video? Ask $label to do a physical challenge '
+                      'only a live human can.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurface,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
     );
   }

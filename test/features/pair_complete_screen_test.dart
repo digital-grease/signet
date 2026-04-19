@@ -23,14 +23,14 @@ Widget _wrap({required FakeSecureStore store}) {
     routes: <RouteBase>[
       GoRoute(
         path: '/pair/complete',
-        builder: (_, _) => const PairCompleteScreen(),
+        builder: (_, _) => const PairCompleteScreen(relationshipId: 'abc123'),
       ),
       GoRoute(
         path: '/',
         builder: (_, _) => const Scaffold(body: Text('HOME')),
       ),
       GoRoute(
-        path: '/verify',
+        path: '/verify/:id',
         builder: (_, _) => const Scaffold(body: Text('VERIFY_ROUTE')),
       ),
     ],

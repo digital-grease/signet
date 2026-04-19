@@ -36,20 +36,45 @@ class PairConfirmScreen extends ConsumerWidget {
         ourPublicKey: ourPublicKey,
         theirPublicKey: theirPublicKey,
       );
-      final relationship = Relationship.fresh(label: label, role: role);
       final store = ref.read(secureStoreProvider);
-      await store.saveRelationship(relationship, sharedSecret: secret);
+      final rekeyTargetId = pair.rekeyTargetId;
+      final Relationship relationship;
+      if (rekeyTargetId != null) {
+        // Rekey: overwrite the existing relationship with the new secret.
+        // Preserve id and label (and silentHaptics, etc.); refresh
+        // pairedAt and re-derive role from the new key ordering.
+        final existing = await store.getRelationshipById(rekeyTargetId);
+        if (existing == null) {
+          if (!context.mounted) return;
+          await _goBackWithError(
+              context, 'Relationship to rekey is no longer paired.');
+          return;
+        }
+        relationship = existing.copyWith(
+          role: role,
+          pairedAt: DateTime.now().toUtc(),
+        );
+        await store.saveRelationshipV2(relationship, sharedSecret: secret);
+      } else {
+        relationship = Relationship.fresh(label: label, role: role);
+        await store.saveRelationshipV2(relationship, sharedSecret: secret);
+      }
       ref.read(pairingControllerProvider.notifier).reset();
-      ref.invalidate(relationshipProvider);
+      ref.invalidate(relationshipsProvider);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Paired with $label.')),
-      );
-      // Route to /pair/complete instead of /. That screen nudges the user
-      // to do a practice verify while both phones are still in the same
-      // room. One-way ticket — after the user taps VERIFY or SKIP there,
-      // subsequent launches land directly on /.
-      context.go('/pair/complete');
+      if (rekeyTargetId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rekeyed pairing with $label.')),
+        );
+        // Rekey doesn't need the practice-verify nudge — the user already
+        // knows the flow.
+        context.go('/');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Paired with $label.')),
+        );
+        context.go('/pair/complete/${relationship.id}');
+      }
     } catch (error) {
       if (!context.mounted) return;
       await _goBackWithError(context, 'Could not save: $error');
@@ -106,7 +131,7 @@ class PairConfirmScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Confirm'),
+        title: Text(pair.isRekey ? 'Confirm rekey' : 'Confirm'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => _onMismatch(context, ref),
