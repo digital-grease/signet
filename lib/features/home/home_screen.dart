@@ -25,6 +25,66 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(relationshipProvider);
   }
 
+  Future<void> _editLabel(
+    BuildContext context,
+    WidgetRef ref,
+    Relationship relationship,
+  ) async {
+    final controller = TextEditingController(text: relationship.label);
+    final newLabel = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        String? errorText;
+        return StatefulBuilder(
+          builder: (stfContext, setState) {
+            return AlertDialog(
+              title: const Text('Rename peer'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                maxLength: 32,
+                decoration: InputDecoration(
+                  labelText: 'Peer name',
+                  errorText: errorText,
+                ),
+                onSubmitted: (_) => Navigator.of(dialogContext)
+                    .pop(controller.text.trim()),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(null),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final value = controller.text.trim();
+                    if (value.isEmpty) {
+                      setState(() => errorText = 'Name cannot be empty.');
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop(value);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    // Defer dispose until after any in-flight dialog close animation has
+    // settled. Disposing eagerly here has fired an "A TextEditingController
+    // was used after being disposed" assertion when the dialog's exit
+    // transition rebuilds the TextField.
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    if (newLabel == null || newLabel == relationship.label) return;
+
+    await ref
+        .read(secureStoreProvider)
+        .updateRelationshipMetadata(relationship.copyWith(label: newLabel));
+    ref.invalidate(relationshipProvider);
+  }
+
   Future<void> _unpair(
     BuildContext context,
     WidgetRef ref,
@@ -58,13 +118,37 @@ class HomeScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
-    await ref.read(secureStoreProvider).deleteRelationship();
+    final store = ref.read(secureStoreProvider);
+    // Snapshot the shared secret BEFORE deleting so the Undo action can
+    // restore it. Lives in the closure for the lifetime of the SnackBar
+    // (5 s) — goes out of scope and can be GC'd after that. We're
+    // comfortable holding it transiently: the relationship was just live
+    // in memory anyway for the verify flow, and the alternative (truly
+    // destructive unpair with no undo) loses legitimate work to a
+    // single-tap mistake.
+    final secretSnapshot = await store.getSharedSecret();
+    await store.deleteRelationship();
     ref.invalidate(relationshipProvider);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unpaired from ${relationship.label}.')),
-      );
-    }
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Unpaired from ${relationship.label}.'),
+        duration: const Duration(seconds: 5),
+        action: secretSnapshot == null
+            ? null
+            : SnackBarAction(
+                label: 'UNDO',
+                onPressed: () async {
+                  await store.saveRelationship(
+                    relationship,
+                    sharedSecret: secretSnapshot,
+                  );
+                  ref.invalidate(relationshipProvider);
+                },
+              ),
+      ),
+    );
   }
 
   @override
@@ -102,6 +186,8 @@ class HomeScreen extends ConsumerWidget {
                           onUnpair: () => _unpair(context, ref, relationship),
                           onToggleSilentHaptics: () =>
                               _toggleSilentHaptics(ref, relationship),
+                          onEditLabel: () =>
+                              _editLabel(context, ref, relationship),
                         ),
                 ),
               ),
@@ -175,11 +261,13 @@ class _PairedState extends StatelessWidget {
     required this.relationship,
     required this.onUnpair,
     required this.onToggleSilentHaptics,
+    required this.onEditLabel,
   });
 
   final Relationship relationship;
   final VoidCallback onUnpair;
   final VoidCallback onToggleSilentHaptics;
+  final VoidCallback onEditLabel;
 
   String get _fingerprintPrefix {
     // Render first 4 bytes of the id as colon-separated uppercase hex —
@@ -211,13 +299,39 @@ class _PairedState extends StatelessWidget {
       children: <Widget>[
         const _SectionHeader('PEER'),
         const SizedBox(height: 4),
-        Text(
-          relationship.label,
-          style: TextStyle(
-            fontSize: 44,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurface,
-            height: 1.0,
+        // The label is tappable — single tap opens the rename dialog.
+        // No hint chrome: journalist-operator users will discover it; the
+        // grandma-test cost of an accidental tap is a dialog that
+        // cancels cleanly.
+        InkWell(
+          onTap: onEditLabel,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    relationship.label,
+                    style: TextStyle(
+                      fontSize: 44,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -232,6 +346,11 @@ class _PairedState extends StatelessWidget {
           value: relationship.silentHaptics ? 'OFF' : 'ON',
           active: !relationship.silentHaptics,
           onToggle: onToggleSilentHaptics,
+        ),
+        _MonoActionRow(
+          label: 'INSPECT //',
+          value: 'SHOW BINDING PHRASE',
+          onTap: () => context.go('/inspect/binding'),
         ),
         const Spacer(),
         FilledButton(
@@ -370,6 +489,63 @@ class _MonoKV extends StatelessWidget {
               style: TextStyle(color: scheme.onSurface),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mono KV row whose value is a tappable action (not a toggle). Used for
+/// navigation out of the info panel — e.g. "INSPECT // SHOW BINDING PHRASE".
+class _MonoActionRow extends StatelessWidget {
+  const _MonoActionRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: <Widget>[
+              Text(
+                label.padRight(14),
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: scheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: scheme.primary,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.arrow_forward,
+                size: 12,
+                color: scheme.primary,
+              ),
+            ],
+          ),
         ),
       ),
     );

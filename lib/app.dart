@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/theme/signet_theme.dart';
 import 'features/home/home_screen.dart';
+import 'features/inspect/binding_phrase_screen.dart';
 import 'features/pairing/pair_confirm_screen.dart';
 import 'features/pairing/pair_exchange_screen.dart';
 import 'features/pairing/pair_start_screen.dart';
@@ -21,6 +22,10 @@ class SignetApp extends StatelessWidget {
     routes: <RouteBase>[
       GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
       GoRoute(path: '/verify', builder: (_, _) => const VerifyScreen()),
+      GoRoute(
+        path: '/inspect/binding',
+        builder: (_, _) => const BindingPhraseScreen(),
+      ),
       GoRoute(path: '/pair/start', builder: (_, _) => const PairStartScreen()),
       GoRoute(
         path: '/pair/exchange',

@@ -162,6 +162,161 @@ void main() {
       expect(_findRichContaining('role:A'), findsOneWidget);
     });
 
+    testWidgets(
+      'tapping UNDO within the snackbar window restores the relationship',
+      (tester) async {
+        final store = FakeSecureStore(
+          seeded: mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+        await tester
+            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('UNPAIR'));
+        await tester.pumpAndSettle();
+        final dialogUnpair = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Unpair'),
+        );
+        await tester.tap(dialogUnpair);
+        await tester.pumpAndSettle();
+
+        expect(await store.hasRelationship(), isFalse);
+        expect(find.text('UNDO'), findsOneWidget);
+
+        await tester.tap(find.text('UNDO'));
+        await tester.pumpAndSettle();
+
+        expect(await store.hasRelationship(), isTrue);
+        final restored = await store.getRelationship();
+        expect(restored?.id, mom.id);
+        expect(restored?.label, mom.label);
+        final secret = await store.getSharedSecret();
+        expect(secret, isNotNull);
+        expect(secret!.length, 32);
+        // Home re-renders the paired state.
+        expect(find.text('VERIFY MOM'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'letting the undo snackbar expire leaves the relationship deleted',
+      (tester) async {
+        final store = FakeSecureStore(
+          seeded: mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+        await tester
+            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('UNPAIR'));
+        await tester.pumpAndSettle();
+        final dialogUnpair = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Unpair'),
+        );
+        await tester.tap(dialogUnpair);
+        await tester.pumpAndSettle();
+
+        expect(await store.hasRelationship(), isFalse);
+        expect(find.text('UNDO'), findsOneWidget);
+
+        // The SnackBar's 5-second duration uses a real Timer; advance
+        // the fake clock past it and let the dismiss animation settle.
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        expect(await store.hasRelationship(), isFalse);
+        // The home screen is back in the empty state even if the
+        // SnackBar dismiss animation is mid-frame. The store-state
+        // assertion above is the load-bearing check here — the UI
+        // assertion is a belt-and-braces sanity test.
+        expect(find.text('Nothing paired yet.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping the peer label opens a rename dialog that saves new label',
+      (tester) async {
+        final store = FakeSecureStore(
+          seeded: mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+        await tester
+            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Mom'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Rename peer'), findsOneWidget);
+        expect(find.byType(TextField), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField), 'Mother');
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        final stored = await store.getRelationship();
+        expect(stored?.label, 'Mother');
+        // Home re-renders with the new label.
+        expect(find.text('Mother'), findsOneWidget);
+        expect(find.text('VERIFY MOTHER'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'rename dialog Cancel leaves the label unchanged',
+      (tester) async {
+        final store = FakeSecureStore(
+          seeded: mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+        await tester
+            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Mom'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), 'Stepmom');
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        final stored = await store.getRelationship();
+        expect(stored?.label, 'Mom');
+        expect(find.text('Mom'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'rename dialog refuses an empty name',
+      (tester) async {
+        final store = FakeSecureStore(
+          seeded: mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+        await tester
+            .pumpWidget(_wrap(store: store, child: const HomeScreen()));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Mom'));
+        await tester.pumpAndSettle();
+
+        // Clear the field — should make Save reject the input.
+        await tester.enterText(find.byType(TextField), '   ');
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Name cannot be empty.'), findsOneWidget);
+        // Dialog still open.
+        expect(find.text('Rename peer'), findsOneWidget);
+        final stored = await store.getRelationship();
+        expect(stored?.label, 'Mom');
+      },
+    );
+
     testWidgets('HAPTICS row reads ON by default; tap toggles to OFF',
         (tester) async {
       final store = FakeSecureStore(
