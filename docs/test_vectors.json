@@ -1,0 +1,76 @@
+{
+  "_comment": "Machine-readable test vectors used by Signet's crypto primitives. Paired with docs/TEST_VECTORS.md (human-readable).",
+  "_generated_for_commit": "see git log of this file",
+  "_generated_at": "2026-04-19",
+  "_version": 1,
+
+  "rfc_6238_totp_sha256_8digit": {
+    "description": "Time-based One-Time Password RFC 6238 Appendix B vectors, SHA-256 variant, 8-digit output. Key is ASCII-repeated decimals padded to 32 bytes.",
+    "key_ascii": "12345678901234567890123456789012",
+    "key_hex": "3132333435363738393031323334353637383930313233343536373839303132",
+    "step_seconds": 30,
+    "t0_seconds": 0,
+    "digits": 8,
+    "vectors": [
+      { "unix_seconds": 59,          "code": "46119246" },
+      { "unix_seconds": 1111111109,  "code": "68084774" },
+      { "unix_seconds": 1111111111,  "code": "67062674" },
+      { "unix_seconds": 1234567890,  "code": "91819424" },
+      { "unix_seconds": 2000000000,  "code": "90698825" },
+      { "unix_seconds": 20000000000, "code": "77737706" }
+    ],
+    "in_tree_tests": "test/crypto/totp_test.dart"
+  },
+
+  "rfc_7748_x25519_section_6_1": {
+    "description": "Curve25519 Diffie-Hellman round-trip vectors per RFC 7748 Section 6.1.",
+    "alice": {
+      "private_scalar_hex": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "public_key_hex":     "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a"
+    },
+    "bob": {
+      "private_scalar_hex": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "public_key_hex":     "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f"
+    },
+    "shared_secret_hex":    "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
+    "in_tree_tests": "test/crypto/pairing_test.dart"
+  },
+
+  "hkdf_sha256_domain_separation": {
+    "description": "Signet uses HKDF-SHA-256 in multiple contexts, each with a distinct info string. Domain separation is enforced at the info layer, not by separate root keys.",
+    "info_strings": [
+      { "context": "pair-time TOTP secret",                "info": "signet/v1/totp-secret" },
+      { "context": "pair-time 4-word confirmation phrase", "info": "signet/v1/verification-phrase" },
+      { "context": "rotating verify code — role A",        "info": "signet/v1/totp-words-from-a" },
+      { "context": "rotating verify code — role B",        "info": "signet/v1/totp-words-from-b" },
+      { "context": "transport package — long-distance pair", "info": "signet/v1/tp1/ldp" },
+      { "context": "transport package — lost-phone recovery", "info": "signet/v1/tp1/lpr" },
+      { "context": "challenge-response grid — axis labels",   "info": "signet/v2/cr-axis-v1" },
+      { "context": "challenge-response grid — cell contents", "info": "signet/v2/cr-grid-v1" }
+    ],
+    "in_tree_tests": [
+      "test/crypto/totp_words_test.dart (TotpWords domain separation group)",
+      "test/crypto/transport_package_test.dart (cross-payload-type rejection)",
+      "test/crypto/challenge_response_grid_test.dart (cells vs pair-time phrase)"
+    ]
+  },
+
+  "bip_0039_english_wordlist": {
+    "description": "Standard BIP-0039 English mnemonic wordlist, embedded in-tree and used across all user-facing BIP-39 words in Signet.",
+    "word_count": 2048,
+    "source_url": "https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt",
+    "embedded_at": "lib/core/crypto/bip39_english_wordlist.dart",
+    "in_tree_tests": [
+      "test/crypto/verification_test.dart",
+      "test/crypto/totp_words_test.dart",
+      "test/crypto/challenge_response_grid_test.dart",
+      "test/crypto/liveness_challenge_test.dart"
+    ]
+  },
+
+  "aes_256_gcm": {
+    "description": "AEAD primitive used by the transport package. No NIST KAT vectors carried in-tree at this time; gap acknowledged — see docs/TEST_VECTORS.md.",
+    "in_tree_tests": "test/crypto/transport_package_test.dart",
+    "upstream_implementation": "package:cryptography/cryptography.dart (Hkdf, AesGcm)"
+  }
+}

@@ -4,15 +4,14 @@ import 'package:flutter/widgets.dart';
 /// Wraps [child] in a widget that asks the platform to block screenshots
 /// and screen recording while the subtree is mounted.
 ///
-/// Android: invokes `dev.signet.app/window#secureOn` on mount (adds
-/// `WindowManager.LayoutParams.FLAG_SECURE`), `secureOff` on dismount
+/// Android: invokes `dev.digitalgrease.signet/window#secureOn` on mount
+/// (adds `WindowManager.LayoutParams.FLAG_SECURE`), `secureOff` on dismount
 /// (clears the flag). The platform implementation lives in
-/// `android/app/src/main/kotlin/dev/signet/signet/MainActivity.kt`.
+/// `android/app/src/main/kotlin/dev/digitalgrease/signet/MainActivity.kt`.
 ///
-/// iOS: no-op — iOS does not expose a system-wide screenshot block.
-/// Mitigation there is to swap the UI for a blank view on
-/// `applicationWillResignActive`, which needs native-side work. Deferred to
-/// post-v1.0 iOS parity.
+/// iOS: same method channel; native handler in
+/// `ios/Runner/AppDelegate.swift` swaps the UI for a blurred overlay on
+/// `applicationWillResignActive`, restores on `didBecomeActive`.
 ///
 /// Web / desktop: no-op. The method channel returns `MissingPluginException`
 /// and we swallow it silently.
@@ -27,7 +26,7 @@ class SecureScreen extends StatefulWidget {
   final Widget child;
 
   static const MethodChannel channel =
-      MethodChannel('dev.signet.app/window');
+      MethodChannel('dev.digitalgrease.signet/window');
 
   @override
   State<SecureScreen> createState() => _SecureScreenState();

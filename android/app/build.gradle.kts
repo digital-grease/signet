@@ -22,7 +22,7 @@ val keystoreProperties = Properties().apply {
 val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
 
 android {
-    namespace = "dev.signet.signet"
+    namespace = "dev.digitalgrease.signet"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.signet.app"
+        applicationId = "dev.digitalgrease.signet"
         minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

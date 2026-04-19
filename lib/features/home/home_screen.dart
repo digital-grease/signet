@@ -319,12 +319,18 @@ class HomeScreen extends ConsumerWidget {
             onSelected: (value) {
               if (value == 'intro') {
                 context.go('/onboarding');
+              } else if (value == 'about') {
+                context.push('/about');
               }
             },
             itemBuilder: (context) => const <PopupMenuEntry<String>>[
               PopupMenuItem<String>(
                 value: 'intro',
                 child: Text('Show intro again'),
+              ),
+              PopupMenuItem<String>(
+                value: 'about',
+                child: Text('About'),
               ),
             ],
           ),

@@ -1,0 +1,13 @@
+v0.2.0 — the first F-Droid-submittable release.
+
+Highlights:
+* In-person QR pairing + 4-word rotating verify
+* Long-distance pairing via encrypted transport package
+* Lost-phone recovery via printed paper or saved file
+* Multi-relationship storage + in-person rekey
+* Printable challenge-response grid (fallback when the other side has no phone)
+* Liveness prompts for video calls
+* Android screenshot blocking on sensitive screens
+
+Alpha release: expect rough edges. Issue tracker:
+https://github.com/digital-grease/signet/issues

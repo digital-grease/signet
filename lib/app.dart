@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/prefs/app_prefs.dart';
 import 'core/theme/signet_theme.dart';
+import 'features/about/about_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/inspect/backup_export_screen.dart';
 import 'features/inspect/backup_import_screen.dart';
@@ -33,6 +34,7 @@ class SignetApp extends StatelessWidget {
           initialLocation: prefs.onboardingCompleted ? '/' : '/onboarding',
           routes: <RouteBase>[
             GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+            GoRoute(path: '/about', builder: (_, _) => const AboutScreen()),
             GoRoute(
               path: '/onboarding',
               builder: (_, _) => OnboardingScreen(prefs: prefs),

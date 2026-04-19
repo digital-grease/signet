@@ -1,0 +1,99 @@
+# F-Droid build metadata for Signet.
+#
+# This file lives in THIS repo at `metadata/dev.digitalgrease.signet.yml` as a
+# canonical source. To actually submit to F-Droid, copy it into a
+# PR against
+#   https://gitlab.com/fdroid/fdroiddata
+# at the path
+#   metadata/dev.digitalgrease.signet.yml
+# See https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/
+#
+# F-Droid's build server will clone the source at `SourceCode`, check
+# out `commit`, and run the `build:` recipe to reproduce the APK.
+# The fingerprint of the resulting APK is compared to upstream's
+# signed release fingerprint (`AllowedAPKSigningKeys`). Matching
+# fingerprints → F-Droid distributes our release-signed APK as-is.
+# Non-matching → F-Droid distributes its own signed build and flags
+# the mismatch.
+#
+# Fields that need to be filled by the OWNER at submission time are
+# marked with TODO below.
+
+Categories:
+  - Security
+  - Phone & SMS
+
+License: GPL-3.0-only
+AuthorName: digital-grease
+AuthorWebSite: https://github.com/digital-grease
+SourceCode: https://github.com/digital-grease/signet
+IssueTracker: https://github.com/digital-grease/signet/issues
+# Translations: TODO — set when any locale beyond en-US lands.
+Changelog: https://github.com/digital-grease/signet/releases
+
+AutoName: Signet
+
+# TODO(owner): once the release keystore exists, compute the signing
+# key's SHA-256 fingerprint and fill this in. Command:
+#   keytool -list -v -keystore ~/keystores/signet-release.jks \
+#     | grep 'SHA256:' | awk '{print $2}' | tr -d ':'
+# F-Droid uses this to confirm the APK it receives was signed by the
+# upstream-published key.
+AllowedAPKSigningKeys:
+  - TODO_REPLACE_WITH_KEYSTORE_SHA256_FINGERPRINT
+
+# Build recipe per F-Droid's metadata spec. Signet is reproducible
+# via the Dockerfile/script in `Dockerfile.reproducible` +
+# `scripts/reproducible-build.sh`, but F-Droid's buildserver is
+# stricter than ours — it uses its own sandbox. The build recipe
+# below is what F-Droid's sandbox runs; it needs to be equivalent
+# in spirit to our reproducible script but expressed in F-Droid's
+# YAML format.
+
+Builds:
+  - versionName: 0.2.0
+    versionCode: 20000
+    # TODO(owner): set `commit` to the exact tag (e.g. `v0.2.0`) once
+    # that tag is pushed. F-Droid will `git checkout` this ref.
+    commit: v0.2.0
+
+    # Flutter is not in F-Droid's default sandbox. The `srclibs`
+    # mechanism adds pinned external sources.
+    srclibs:
+      - Flutter@3.41.6
+
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-17-jdk-headless xz-utils
+
+    # Build steps. F-Droid's buildserver runs these from the
+    # repo root.
+    build: |
+      export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      export PATH="$$Flutter$$/bin:$JAVA_HOME/bin:$PATH"
+
+      # Silence the Flutter analytics on F-Droid's sandbox.
+      flutter config --no-analytics --no-cli-animations
+
+      flutter pub get
+      flutter build apk --release --split-per-abi
+
+    output: build/app/outputs/flutter-apk/app-*-release.apk
+
+    ndk: 26.3.11579264
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+VercodeOperation:
+  - "%c"
+
+CurrentVersion: 0.2.0
+CurrentVersionCode: 20000
+
+# Anti-features: per F-Droid's convention, flag anything users might
+# want to know about that would otherwise get through. Signet has
+# none of the usual anti-features (no ads, no tracking, no upstream
+# non-free dependencies), so this list is empty. If we ever add a
+# component that tracks (we won't) or a proprietary dep (we won't),
+# it goes here.
+# AntiFeatures: []

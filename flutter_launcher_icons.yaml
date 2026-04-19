@@ -1,0 +1,60 @@
+# Signet app icon configuration.
+# Run: `dart run flutter_launcher_icons`
+#
+# Source images (both 1024x1024, generated from the designer's
+# 914x912 PNG — see scripts/icons/README.md or the Makefile target
+# if we later scriptize this):
+#   - assets/icon/signet-source-1024.png — opaque, #0A0C10 fill,
+#     artwork upscaled edge-to-edge. Used for iOS + Play Store hero
+#     icon. Alpha stripped (iOS App Store rejects alpha).
+#   - assets/icon/signet-foreground.png — transparent background,
+#     artwork full-bleed at 1024x1024 (matches the designer's original
+#     composition with rounded corners baked into the alpha). The
+#     adaptive-icon XML emitted by flutter_launcher_icons applies a
+#     default 16% inset around this drawable — that inset is what
+#     lands the artwork inside the safe zone, so the source itself is
+#     left full-bleed on purpose. Do NOT pre-inset this file.
+
+flutter_launcher_icons:
+  # --- Platforms to generate for ---
+  android: "launcher_icon"       # true generates mipmap-*/ic_launcher.png;
+                                 # "launcher_icon" generates a named icon
+                                 # and updates AndroidManifest.xml to
+                                 # reference it (side-stepping the default
+                                 # ic_launcher that ships from `flutter create`).
+  ios: true                      # writes ios/Runner/Assets.xcassets/AppIcon.appiconset/
+
+  # --- Source images ---
+  image_path: "assets/icon/signet-source-1024.png"
+
+  # --- Android adaptive icon (API 26+) ---
+  # Android 8.0+ renders icons as two layers: a foreground that the
+  # launcher can crop to any shape (circle, squircle, etc.) plus a
+  # solid background. Content outside the center 66% diameter circle
+  # may be clipped depending on the launcher's mask shape.
+  #
+  # We use a dedicated full-bleed foreground PNG; the adaptive-icon
+  # XML emitted by flutter_launcher_icons wraps the foreground in a
+  # 16% inset, which scales it down to ~68% of the canvas — that's
+  # what keeps the artwork inside the safe zone. Separating the
+  # foreground from the opaque source also means the background color
+  # (set below) paints through the transparent corners instead of
+  # getting baked into the PNG.
+  adaptive_icon_background: "#0A0C10"  # near-black; matches the operator
+                                       # theme's void background
+  adaptive_icon_foreground: "assets/icon/signet-foreground.png"
+
+  # --- iOS compliance ---
+  # iOS App Store rejects icons with alpha channels. This flag
+  # composites the source image onto an opaque background and strips
+  # the alpha before emitting the Apple-facing PNGs. Android keeps
+  # the alpha channel (it uses alpha correctly).
+  remove_alpha_ios: true
+
+  # --- Min SDK (Android adaptive icon gate) ---
+  min_sdk_android: 28  # matches android/app/build.gradle.kts
+
+  # --- Web + desktop (not used) ---
+  # web:      false
+  # windows:  false
+  # macos:    false

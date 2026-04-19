@@ -4,6 +4,8 @@
 [![Android Build](https://github.com/digital-grease/signet/actions/workflows/android-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/android-build.yml)
 [![iOS Build](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml)
 
+<a href="https://www.buymeacoffee.com/digitalgrease" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 Cryptographic multi-factor authentication for **human relationships**, not accounts.
 
 When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her. Each paired contact generates a rotating 4-word phrase that only the real person's phone can produce; you ask her to read her phrase aloud and type what you hear. Works over any channel — voice call, video call, text, email, in person.
@@ -237,12 +239,12 @@ Landed in codebase; no store-packaged release yet. See `.devloop/archive/` for t
 Before any real-world distribution, validate on physical hardware:
 
 1. **Full two-device pair + verify roundtrip.** Use two Android 9+ phones. Both should derive identical 4-word pair-time phrases; on the Verify screen, typing one phone's current 4 rotating words into the other's 4-slot input should produce a ✅ banner.
-2. **Inspect `/data/data/dev.signet.app/shared_prefs/`** after pairing. Confirm the shared secret never appears in plaintext.
+2. **Inspect `/data/data/dev.digitalgrease.signet/shared_prefs/`** after pairing. Confirm the shared secret never appears in plaintext.
 3. **Accessibility:** complete the pair flow using only TalkBack (screen reader).
 4. **Large text:** set the system font size to max; re-walk the paired state, Verify screen, and Pair-confirm screen (these were not reachable during v0.1 emulator-only QA).
 5. **Clock drift:** on two paired phones, set one clock ±30s. The displayed codes on both should still match via the verifier's ±1-window tolerance.
 6. **Offline:** enable airplane mode on both phones; the full pair + verify loop should work unchanged.
-7. **Uninstall:** after unpair-and-uninstall, confirm no app data survives in `/data/data/dev.signet.app/`.
+7. **Uninstall:** after unpair-and-uninstall, confirm no app data survives in `/data/data/dev.digitalgrease.signet/`.
 
 ## Contributing
 

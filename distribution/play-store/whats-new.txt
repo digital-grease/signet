@@ -1,0 +1,11 @@
+v0.2 alpha — the first shippable version.
+
+• In-person QR pairing + 4-word rotating verify.
+• Long-distance pairing via encrypted transport package.
+• Lost-phone recovery via paper or saved file.
+• Multi-relationship + in-person rekey.
+• Challenge-response fallback + printable card.
+• Liveness prompts for video calls.
+• Screenshot blocking. Offline-only. Zero telemetry.
+
+Alpha: expect rough edges. Issues: https://github.com/digital-grease/signet/issues.

@@ -1,5 +1,5 @@
 // Harness for Task 3.4: writes a known-plaintext sentinel through
-// SecureStore so we can inspect /data/data/dev.signet.app/ on-device
+// SecureStore so we can inspect /data/data/dev.digitalgrease.signet/ on-device
 // and confirm no plaintext leaks into SharedPreferences or other app files.
 //
 // The sentinel values are deliberately ASCII-printable so they show up
@@ -14,8 +14,8 @@
 //   flutter test integration_test/secure_store_harness_test.dart -d <device-id>
 //
 // After the test passes, inspect on-device with:
-//   adb shell run-as dev.signet.app sh -c 'ls -laR .'
-//   adb shell run-as dev.signet.app sh -c 'cat shared_prefs/*.xml'
+//   adb shell run-as dev.digitalgrease.signet sh -c 'ls -laR .'
+//   adb shell run-as dev.digitalgrease.signet sh -c 'cat shared_prefs/*.xml'
 // and grep for the sentinel strings above.
 
 import 'dart:convert';

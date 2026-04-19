@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -442,6 +443,18 @@ class _ScanningPaneState extends State<_ScanningPane> {
   }
 }
 
+/// The OS-native path to the per-app camera permission toggle.
+/// Android wraps it under Apps → the-app → Permissions; iOS exposes
+/// each app at the top level of Settings. We check at widget-build
+/// time so the same widget tree works on both platforms without a
+/// plugin.
+String _settingsPath() {
+  if (Platform.isIOS) {
+    return 'Settings → Signet → Camera';
+  }
+  return 'Apps → Signet → Permissions → Camera';
+}
+
 class _PermissionDeniedPane extends StatelessWidget {
   const _PermissionDeniedPane({required this.onCancel});
 
@@ -470,8 +483,7 @@ class _PermissionDeniedPane extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Signet needs the camera only to scan pairing QR codes. '
-            'Turn it on in your phone settings: Apps → Signet → '
-            'Permissions → Camera.',
+            'Turn it on in your phone settings: ${_settingsPath()}.',
             textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(
               color: colors.onSurfaceVariant,

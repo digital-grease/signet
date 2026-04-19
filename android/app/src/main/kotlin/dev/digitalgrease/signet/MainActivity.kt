@@ -1,4 +1,4 @@
-package dev.signet.signet
+package dev.digitalgrease.signet
 
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
@@ -12,7 +12,7 @@ import io.flutter.plugin.common.MethodChannel
  * `SecureScreen` wrapper on mount/dismount.
  */
 class MainActivity : FlutterActivity() {
-    private val channel = "dev.signet.app/window"
+    private val channel = "dev.digitalgrease.signet/window"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

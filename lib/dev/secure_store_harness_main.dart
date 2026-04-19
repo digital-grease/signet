@@ -3,7 +3,7 @@
 //
 // On launch this saves a known-plaintext sentinel Relationship + shared
 // secret through SecureStore and keeps the app alive so that
-// `adb shell run-as dev.signet.app ...` can inspect /data/data to verify
+// `adb shell run-as dev.digitalgrease.signet ...` can inspect /data/data to verify
 // that the secret is not lying around as plaintext in SharedPreferences
 // or anywhere else inside the app sandbox.
 //

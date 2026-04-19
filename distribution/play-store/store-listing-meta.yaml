@@ -1,0 +1,52 @@
+# Quick-reference metadata for the Play Console listing.
+# This is a crib sheet; the source of truth is whatever you enter in
+# the console UI.
+
+application:
+  name: Signet
+  bundle_id: dev.digitalgrease.signet
+  category: Tools
+  # Alternative if Play reviewers want something more specific:
+  #   Communication, Productivity, or Libraries & Demos
+  # "Tools" is the least-likely-to-be-rejected default.
+
+contact:
+  website: https://github.com/digital-grease/signet
+  email: # leave blank if you don't want a contact email published;
+         # Play allows GitHub issues-only contact.
+  phone: # leave blank.
+
+privacy_policy_url: https://github.com/digital-grease/signet/blob/main/PRIVACY.md
+# GitHub renders PRIVACY.md at this URL; no GitHub Pages setup needed.
+# Play + App Store both accept a GitHub blob URL as the privacy-policy link.
+
+releases:
+  track_start: internal
+  # Progression: internal → closed beta → open beta → production.
+  # Do not jump straight to production on v0.2.
+
+pricing:
+  model: free
+  in_app_purchases: false
+  ads: false
+
+compliance:
+  targets_children: false
+  uses_ads_id: false
+  # Signet has no advertising id usage. This needs to be declared
+  # explicitly in Play Console; ADS_ID permission must not be
+  # declared in AndroidManifest.xml.
+
+i18n:
+  default_locale: en-US
+  # Add locales when translations exist. Signet's in-app copy is
+  # English-only at v0.2 alpha.
+
+graphics:
+  feature_graphic: TBD  # 1024x500 PNG, drafted when real theme lands
+  app_icon: TBD         # 512x512 PNG, drafted when real icon lands
+  screenshots:
+    phone: screenshots/phone/*.png
+    7in_tablet: screenshots/7in/*.png
+    10in_tablet: screenshots/10in/*.png
+    # Minimum 2 / maximum 8 per size class.

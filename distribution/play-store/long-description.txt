@@ -1,0 +1,47 @@
+When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her.
+
+Each paired contact generates a rotating 4-word phrase that only the real person's phone can produce. You ask her to read her phrase aloud; you type what you hear. Green banner: verified. Red banner: something's wrong — hang up and call her back on a number you already trust.
+
+Signet works over any channel. Voice calls, video calls, text, email, in person, from across the country, from inside a locked hospital room. The only requirement is that the two of you paired once, in person or over a trusted channel, before the crisis.
+
+Built for a world where AI voice cloning is commodity and social-engineering vishing attacks are industrialised. Defends against:
+
+• Real-time voice deepfakes (ElevenLabs-class and up)
+• Real-time video deepfakes in calls
+• Pre-recorded deepfake voicemails
+• Vishing using scraped biographical knowledge
+• Compromised messaging accounts where the attacker has chat history but not the paired device
+• SIM swaps (your secret is device-local, not phone-number-bound)
+• "Reflection" attacks where the caller asks you to read your phrase first — the rotating code is direction-aware, so echoing it back fails by construction
+
+Core properties:
+
+• No server. No cloud. No account. The app has no INTERNET permission.
+• No telemetry. No analytics. No ads. No crash reporting. Not now, not ever.
+• Hardware-backed secrets via Android Keystore. StrongBox when your device supports it.
+• Offline-first by design. Airplane mode doesn't affect any flow.
+• RFC-validated crypto: X25519 / HKDF-SHA-256 / AES-256-GCM, all verified against published test vectors.
+• Open source, GPL-3.0.
+
+What's in v0.2:
+
+• In-person QR pairing
+• Long-distance pairing via encrypted transport package (for journalists, activists, distributed teams — the 8-word unlock secret lives on a channel you already trust)
+• Lost-phone recovery via printed paper or saved file
+• Multi-relationship storage with in-person rekey
+• Challenge-response fallback (printable card for when the other side can't reach their phone)
+• Liveness prompts for video calls (physical challenges a pre-recorded loop can't match)
+• Screenshot + screen-recording blocking on sensitive screens
+• First-run walkthrough + post-pair practice nudge
+
+What's NOT in v0.2:
+
+• Duress codes (gated on an abuse-analysis pass)
+• Small-org shared verification (requires group-key agreement research)
+• Automatic key rotation (manual rekey available)
+• Cloud backup (out of scope forever — see the privacy policy)
+• Account recovery (there is no account)
+
+If you are an elderly person worried about grandchild-scam calls; a journalist worried about a source being impersonated; a finance employee worried about CEO-fraud wire-transfer calls; a custody parent worried about an impersonator calling a child's school — Signet is for you. It is a single primitive, done well, offline, with no ongoing relationship to any company.
+
+If you want to know more about the threat model or verify our posture yourself, the whole codebase + documentation is at https://github.com/digital-grease/signet.

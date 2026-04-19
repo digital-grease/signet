@@ -57,6 +57,10 @@ dependencies:
   # File picker for importing a saved backup. User opens a picker,
   # chooses a .txt file, we read it locally. No network.
   file_picker: ^10.3.1
+  # Launches external URLs from the About screen (source, privacy,
+  # support/donate). Hands off to the OS browser; no network calls
+  # from Signet itself.
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +69,10 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  # Generates the full iOS + Android icon asset set from a single source
+  # image. Config lives in flutter_launcher_icons.yaml alongside this
+  # file. Run: `dart run flutter_launcher_icons`.
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,0 +1,27 @@
+When someone who sounds like your mother calls in a panic asking for bail money, Signet lets you verify it's actually her.
+
+Each paired contact generates a rotating 4-word phrase that only the real person's phone can produce. You ask her to read her phrase aloud; you type what you hear. Green banner: verified. Red banner: something's wrong — hang up and call her back on a number you already trust.
+
+Signet works over any channel. Voice calls, video calls, text, email, in person. The only requirement is that the two of you paired once, in person or over a trusted channel, before the crisis.
+
+Built for a world where AI voice cloning is commodity. Defends against:
+
+* Real-time voice and video deepfakes
+* Pre-recorded deepfake voicemails
+* Vishing using scraped biographical knowledge
+* Compromised messaging accounts where the attacker has chat history but not the paired device
+* SIM swaps
+* Reflection attacks: the rotating code is direction-aware, so an attacker echoing your own phrase back at you fails
+
+Core properties:
+
+* No server. No cloud. No account. No INTERNET permission.
+* No telemetry. No analytics. No ads. No crash reporting.
+* Hardware-backed secrets via Android Keystore, StrongBox when available.
+* Offline-first; airplane mode does not affect any flow.
+* RFC-validated crypto (X25519, HKDF-SHA-256, AES-256-GCM, BIP-39).
+* Open source, GPL-3.0.
+
+v0.2 includes in-person pairing, long-distance pairing, lost-phone recovery via paper or file, multi-relationship storage, in-person rekey, a printable challenge-response grid for when the other side can't reach their phone, liveness prompts for video calls, and screenshot blocking on sensitive screens.
+
+Not included: duress codes (gated on an abuse-analysis pass), account recovery (there is no account), cloud backup (out of scope forever).
