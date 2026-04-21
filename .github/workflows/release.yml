@@ -358,10 +358,16 @@ jobs:
           body_path: ${{ steps.body.outputs.path }}
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            release-android/*
-            release-ios/*
+            release-android/**/*
+            release-ios/**/*
+          # `**/*` recurses — the Android artifact download preserves the
+          # Flutter build-output paths (`bundle/release/*.aab`,
+          # `flutter-apk/*.apk`). A flat `release-android/*` silently
+          # matches only the subdirs, dropping the actual binaries (hit
+          # that in the v0.2.0 first publish — only sha256 siblings
+          # landed, and those only because they were co-located with the
+          # same nesting).
           # iOS artifact is best-effort — if build-ios failed, release-ios/
           # is absent. We don't want that to fail the release when Android
-          # did ship. release-android/* is still required; the step above
-          # errors on download if the Android artifact is missing.
+          # did ship.
           fail_on_unmatched_files: false
