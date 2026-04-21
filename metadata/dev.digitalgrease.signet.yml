@@ -33,14 +33,18 @@ Changelog: https://github.com/digital-grease/signet/releases
 
 AutoName: Signet
 
-# TODO(owner): once the release keystore exists, compute the signing
-# key's SHA-256 fingerprint and fill this in. Command:
-#   keytool -list -v -keystore ~/keystores/signet-release.jks \
-#     | grep 'SHA256:' | awk '{print $2}' | tr -d ':'
-# F-Droid uses this to confirm the APK it receives was signed by the
-# upstream-published key.
+# SHA-256 fingerprint of the Signet release keystore (generated
+# 2026-04-20, stored at ~/keystores/signet-release.jks with 3-backup
+# hygiene per docs/RELEASE.md §1). F-Droid uses this to confirm the
+# APK it receives was signed by the upstream-published key; a
+# non-match means F-Droid would build + sign its own APK and flag
+# the mismatch.
+# Original from `keytool -list -v`:
+#   E6:3E:48:AC:F7:99:18:27:2C:E4:77:8F:D1:C0:80:DF:
+#   09:65:1A:2A:CE:8B:9E:F4:75:16:94:14:12:87:0A:C7
+# F-Droid format is lowercase hex, no colons.
 AllowedAPKSigningKeys:
-  - TODO_REPLACE_WITH_KEYSTORE_SHA256_FINGERPRINT
+  - e63e48acf79918272ce4778fd1c080df09651a2ace8b9ef47516941412870ac7
 
 # Build recipe per F-Droid's metadata spec. Signet is reproducible
 # via the Dockerfile/script in `Dockerfile.reproducible` +
@@ -52,7 +56,7 @@ AllowedAPKSigningKeys:
 
 Builds:
   - versionName: 0.2.0
-    versionCode: 20000
+    versionCode: 1
     # TODO(owner): set `commit` to the exact tag (e.g. `v0.2.0`) once
     # that tag is pushed. F-Droid will `git checkout` this ref.
     commit: v0.2.0
@@ -88,7 +92,7 @@ VercodeOperation:
   - "%c"
 
 CurrentVersion: 0.2.0
-CurrentVersionCode: 20000
+CurrentVersionCode: 1
 
 # Anti-features: per F-Droid's convention, flag anything users might
 # want to know about that would otherwise get through. Signet has

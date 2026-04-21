@@ -97,14 +97,20 @@ The `build.gradle.kts` wiring from Phase 9.15 reads this file at
 build time.
 
 ```sh
+# AAB — Play Console upload artifact.
+flutter build appbundle --release
+# Artifact: build/app/outputs/bundle/release/app-release.aab
+keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
+
+# APK — F-Droid fingerprint source + direct sideload.
 flutter build apk --release
 # Artifact: build/app/outputs/flutter-apk/app-release.apk
 keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
-# The SHA-256 fingerprint should match what you recorded in § 1.
+# Both SHA-256 fingerprints should match what you recorded in § 1.
 ```
 
-If the fingerprint says `CN=Android Debug`, your `key.properties` is
-not wired correctly — most commonly a typo in the path or a
+If either fingerprint says `CN=Android Debug`, your `key.properties`
+is not wired correctly — most commonly a typo in the path or a
 permissions issue on the `.jks` file.
 
 ## 3. One-time: configure GitHub Secrets for the release workflow
@@ -174,35 +180,48 @@ tag's commit message and embeds it into the GitHub Release body.
 
 GitHub → Actions → "Release" workflow. On a clean run it:
 
-1. Builds a signed release APK on `ubuntu-latest` (reads your four
-   secrets + decodes the keystore at build time + wipes it from the
-   workspace at the end of the job).
-2. Verifies the APK is **not** debug-signed (explicit check in the
-   workflow — it fails the build if the signature says `CN=Android
-   Debug`).
+1. Builds a signed release **AAB** + **APK** on `ubuntu-latest` (reads
+   your four secrets + decodes the keystore at build time + wipes it
+   from the workspace at the end of the job). Both formats are needed:
+   AAB goes to Play Console (required for new apps since Aug 2021),
+   APK goes to F-Droid + direct sideload + the owner's smoke test.
+2. Verifies BOTH artifacts are **not** debug-signed (explicit check
+   in the workflow — it fails the build if either signature says
+   `CN=Android Debug`).
 3. Builds an unsigned iOS `.app.zip` on `macos-latest`.
-4. Publishes a GitHub Release at the tag with both artifacts +
+4. Publishes a GitHub Release at the tag with all three artifacts +
    SHA-256 checksum files + the tag's annotated-message body.
 
-### Verify the published APK
+### Verify the published artifacts
 
-Before you tell anyone to download it:
+Before you tell anyone to download them:
 
 ```sh
-# Download the APK + checksum from the GitHub Release page.
+# Download each artifact + checksum from the GitHub Release page.
+sha256sum -c signet-v0.2.0.aab.sha256
 sha256sum -c signet-v0.2.0.apk.sha256
-# Expected: "signet-v0.2.0.apk: OK"
+# Expected: "signet-v0.2.0.<ext>: OK" for each.
 
-# Confirm the signature matches your keystore fingerprint.
+# Confirm both signatures match your keystore fingerprint.
+keytool -printcert -jarfile signet-v0.2.0.aab | grep 'SHA256:'
 keytool -printcert -jarfile signet-v0.2.0.apk | grep 'SHA256:'
-# Compare to the fingerprint you recorded in § 1.
+# Both should match the fingerprint you recorded in § 1.
 ```
 
-If either check fails, **do not distribute**. Investigate the CI run
+If any check fails, **do not distribute**. Investigate the CI run
 logs. Common cause: a typo in `ANDROID_KEY_PASSWORD` results in the
 fallback debug-signing path, which the workflow's explicit check
 catches — but only if the check is actually running (i.e. you didn't
 modify `release.yml` to skip it).
+
+### Which artifact goes where
+
+| Channel | Upload |
+|---------|--------|
+| Play Console (Internal testing → Create new release) | `signet-vX.Y.Z.aab` |
+| F-Droid (`AllowedAPKSigningKeys` in `metadata/dev.digitalgrease.signet.yml`) | fingerprint from `signet-vX.Y.Z.apk` |
+| Direct sideload (test device, non-Play user) | `signet-vX.Y.Z.apk` |
+| iOS TestFlight | not via this artifact — archive + upload from Xcode (see `docs/IOS_VALIDATION.md`) |
 
 ## 5. What if the keystore is compromised
 

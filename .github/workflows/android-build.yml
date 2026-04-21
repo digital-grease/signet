@@ -18,10 +18,10 @@ env:
   JAVA_VERSION: 17
 
 jobs:
-  build-apk:
-    name: Release APK (debug-signed)
+  build-android:
+    name: Release AAB + APK (debug-signed)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -63,31 +63,49 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build release APK
+      - name: Build release AAB + APK
         # No android/key.properties present → build.gradle.kts falls
         # back to debug signing. Production signing secrets are set up
-        # in .github/workflows/release.yml (Task 12.4). APKs produced
+        # in .github/workflows/release.yml (Task 12.4). Artifacts produced
         # here are for CI verification only; do NOT distribute.
-        run: flutter build apk --release
+        #
+        # AAB first (Play Console's required format for new apps since
+        # Aug 2021), then APK (F-Droid + direct-install channel). Both
+        # formats are produced so the CI contract matches the release
+        # workflow's output surface.
+        run: |
+          flutter build appbundle --release
+          flutter build apk --release
 
-      - name: Compute APK SHA-256
+      - name: Compute AAB + APK SHA-256
         id: checksum
         run: |
+          aab=build/app/outputs/bundle/release/app-release.aab
           apk=build/app/outputs/flutter-apk/app-release.apk
+          if [ ! -f "$aab" ]; then
+            echo "::error::AAB not found at $aab"
+            exit 1
+          fi
           if [ ! -f "$apk" ]; then
             echo "::error::APK not found at $apk"
             exit 1
           fi
-          sha=$(sha256sum "$apk" | awk '{print $1}')
-          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
-          echo "$sha  app-release.apk" > build/app/outputs/flutter-apk/app-release.apk.sha256
-          echo "APK SHA-256: $sha"
+          aab_sha=$(sha256sum "$aab" | awk '{print $1}')
+          apk_sha=$(sha256sum "$apk" | awk '{print $1}')
+          echo "aab_sha256=$aab_sha" >> "$GITHUB_OUTPUT"
+          echo "apk_sha256=$apk_sha" >> "$GITHUB_OUTPUT"
+          echo "$aab_sha  app-release.aab" > build/app/outputs/bundle/release/app-release.aab.sha256
+          echo "$apk_sha  app-release.apk" > build/app/outputs/flutter-apk/app-release.apk.sha256
+          echo "AAB SHA-256: $aab_sha"
+          echo "APK SHA-256: $apk_sha"
 
-      - name: Upload APK + checksum
+      - name: Upload AAB + APK + checksums
         uses: actions/upload-artifact@v4
         with:
           name: signet-android-${{ github.ref_name }}-${{ github.sha }}
           path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/bundle/release/app-release.aab.sha256
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/app-release.apk.sha256
           retention-days: 30
@@ -101,6 +119,7 @@ jobs:
             echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
             echo "- Commit: \`${{ github.sha }}\`"
             echo "- Ref: \`${{ github.ref }}\`"
-            echo "- APK SHA-256: \`${{ steps.checksum.outputs.sha256 }}\`"
+            echo "- AAB SHA-256: \`${{ steps.checksum.outputs.aab_sha256 }}\`"
+            echo "- APK SHA-256: \`${{ steps.checksum.outputs.apk_sha256 }}\`"
             echo "- Signing: debug key (not distributable)"
           } >> "$GITHUB_STEP_SUMMARY"

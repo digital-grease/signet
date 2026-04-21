@@ -17,13 +17,16 @@ info/warning/error or any failing test.
 **Cost:** ~3–5 minutes per run, Linux runner (1× multiplier). Runs on
 every PR — keep it cheap.
 
-### `android-build.yml` — unsigned release APK
+### `android-build.yml` — unsigned release AAB + APK
 
 **Triggers:** push to `main`, version tags (`v*.*.*`), manual dispatch.
 
-**Does:** `flutter build apk --release` with the default debug-signing
-fallback (see `android/app/build.gradle.kts`). Uploads the APK +
-SHA-256 checksum as a 30-day artifact.
+**Does:** `flutter build appbundle --release` + `flutter build apk --release`
+with the default debug-signing fallback (see `android/app/build.gradle.kts`).
+Uploads both artifacts + SHA-256 checksums as a 30-day artifact. Both formats
+are produced because the release channels need different things:
+AAB is required for Play Console (new-app submissions since Aug 2021),
+APK is used by F-Droid + direct sideload + the owner's on-device smoke test.
 
 **Cost:** ~8–12 minutes per run (first run is slower due to Gradle +
 NDK downloads; subsequent runs hit the cache). Linux runner.
@@ -49,7 +52,7 @@ conserve minutes — only `main` pushes and tags.
 post-v1.0 concern; this workflow exists to prove the iOS toolchain
 compiles our source.
 
-### `release.yml` — tagged release with signed APK
+### `release.yml` — tagged release with signed AAB + APK
 
 **Triggers:** version tags matching `v<major>.<minor>.<patch>` or
 `v<major>.<minor>.<patch>-<prerelease>` (e.g. `v0.2.0-alpha.1`).
@@ -57,10 +60,11 @@ compiles our source.
 **Does:**
 1. **Android signed build** — decodes the production keystore from
    `ANDROID_KEYSTORE_BASE64`, writes `android/key.properties` pointing
-   at it, runs `flutter build apk --release`. Verifies the output was
-   NOT signed with the Android debug key (safety check). Wipes the
-   keystore + `key.properties` from the workspace in an `always()`
-   step before the runner terminates.
+   at it, runs `flutter build appbundle --release` + `flutter build
+   apk --release`. Verifies BOTH outputs were NOT signed with the
+   Android debug key (safety check runs against the AAB and the APK
+   independently). Wipes the keystore + `key.properties` from the
+   workspace in an `always()` step before the runner terminates.
 2. **iOS unsigned build** — same as `ios-build.yml`.
 3. **Publish** — creates / updates a GitHub Release at the tag with
    both artifacts attached, auto-generated body (SHA-256s + verification

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
@@ -314,16 +317,50 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('SIGNET'),
         actions: <Widget>[
           PopupMenuButton<String>(
-            tooltip: 'More',
-            icon: const Icon(Icons.more_vert),
+            tooltip: 'Help',
+            icon: const Icon(Icons.help_outline),
             onSelected: (value) {
-              if (value == 'intro') {
-                context.go('/onboarding');
-              } else if (value == 'about') {
-                context.push('/about');
+              switch (value) {
+                case 'faq':
+                  context.push('/faq');
+                case 'contact':
+                  unawaited(launchUrl(
+                    Uri.parse(
+                      'https://github.com/digital-grease/signet/issues',
+                    ),
+                    mode: LaunchMode.externalApplication,
+                  ));
               }
             },
             itemBuilder: (context) => const <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'faq',
+                child: Text('FAQ'),
+              ),
+              PopupMenuItem<String>(
+                value: 'contact',
+                child: Text('Contact us'),
+              ),
+            ],
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'settings':
+                  context.push('/settings');
+                case 'intro':
+                  context.go('/onboarding');
+                case 'about':
+                  context.push('/about');
+              }
+            },
+            itemBuilder: (context) => const <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: Text('Settings'),
+              ),
               PopupMenuItem<String>(
                 value: 'intro',
                 child: Text('Show intro again'),

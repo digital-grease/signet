@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signet/app.dart';
 import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 
 import 'support/fake_secure_store.dart';
@@ -20,6 +21,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appPrefsProvider.overrideWithValue(prefs),
           secureStoreProvider.overrideWithValue(FakeSecureStore()),
         ],
         child: SignetApp(prefs: prefs),

@@ -2,8 +2,19 @@ name: Release
 
 # Fires only on version tags matching `v<major>.<minor>.<patch>` (with
 # optional pre-release suffix like `-alpha.1`). Pushing a tag triggers
-# a signed Android APK build + unsigned iOS .app build, then creates a
-# GitHub Release with both artifacts + SHA-256 checksums.
+# a signed Android AAB + APK build + unsigned iOS .app build, then
+# creates a GitHub Release with all artifacts + SHA-256 checksums.
+#
+# Two Android formats are produced and attached to each release:
+#   - AAB (.aab) — Play Console requires this for new-app submissions
+#                  since Aug 2021. Upload this at Play Console →
+#                  Testing → Internal testing → Create new release.
+#   - APK (.apk) — F-Droid submissions (F-Droid rebuilds from source
+#                  but the fingerprint in AllowedAPKSigningKeys comes
+#                  from our signed APK) + any direct sideload channel
+#                  (GitHub Release download, manual install on the
+#                  owner's test device). Play Console will still
+#                  accept APKs for *existing* apps but not new ones.
 #
 # Required GitHub Secrets (Settings → Secrets and variables → Actions):
 #
@@ -40,11 +51,12 @@ env:
 
 jobs:
   build-android:
-    name: Signed Android APK
+    name: Signed Android AAB + APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     outputs:
-      apk-sha256: ${{ steps.checksum.outputs.sha256 }}
+      aab-sha256: ${{ steps.checksum.outputs.aab_sha256 }}
+      apk-sha256: ${{ steps.checksum.outputs.apk_sha256 }}
 
     steps:
       - name: Checkout (full history for changelog)
@@ -93,45 +105,67 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build signed release APK
-        run: flutter build apk --release
-
-      - name: Verify signature is NOT debug
+      - name: Build signed release AAB + APK
         run: |
-          apk=build/app/outputs/flutter-apk/app-release.apk
-          cert=$(keytool -printcert -jarfile "$apk" | head -5)
-          echo "$cert"
-          if echo "$cert" | grep -qi "CN=Android Debug"; then
-            echo "::error::APK was signed with the Android debug key."
-            echo "::error::Production signing did not apply — check your key.properties wiring."
-            exit 1
-          fi
+          flutter build appbundle --release
+          flutter build apk --release
 
-      - name: Compute APK SHA-256
+      - name: Verify signatures are NOT debug
+        # AAB signature check uses jarsigner since keytool -printcert
+        # -jarfile reads the APK/JAR manifest; the AAB is a JAR under
+        # the hood so the same approach works. Both artifacts must pass
+        # or we bail — a debug-signed release is a hard failure.
+        run: |
+          aab=build/app/outputs/bundle/release/app-release.aab
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          for artifact in "$aab" "$apk"; do
+            echo "--- $artifact ---"
+            cert=$(keytool -printcert -jarfile "$artifact" | head -5)
+            echo "$cert"
+            if echo "$cert" | grep -qi "CN=Android Debug"; then
+              echo "::error::$artifact was signed with the Android debug key."
+              echo "::error::Production signing did not apply — check your key.properties wiring."
+              exit 1
+            fi
+          done
+
+      - name: Compute AAB + APK SHA-256
         id: checksum
         run: |
+          aab=build/app/outputs/bundle/release/app-release.aab
           apk=build/app/outputs/flutter-apk/app-release.apk
-          sha=$(sha256sum "$apk" | awk '{print $1}')
-          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
-          echo "$sha  signet-${{ github.ref_name }}.apk" > "$apk.sha256"
+          aab_sha=$(sha256sum "$aab" | awk '{print $1}')
+          apk_sha=$(sha256sum "$apk" | awk '{print $1}')
+          echo "aab_sha256=$aab_sha" >> "$GITHUB_OUTPUT"
+          echo "apk_sha256=$apk_sha" >> "$GITHUB_OUTPUT"
+          echo "$aab_sha  signet-${{ github.ref_name }}.aab" > "$aab.sha256"
+          echo "$apk_sha  signet-${{ github.ref_name }}.apk" > "$apk.sha256"
 
-      - name: Rename APK with tag
+      - name: Rename artifacts with tag
         id: rename
         run: |
-          src=build/app/outputs/flutter-apk/app-release.apk
-          dst=build/app/outputs/flutter-apk/signet-${{ github.ref_name }}.apk
-          mv "$src" "$dst"
-          mv "$src.sha256" "$dst.sha256"
-          echo "apk-path=$dst" >> "$GITHUB_OUTPUT"
-          echo "sha-path=$dst.sha256" >> "$GITHUB_OUTPUT"
+          aab_src=build/app/outputs/bundle/release/app-release.aab
+          apk_src=build/app/outputs/flutter-apk/app-release.apk
+          aab_dst=build/app/outputs/bundle/release/signet-${{ github.ref_name }}.aab
+          apk_dst=build/app/outputs/flutter-apk/signet-${{ github.ref_name }}.apk
+          mv "$aab_src" "$aab_dst"
+          mv "$aab_src.sha256" "$aab_dst.sha256"
+          mv "$apk_src" "$apk_dst"
+          mv "$apk_src.sha256" "$apk_dst.sha256"
+          echo "aab-path=$aab_dst" >> "$GITHUB_OUTPUT"
+          echo "aab-sha-path=$aab_dst.sha256" >> "$GITHUB_OUTPUT"
+          echo "apk-path=$apk_dst" >> "$GITHUB_OUTPUT"
+          echo "apk-sha-path=$apk_dst.sha256" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Android release artifact
+      - name: Upload Android release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-release-${{ github.ref_name }}
           path: |
+            ${{ steps.rename.outputs.aab-path }}
+            ${{ steps.rename.outputs.aab-sha-path }}
             ${{ steps.rename.outputs.apk-path }}
-            ${{ steps.rename.outputs.sha-path }}
+            ${{ steps.rename.outputs.apk-sha-path }}
           retention-days: 90
           if-no-files-found: error
 
@@ -229,21 +263,23 @@ jobs:
           {
             echo "## Signet $tag"
             echo ""
-            echo "| Artifact | SHA-256 |"
-            echo "|----------|---------|"
-            echo "| \`signet-$tag.apk\` | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
-            echo "| \`signet-ios-$tag.zip\` | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
+            echo "| Artifact | Use for | SHA-256 |"
+            echo "|----------|---------|---------|"
+            echo "| \`signet-$tag.aab\` | Play Console upload (required for new apps) | \`${{ needs.build-android.outputs.aab-sha256 }}\` |"
+            echo "| \`signet-$tag.apk\` | F-Droid fingerprint source + direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
+            echo "| \`signet-ios-$tag.zip\` | iOS archive (unsigned, verification only) | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
             echo ""
             echo "### Verify"
             echo ""
             echo '```sh'
+            echo "sha256sum -c signet-$tag.aab.sha256"
             echo "sha256sum -c signet-$tag.apk.sha256"
             echo "sha256sum -c signet-ios-$tag.zip.sha256"
             echo '```'
             echo ""
             echo "### Signing"
             echo ""
-            echo "- **Android APK** — signed with the production upload key."
+            echo "- **Android AAB + APK** — signed with the production upload key. Both have been verified to NOT be debug-signed."
             echo "- **iOS .app.zip** — **unsigned** (for verification only; not installable without re-signing under your Apple Developer account)."
             echo ""
             echo "### Notes"

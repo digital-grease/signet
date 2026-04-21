@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/prefs/app_prefs.dart';
+import 'core/prefs/settings_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,5 +18,12 @@ Future<void> main() async {
   // This also matches the project's pinned crypto-is-pure-Dart convention.
   Cryptography.instance = DartCryptography.defaultInstance;
   final prefs = await AppPrefs.load();
-  runApp(ProviderScope(child: SignetApp(prefs: prefs)));
+  runApp(
+    ProviderScope(
+      overrides: [
+        appPrefsProvider.overrideWithValue(prefs),
+      ],
+      child: SignetApp(prefs: prefs),
+    ),
+  );
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/prefs/app_prefs.dart';
+import 'core/prefs/settings_controller.dart';
 import 'core/theme/signet_theme.dart';
 import 'features/about/about_screen.dart';
+import 'features/help/faq_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/inspect/backup_export_screen.dart';
 import 'features/inspect/backup_import_screen.dart';
@@ -17,24 +20,32 @@ import 'features/pairing/pair_exchange_screen.dart';
 import 'features/pairing/pair_start_screen.dart';
 import 'features/pairing/pair_transport_in_screen.dart';
 import 'features/pairing/pair_transport_out_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/verify/verify_screen.dart';
 
 /// Root widget. Keeps `main.dart` tiny — all routing lives here; the theme
 /// lives in `core/theme/signet_theme.dart`.
 ///
-/// Theme mode follows the system setting. Text scaling is deliberately not
-/// capped, so the OS-level "Large text" accessibility setting takes effect.
+/// Theme mode follows `themeModeProvider`, which is seeded from
+/// [AppPrefs.themeMode] and defaults to [ThemeMode.system]. Text scaling is
+/// deliberately not capped, so the OS-level "Large text" accessibility
+/// setting takes effect.
 ///
 /// First-run: if `prefs.onboardingCompleted` is false, the router starts
 /// at `/onboarding` instead of `/`. Users can re-trigger onboarding via
-/// the Home AppBar overflow.
-class SignetApp extends StatelessWidget {
+/// the Settings screen or the Home AppBar overflow.
+class SignetApp extends ConsumerWidget {
   SignetApp({super.key, required this.prefs})
       : _router = GoRouter(
           initialLocation: prefs.onboardingCompleted ? '/' : '/onboarding',
           routes: <RouteBase>[
             GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
             GoRoute(path: '/about', builder: (_, _) => const AboutScreen()),
+            GoRoute(path: '/faq', builder: (_, _) => const FaqScreen()),
+            GoRoute(
+              path: '/settings',
+              builder: (_, _) => const SettingsScreen(),
+            ),
             GoRoute(
               path: '/onboarding',
               builder: (_, _) => OnboardingScreen(prefs: prefs),
@@ -104,11 +115,12 @@ class SignetApp extends StatelessWidget {
   final GoRouter _router;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'Signet',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       theme: signetTheme(dark: false),
       darkTheme: signetTheme(dark: true),
       routerConfig: _router,
