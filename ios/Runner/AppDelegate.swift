@@ -43,7 +43,12 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    registerSecureChannel(with: engineBridge.binaryMessenger)
+    // Flutter 3.41.x moved the binary messenger off the engine bridge and
+    // onto the new `FlutterApplicationRegistrar`. Earlier iterations
+    // exposed `engineBridge.binaryMessenger` directly; keeping that call
+    // shape triggers a "has no member 'binaryMessenger'" compile error
+    // against the current FlutterEngine.h protocol.
+    registerSecureChannel(with: engineBridge.applicationRegistrar.messenger)
   }
 
   private func registerSecureChannel(with messenger: FlutterBinaryMessenger) {
