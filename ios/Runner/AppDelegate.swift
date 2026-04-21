@@ -47,8 +47,11 @@ import UIKit
     // onto the new `FlutterApplicationRegistrar`. Earlier iterations
     // exposed `engineBridge.binaryMessenger` directly; keeping that call
     // shape triggers a "has no member 'binaryMessenger'" compile error
-    // against the current FlutterEngine.h protocol.
-    registerSecureChannel(with: engineBridge.applicationRegistrar.messenger)
+    // against the current FlutterEngine.h protocol. The Objective-C
+    // declaration `- (NSObject<FlutterBinaryMessenger>*)messenger;`
+    // imports into Swift as a zero-arg method, not a property — so
+    // we invoke with `()`.
+    registerSecureChannel(with: engineBridge.applicationRegistrar.messenger())
   }
 
   private func registerSecureChannel(with messenger: FlutterBinaryMessenger) {

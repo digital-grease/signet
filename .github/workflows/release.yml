@@ -111,23 +111,55 @@ jobs:
           flutter build apk --release
 
       - name: Verify signatures are NOT debug
-        # AAB signature check uses jarsigner since keytool -printcert
-        # -jarfile reads the APK/JAR manifest; the AAB is a JAR under
-        # the hood so the same approach works. Both artifacts must pass
-        # or we bail — a debug-signed release is a hard failure.
+        # AAB and APK use different verification tools because of how
+        # they are signed:
+        #   - AAB is JAR-format (v1 jarsignatures). `keytool -printcert
+        #     -jarfile` reads the owner DN + SHA-256 fingerprint.
+        #   - APK in AGP 4.0+ defaults to APK Signature Scheme v2/v3
+        #     only (no v1). keytool -jarfile returns "Not a signed jar
+        #     file" against v2-only APKs — which previously made this
+        #     check a false negative (grep matched nothing, test
+        #     "passed" trivially even on a debug-signed APK). Use
+        #     apksigner verify --print-certs instead; it handles v2+.
+        # Both artifacts must resolve to a non-debug signer or we bail.
         run: |
+          set -euo pipefail
           aab=build/app/outputs/bundle/release/app-release.aab
           apk=build/app/outputs/flutter-apk/app-release.apk
-          for artifact in "$aab" "$apk"; do
-            echo "--- $artifact ---"
-            cert=$(keytool -printcert -jarfile "$artifact" | head -5)
-            echo "$cert"
-            if echo "$cert" | grep -qi "CN=Android Debug"; then
-              echo "::error::$artifact was signed with the Android debug key."
-              echo "::error::Production signing did not apply — check your key.properties wiring."
-              exit 1
-            fi
-          done
+
+          echo "--- $aab (v1 jarsignature via keytool) ---"
+          aab_cert=$(keytool -printcert -jarfile "$aab" | head -10)
+          echo "$aab_cert"
+          if [ -z "$aab_cert" ]; then
+            echo "::error::$aab has no readable v1 jarsignature."
+            exit 1
+          fi
+          if echo "$aab_cert" | grep -qi "CN=Android Debug"; then
+            echo "::error::$aab was signed with the Android debug key."
+            echo "::error::Production signing did not apply — check key.properties wiring."
+            exit 1
+          fi
+
+          echo "--- $apk (APK Signature Scheme v2+ via apksigner) ---"
+          # Android SDK build-tools ships apksigner; locate the newest
+          # version available on the runner.
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -z "$apksigner" ]; then
+            echo "::error::apksigner not found under $ANDROID_HOME/build-tools/."
+            exit 1
+          fi
+          apk_out=$("$apksigner" verify --print-certs --verbose "$apk")
+          echo "$apk_out"
+          if ! echo "$apk_out" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true"; then
+            echo "::error::$apk did not verify under APK Signature Scheme v2."
+            exit 1
+          fi
+          signer_dn=$(echo "$apk_out" | grep -E "Signer #1 certificate DN:" | head -1)
+          if echo "$signer_dn" | grep -qi "CN=Android Debug"; then
+            echo "::error::$apk was signed with the Android debug key."
+            echo "::error::Production signing did not apply — check key.properties wiring."
+            exit 1
+          fi
 
       - name: Compute AAB + APK SHA-256
         id: checksum
