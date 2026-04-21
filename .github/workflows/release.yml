@@ -154,7 +154,14 @@ jobs:
             echo "::error::$apk did not verify under APK Signature Scheme v2."
             exit 1
           fi
-          signer_dn=$(echo "$apk_out" | grep -E "Signer #1 certificate DN:" | head -1)
+          # apksigner output labels the signer differently depending on
+          # which schemes matched. v2-only APKs print "V2 Signer:
+          # certificate DN:"; v3+ print "Signer #1 certificate DN:".
+          # Match either, and tolerate no-match (|| true) so pipefail
+          # doesn't abort the script on a genuinely unusual output.
+          signer_dn=$(echo "$apk_out" \
+            | grep -iE "(Signer #1 certificate DN:|V[0-9]+ Signer: certificate DN:)" \
+            | head -1 || true)
           if echo "$signer_dn" | grep -qi "CN=Android Debug"; then
             echo "::error::$apk was signed with the Android debug key."
             echo "::error::Production signing did not apply — check key.properties wiring."
@@ -264,7 +271,15 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
+    # iOS is treated as best-effort (not gating) — the Android AAB + APK
+    # are the critical-path artifacts for Play + F-Droid + direct install.
+    # iOS ships via Xcode archive per docs/IOS_VALIDATION.md + plan Task
+    # 13.21 anyway; the CI iOS job produces an unsigned verification
+    # zip. If iOS compiles, we include it in the release; if it fails
+    # (Flutter API shifts, Xcode upgrades on macos-latest, etc.) we
+    # still publish Android. Android failure still gates everything.
     needs: [build-android, build-ios]
+    if: always() && needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -283,6 +298,7 @@ jobs:
           path: release-android
 
       - name: Download iOS artifact
+        if: needs.build-ios.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: ios-release-${{ github.ref_name }}
@@ -299,20 +315,30 @@ jobs:
             echo "|----------|---------|---------|"
             echo "| \`signet-$tag.aab\` | Play Console upload (required for new apps) | \`${{ needs.build-android.outputs.aab-sha256 }}\` |"
             echo "| \`signet-$tag.apk\` | F-Droid fingerprint source + direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
-            echo "| \`signet-ios-$tag.zip\` | iOS archive (unsigned, verification only) | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
+            if [ "${{ needs.build-ios.result }}" = "success" ]; then
+              echo "| \`signet-ios-$tag.zip\` | iOS archive (unsigned, verification only) | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
+            else
+              echo "| _iOS build_ | _not included in this release (build job ${{ needs.build-ios.result }})_ | — |"
+            fi
             echo ""
             echo "### Verify"
             echo ""
             echo '```sh'
             echo "sha256sum -c signet-$tag.aab.sha256"
             echo "sha256sum -c signet-$tag.apk.sha256"
-            echo "sha256sum -c signet-ios-$tag.zip.sha256"
+            if [ "${{ needs.build-ios.result }}" = "success" ]; then
+              echo "sha256sum -c signet-ios-$tag.zip.sha256"
+            fi
             echo '```'
             echo ""
             echo "### Signing"
             echo ""
             echo "- **Android AAB + APK** — signed with the production upload key. Both have been verified to NOT be debug-signed."
-            echo "- **iOS .app.zip** — **unsigned** (for verification only; not installable without re-signing under your Apple Developer account)."
+            if [ "${{ needs.build-ios.result }}" = "success" ]; then
+              echo "- **iOS .app.zip** — **unsigned** (for verification only; not installable without re-signing under your Apple Developer account)."
+            else
+              echo "- **iOS** — not in this release. Ship via Xcode archive per \`docs/IOS_VALIDATION.md\`."
+            fi
             echo ""
             echo "### Notes"
             echo ""
@@ -334,4 +360,8 @@ jobs:
           files: |
             release-android/*
             release-ios/*
-          fail_on_unmatched_files: true
+          # iOS artifact is best-effort — if build-ios failed, release-ios/
+          # is absent. We don't want that to fail the release when Android
+          # did ship. release-android/* is still required; the step above
+          # errors on download if the Android artifact is missing.
+          fail_on_unmatched_files: false
