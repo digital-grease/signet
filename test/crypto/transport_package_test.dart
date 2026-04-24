@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -325,4 +326,246 @@ void main() {
       expect(decoded.labelHint, 'Mom');
     });
   });
+
+  group('BLK — bulk backup', () {
+    BlkRelationshipRecord makeRecord({
+      required int secretSeed,
+      required PairRole role,
+      required String label,
+      DateTime? pairedAt,
+      bool silentHaptics = false,
+    }) =>
+        BlkRelationshipRecord(
+          sharedSecret:
+              Uint8List.fromList(List<int>.generate(32, (i) => (i + secretSeed) & 0xFF)),
+          role: role,
+          label: label,
+          pairedAt: pairedAt ?? DateTime.utc(2026, 1, 1),
+          silentHaptics: silentHaptics,
+        );
+
+    test('empty bundle (N=0) round-trips', () async {
+      final wire = await TransportPackage.encodeBlk(
+        records: const [],
+        pakeWords: goodPake,
+        now: DateTime.utc(2026, 4, 22, 1, 2, 3),
+        nonceRandom: fixedRng(),
+      );
+      expect(wire.startsWith('signet:tp1:'), isTrue);
+      final decoded =
+          await TransportPackage.decodeBlk(wire, pakeWords: goodPake);
+      expect(decoded.records, isEmpty);
+      expect(decoded.timestamp.toUtc(), DateTime.utc(2026, 4, 22, 1, 2, 3));
+    });
+
+    test('single-record round-trip hydrates identically to LPR fields',
+        () async {
+      final record = makeRecord(
+        secretSeed: 17,
+        role: PairRole.b,
+        label: 'Mom',
+        pairedAt: DateTime.utc(2026, 2, 14, 15, 3),
+        silentHaptics: true,
+      );
+      final wire = await TransportPackage.encodeBlk(
+        records: [record],
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      final decoded =
+          await TransportPackage.decodeBlk(wire, pakeWords: goodPake);
+      expect(decoded.records, hasLength(1));
+      final r = decoded.records.single;
+      expect(r.sharedSecret, record.sharedSecret);
+      expect(r.role, PairRole.b);
+      expect(r.label, 'Mom');
+      expect(r.pairedAt.toUtc(), DateTime.utc(2026, 2, 14, 15, 3));
+      expect(r.silentHaptics, isTrue);
+    });
+
+    test('N=3 round-trip preserves order + per-record field mix', () async {
+      final records = <BlkRelationshipRecord>[
+        makeRecord(
+          secretSeed: 1,
+          role: PairRole.a,
+          label: 'Mom',
+          pairedAt: DateTime.utc(2025, 12, 1),
+          silentHaptics: false,
+        ),
+        makeRecord(
+          secretSeed: 2,
+          role: PairRole.b,
+          label: 'Dad',
+          pairedAt: DateTime.utc(2026, 1, 15),
+          silentHaptics: true,
+        ),
+        makeRecord(
+          secretSeed: 3,
+          role: PairRole.a,
+          label: '', // empty label edge-case
+          pairedAt: DateTime.utc(2026, 3, 3),
+          silentHaptics: false,
+        ),
+      ];
+      final wire = await TransportPackage.encodeBlk(
+        records: records,
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      final decoded =
+          await TransportPackage.decodeBlk(wire, pakeWords: goodPake);
+      expect(decoded.records, hasLength(3));
+      for (var i = 0; i < records.length; i++) {
+        expect(decoded.records[i].sharedSecret, records[i].sharedSecret);
+        expect(decoded.records[i].role, records[i].role);
+        expect(decoded.records[i].label, records[i].label);
+        expect(
+          decoded.records[i].pairedAt.toUtc(),
+          records[i].pairedAt.toUtc(),
+        );
+        expect(decoded.records[i].silentHaptics, records[i].silentHaptics);
+      }
+    });
+
+    test('N=255 (max) round-trip', () async {
+      final records = List<BlkRelationshipRecord>.generate(
+        255,
+        (i) => makeRecord(
+          secretSeed: i,
+          role: i.isEven ? PairRole.a : PairRole.b,
+          label: 'peer-$i',
+        ),
+      );
+      final wire = await TransportPackage.encodeBlk(
+        records: records,
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      final decoded =
+          await TransportPackage.decodeBlk(wire, pakeWords: goodPake);
+      expect(decoded.records, hasLength(255));
+      expect(decoded.records.first.label, 'peer-0');
+      expect(decoded.records.last.label, 'peer-254');
+    });
+
+    test('rejects > 255 records on encode', () async {
+      final tooMany = List<BlkRelationshipRecord>.generate(
+        256,
+        (i) => makeRecord(secretSeed: i, role: PairRole.a, label: 'x'),
+      );
+      await expectLater(
+        TransportPackage.encodeBlk(records: tooMany, pakeWords: goodPake),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects wrong-length shared secret in a record', () async {
+      final bad = BlkRelationshipRecord(
+        sharedSecret: Uint8List.fromList(List<int>.filled(31, 0)),
+        role: PairRole.a,
+        label: 'Mom',
+        pairedAt: DateTime.utc(2026, 1, 1),
+        silentHaptics: false,
+      );
+      await expectLater(
+        TransportPackage.encodeBlk(records: [bad], pakeWords: goodPake),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects oversized label (>64 UTF-8 bytes) in a record', () async {
+      final bad = makeRecord(
+        secretSeed: 0,
+        role: PairRole.a,
+        label: 'x' * 65,
+      );
+      await expectLater(
+        TransportPackage.encodeBlk(records: [bad], pakeWords: goodPake),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects mismatched PAKE with InvalidPakeException', () async {
+      final wire = await TransportPackage.encodeBlk(
+        records: [
+          makeRecord(secretSeed: 1, role: PairRole.a, label: 'Mom'),
+        ],
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      final wrong = [...goodPake];
+      wrong[0] = 'absurd';
+      await expectLater(
+        TransportPackage.decodeBlk(wire, pakeWords: wrong),
+        throwsA(isA<InvalidPakeException>()),
+      );
+    });
+
+    test('rejects LDP wire when trying to decode as BLK', () async {
+      final ldpWire = await TransportPackage.encodeLdp(
+        publicKey: List<int>.generate(32, (i) => i),
+        labelHint: 'Mom',
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      await expectLater(
+        TransportPackage.decodeBlk(ldpWire, pakeWords: goodPake),
+        throwsA(isA<InvalidPackageException>()),
+      );
+    });
+
+    test('rejects LPR wire when trying to decode as BLK', () async {
+      final lprWire = await TransportPackage.encodeLpr(
+        label: 'Mom',
+        role: PairRole.a,
+        pairedAt: DateTime.utc(2026, 1, 1),
+        silentHaptics: false,
+        sharedSecret: List<int>.generate(32, (i) => i),
+        pakeWords: goodPake,
+        nonceRandom: fixedRng(),
+      );
+      await expectLater(
+        TransportPackage.decodeBlk(lprWire, pakeWords: goodPake),
+        throwsA(isA<InvalidPackageException>()),
+      );
+    });
+
+    test(
+      'payload-type confusion: BLK wire with byte[1] flipped to 0x02 fails LPR decode',
+      () async {
+        // Defends the HKDF domain-separation invariant: flipping the
+        // payload-type byte between LPR (0x02) and BLK (0x03) must not
+        // produce a wire that decrypts under the other type's info
+        // string. If this regresses, an attacker could potentially
+        // coerce a BLK plaintext into the LPR parser path.
+        final blkWire = await TransportPackage.encodeBlk(
+          records: [
+            makeRecord(secretSeed: 5, role: PairRole.a, label: 'Mom'),
+          ],
+          pakeWords: goodPake,
+          nonceRandom: fixedRng(),
+        );
+        final body = _decodeBase64Url(
+          blkWire.substring('signet:tp1:'.length),
+        );
+        expect(body[1], 0x03, reason: 'sanity: BLK payload-type byte');
+        final tampered = List<int>.from(body);
+        tampered[1] = 0x02; // pretend it's an LPR.
+        final tamperedWire =
+            'signet:tp1:${_encodeBase64UrlNoPad(tampered)}';
+        await expectLater(
+          TransportPackage.decodeLpr(tamperedWire, pakeWords: goodPake),
+          throwsA(isA<InvalidPakeException>()),
+        );
+      },
+    );
+  });
 }
+
+List<int> _decodeBase64Url(String input) {
+  final padding = (4 - input.length % 4) % 4;
+  return base64Url.decode(input + '=' * padding);
+}
+
+String _encodeBase64UrlNoPad(List<int> bytes) =>
+    base64Url.encode(bytes).replaceAll('=', '');

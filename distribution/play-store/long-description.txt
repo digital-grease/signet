@@ -21,7 +21,7 @@ Core properties:
 • Hardware-backed secrets via Android Keystore. StrongBox when your device supports it.
 • Offline-first by design. Airplane mode doesn't affect any flow.
 • RFC-validated crypto: X25519 / HKDF-SHA-256 / AES-256-GCM, all verified against published test vectors.
-• Open source, GPL-3.0.
+• Open source, AGPL-3.0.
 
 What's in v0.2:
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -84,12 +85,12 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       if (!mounted) return;
       setState(() {
         _packageController.text = bundle.wire;
-        // NOTE: WordInput currently doesn't support programmatic pre-fill
-        // — the user must paste the PAKE line (or re-type). To bridge
-        // the gap we populate _pakeWords directly, which the UNLOCK
-        // handler reads. The WordInput remains visually empty. For a
-        // clean UX polish pass, extend WordInput with a `prefillWords`
-        // prop and wire it via resetKey.
+        // Bumping _pakeResetKey causes WordInput to re-run _reset, which
+        // now picks up the new prefillWords value below and populates
+        // the slots visibly (phase-1 bugfix — previously the slots
+        // rendered empty and only the internal _pakeWords cache held
+        // the loaded words, which was confusing to users who didn't
+        // realise UNLOCK would work without re-typing).
         _pakeResetKey++;
         _pakeWords = bundle.pakeWords;
         _error = null;
@@ -115,10 +116,66 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       setState(() => _error = 'Enter the 8 PAKE words you stored separately.');
       return;
     }
+
+    // Payload-type dispatch — branch between single-relationship (LPR) and
+    // bulk (BLK) restores before attempting decryption. Reject LDP (pairing
+    // invitations are not backups) and any unknown / malformed wire with
+    // a user-facing error.
+    final payloadType = TransportPackage.peekPayloadType(wire);
+    if (payloadType == null) {
+      setState(() => _error = 'Not a valid Signet backup.');
+      return;
+    }
+    if (payloadType == TransportPayloadType.ldp) {
+      setState(() => _error =
+          "That's a pairing invitation, not a backup. Use the pair flow "
+          'from Home.');
+      return;
+    }
+
     setState(() {
       _busy = true;
       _error = null;
     });
+
+    if (payloadType == TransportPayloadType.blk) {
+      try {
+        final decoded = await TransportPackage.decodeBlk(
+          wire,
+          pakeWords: _pakeWords,
+        );
+        if (!mounted) return;
+        // Hand off to the bulk-import flow — the screen owns preview,
+        // collision resolution, and per-record commit. Single-screen
+        // dispatch avoids asking the user for the same 8 words twice.
+        setState(() => _busy = false);
+        unawaited(
+          context.push('/inspect/import-bulk', extra: decoded),
+        );
+      } on InvalidPakeException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Could not unlock: ${e.message}';
+          _busy = false;
+          _pakeResetKey++;
+        });
+      } on InvalidPackageException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _error = e.message;
+          _busy = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Could not unlock: $e';
+          _busy = false;
+        });
+      }
+      return;
+    }
+
+    // LPR — single-relationship restore, existing flow.
     try {
       final decoded = await TransportPackage.decodeLpr(
         wire,
@@ -236,8 +293,17 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
             TextButton.icon(
               onPressed: () async {
                 final data = await Clipboard.getData(Clipboard.kTextPlain);
-                if (data?.text == null) return;
-                setState(() => _packageController.text = data!.text!);
+                if (!mounted) return;
+                final text = data?.text;
+                if (text == null || text.trim().isEmpty) {
+                  setState(() => _error =
+                      'Clipboard is empty. Copy your backup package first.');
+                  return;
+                }
+                setState(() {
+                  _packageController.text = text;
+                  _error = null;
+                });
               },
               icon: const Icon(Icons.content_paste),
               label: const Text('Paste from clipboard'),
@@ -266,6 +332,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
           wordCount: 8,
           autofocus: false,
           resetKey: _pakeResetKey,
+          prefillWords: _pakeWords.length == 8 ? _pakeWords : null,
           onSubmit: (words) async {
             setState(() => _pakeWords = words);
           },

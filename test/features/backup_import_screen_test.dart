@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -177,6 +178,10 @@ void main() {
 
   testWidgets('mis-typed (LDP instead of LPR) wire is rejected as package type',
       (tester) async {
+    // Phase 14: dispatch peeks the payload-type byte before attempting
+    // decryption and rejects LDP wires with a targeted "pairing invitation"
+    // message — users who try to import a pair-start QR get pointed at the
+    // right flow instead of a cryptic "wrong payload type" error.
     final ldpWire = await TransportPackage.encodeLdp(
       publicKey: List<int>.generate(32, (i) => i),
       labelHint: 'Mom',
@@ -192,8 +197,86 @@ void main() {
     await tester.tap(find.text('UNLOCK BACKUP'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Wrong payload type'), findsOneWidget);
+    expect(find.textContaining('pairing invitation'), findsOneWidget);
   });
+
+  // --- Clipboard mock helpers ---------------------------------------
+  //
+  // Flutter's platform channel mock is strongly typed around
+  // invokeMethod<Map<String, dynamic>>, so the handler must return either
+  // `null` (no ClipboardData at all — matches "nothing has ever been
+  // copied" on a fresh emulator) or a concrete Map<String, dynamic>
+  // (matches a real clipboard payload). Returning a mis-typed map throws
+  // a cast error that manifests as the test silently seeing no paste.
+  void installClipboardMock({required String? text}) {
+    TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') {
+        if (text == null) return null;
+        return <String, dynamic>{'text': text};
+      }
+      return null;
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+  }
+
+  testWidgets(
+    'Paste from clipboard with empty clipboard surfaces a user-visible error',
+    (tester) async {
+      installClipboardMock(text: null);
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Paste from clipboard'));
+      await tester.tap(find.text('Paste from clipboard'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Clipboard is empty'),
+        findsOneWidget,
+        reason:
+            'User in a crisis moment taps Paste with nothing on the clipboard; '
+            'silent no-op would leave them re-tapping with no feedback.',
+      );
+    },
+  );
+
+  testWidgets(
+    'Paste from clipboard with whitespace-only clipboard is treated as empty',
+    (tester) async {
+      installClipboardMock(text: '   \n  ');
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Paste from clipboard'));
+      await tester.tap(find.text('Paste from clipboard'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Clipboard is empty'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Paste with real content clears any prior error and fills the wire field',
+    (tester) async {
+      installClipboardMock(text: 'signet:tp1:DEADBEEF');
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Paste from clipboard'));
+      await tester.tap(find.text('Paste from clipboard'));
+      await tester.pumpAndSettle();
+
+      final wireField = tester.widget<TextField>(find.byType(TextField).first);
+      expect(wireField.controller!.text, 'signet:tp1:DEADBEEF');
+      expect(find.textContaining('Clipboard is empty'), findsNothing);
+    },
+  );
 
   testWidgets('silentHaptics = true is preserved through the import',
       (tester) async {

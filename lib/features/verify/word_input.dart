@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/crypto/bip39_english_wordlist.dart';
@@ -24,6 +26,7 @@ class WordInput extends StatefulWidget {
     this.enabled = true,
     this.resetKey = 0,
     this.autofocus = true,
+    this.prefillWords,
   });
 
   final int wordCount;
@@ -34,6 +37,14 @@ class WordInput extends StatefulWidget {
   /// Lets the parent drive "try again" flow without reaching into our state.
   final int resetKey;
   final bool autofocus;
+
+  /// Optional pre-populated values for the slots. When non-null and its
+  /// length matches [wordCount], the slots render these values on first
+  /// build and on every [resetKey] bump. Used by the "Load from file"
+  /// path on the backup-import screen so users see the PAKE words
+  /// that came out of the bundle instead of empty slots with silently
+  /// cached state behind them.
+  final List<String>? prefillWords;
 
   @override
   State<WordInput> createState() => _WordInputState();
@@ -58,11 +69,19 @@ class _WordInputState extends State<WordInput> {
       (_) => FocusNode(),
     );
     _wordSet = bip39EnglishWordlist.toSet();
-    if (widget.autofocus) {
+    final didPrefill = _applyPrefill();
+    // Don't steal focus into slot 0 when the slots are already populated;
+    // the user's next action is a button tap (UNLOCK), not more typing.
+    if (widget.autofocus && !didPrefill) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && widget.enabled) {
           _focusNodes[0].requestFocus();
         }
+      });
+    }
+    if (didPrefill) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_maybeSubmit());
       });
     }
   }
@@ -93,9 +112,27 @@ class _WordInputState extends State<WordInput> {
       }
       _submitting = false;
     });
+    final didPrefill = _applyPrefill();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNodes[0].requestFocus();
+      if (!mounted) return;
+      if (didPrefill) {
+        unawaited(_maybeSubmit());
+      } else {
+        _focusNodes[0].requestFocus();
+      }
     });
+  }
+
+  /// Populate controllers from [WordInput.prefillWords] when provided and
+  /// its length matches [wordCount]. Returns `true` when prefill took
+  /// effect so callers can skip the autofocus/focus-first-slot handoff.
+  bool _applyPrefill() {
+    final prefill = widget.prefillWords;
+    if (prefill == null || prefill.length != widget.wordCount) return false;
+    for (var i = 0; i < widget.wordCount; i++) {
+      _controllers[i].text = prefill[i];
+    }
+    return true;
   }
 
   List<String> _matchesFor(String prefix) {

@@ -8,11 +8,13 @@ import 'core/theme/signet_theme.dart';
 import 'features/about/about_screen.dart';
 import 'features/help/faq_screen.dart';
 import 'features/home/home_screen.dart';
+import 'core/crypto/transport_package.dart';
 import 'features/inspect/backup_export_screen.dart';
 import 'features/inspect/backup_import_screen.dart';
 import 'features/inspect/binding_phrase_screen.dart';
+import 'features/inspect/bulk_backup_export_screen.dart';
+import 'features/inspect/bulk_backup_import_screen.dart';
 import 'features/inspect/cr_grid_screen.dart';
-import 'features/liveness/liveness_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/pairing/pair_complete_screen.dart';
 import 'features/pairing/pair_confirm_screen.dart';
@@ -54,11 +56,19 @@ class SignetApp extends ConsumerWidget {
               path: '/verify/:id',
               builder: (_, state) => VerifyScreen(
                 relationshipId: state.pathParameters['id']!,
+                // `?video=1` auto-enables the verify-screen video-mode
+                // toggle. Set by the retired `/liveness/:id` route's
+                // redirect and by the home-screen "Verify (video call)"
+                // menu item. See .devloop/plan.md Phase 14 Task 2.4.
+                initialVideoMode:
+                    state.uri.queryParameters['video'] == '1',
               ),
             ),
             GoRoute(
-              path: '/inspect/binding',
-              builder: (_, _) => const BindingPhraseScreen(),
+              path: '/inspect/binding/:id',
+              builder: (_, state) => BindingPhraseScreen(
+                relationshipId: state.pathParameters['id']!,
+              ),
             ),
             GoRoute(
               path: '/inspect/export/:id',
@@ -67,14 +77,37 @@ class SignetApp extends ConsumerWidget {
               ),
             ),
             GoRoute(
+              path: '/inspect/export-bulk',
+              builder: (_, _) => const BulkBackupExportScreen(),
+            ),
+            GoRoute(
               path: '/inspect/import',
               builder: (_, _) => const BackupImportScreen(),
             ),
             GoRoute(
+              path: '/inspect/import-bulk',
+              builder: (_, state) {
+                final decoded = state.extra;
+                // If someone deep-links here without a decoded BLK payload,
+                // punt them to the paste-and-dispatch screen.
+                if (decoded is! BlkPackage) {
+                  return const BackupImportScreen();
+                }
+                return BulkBackupImportScreen(decoded: decoded);
+              },
+            ),
+            GoRoute(
+              // Legacy route retired in Phase 14: the standalone liveness
+              // screen was folded into the verify flow's "video mode"
+              // toggle (secret-derived action check). Bookmarks /
+              // home-screen shortcuts that still point at `/liveness/:id`
+              // land on the verify screen with video mode pre-enabled.
+              // Remove this redirect one release after Phase 14 ships.
               path: '/liveness/:id',
-              builder: (_, state) => LivenessScreen(
-                relationshipId: state.pathParameters['id']!,
-              ),
+              redirect: (_, state) {
+                final id = state.pathParameters['id'];
+                return id == null ? '/' : '/verify/$id?video=1';
+              },
             ),
             GoRoute(
               path: '/inspect/cr-grid/:id',

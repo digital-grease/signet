@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/prefs/app_prefs.dart';
 import 'core/prefs/settings_controller.dart';
+import 'core/storage/secure_store.dart';
+import 'dev/mock_contacts.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,12 @@ Future<void> main() async {
   // This also matches the project's pinned crypto-is-pure-Dart convention.
   Cryptography.instance = DartCryptography.defaultInstance;
   final prefs = await AppPrefs.load();
+  // Also mark onboarding as completed when seeding mocks, so the home
+  // screen renders directly instead of the first-run walkthrough.
+  if (mockContactsEnabled) {
+    await seedMockContactsIfEnabled(SecureStore());
+    await prefs.setOnboardingCompleted(true);
+  }
   runApp(
     ProviderScope(
       overrides: [

@@ -27,10 +27,18 @@ import 'word_input.dart';
 /// `FLAG_SECURE` badge on the section signals that screenshots are blocked
 /// while this panel is open (platform call lands in Task 9.4).
 class VerifyScreen extends ConsumerStatefulWidget {
-  const VerifyScreen({super.key, required this.relationshipId});
+  const VerifyScreen({
+    super.key,
+    required this.relationshipId,
+    this.initialVideoMode = false,
+  });
 
   /// Which relationship to verify. Routed from `/verify/:id` at app.dart.
   final String relationshipId;
+
+  /// Whether to open with the "video call" toggle pre-enabled. The query
+  /// parameter `?video=1` (legacy `/liveness/:id` redirect) flips this on.
+  final bool initialVideoMode;
 
   @override
   ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
@@ -38,10 +46,41 @@ class VerifyScreen extends ConsumerStatefulWidget {
 
 enum _VerifyStatus { verified, notVerified }
 
+/// One attempt's outcome. In plain (non-video) mode, only [wordsStatus]
+/// is load-bearing; [actionRequired] is false and [actionStatus] is null.
+/// In video mode, [actionRequired] is true and [actionStatus] is null
+/// until the verifier taps SAW IT / DID NOT SEE, at which point the
+/// overall banner resolves.
 class _VerifyResult {
-  const _VerifyResult(this.status, this.at);
-  final _VerifyStatus status;
+  const _VerifyResult({
+    required this.wordsStatus,
+    required this.actionRequired,
+    required this.at,
+    this.actionStatus,
+  });
+
+  final _VerifyStatus wordsStatus;
+  final bool actionRequired;
+  final _VerifyStatus? actionStatus;
   final DateTime at;
+
+  /// True when the verifier has confirmed both sub-checks (or the only
+  /// required check, in plain mode) came back verified.
+  bool get isOverallVerified =>
+      wordsStatus == _VerifyStatus.verified &&
+      (!actionRequired || actionStatus == _VerifyStatus.verified);
+
+  /// True when any required sub-check came back as notVerified.
+  bool get isOverallFailed =>
+      wordsStatus == _VerifyStatus.notVerified ||
+      (actionRequired && actionStatus == _VerifyStatus.notVerified);
+
+  /// True when video-mode words have verified but the action has not yet
+  /// been judged by the verifier. The banner defers until this resolves.
+  bool get awaitingActionJudgment =>
+      actionRequired &&
+      wordsStatus == _VerifyStatus.verified &&
+      actionStatus == null;
 }
 
 class _VerifyScreenState extends ConsumerState<VerifyScreen>
@@ -59,9 +98,23 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
   _VerifyResult? _lastResult;
   bool _showOwnWords = false;
 
+  // Video-mode state. When true, the verify flow requires a second
+  // sub-check: the verifier visually confirms the counterparty performed
+  // the secret-derived physical action during the current window. See
+  // .devloop/plan.md Phase 14 for the threat-model rationale.
+  late bool _videoMode;
+  // What the counterparty should be doing right now (derived from
+  // counterparty's role). Alice watches for this on video.
+  LivenessAction? _expectedAction;
+  // What THIS device should be doing right now (derived from our own
+  // role). Shown inside the Show-my-4-words panel when video mode is on
+  // so the other side can verify us symmetrically.
+  LivenessAction? _ownAction;
+
   @override
   void initState() {
     super.initState();
+    _videoMode = widget.initialVideoMode;
     WidgetsBinding.instance.addObserver(this);
     unawaited(_bootstrap());
   }
@@ -132,10 +185,43 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       unixTimeSeconds: nowUnix,
       senderRole: relationship.role,
     );
+    // Always derive both sides of the liveness action so toggling video
+    // mode is instant (~2 HKDF-SHA-256 calls is cheap). Counterparty's
+    // action is what Alice watches for on video; own action is what Alice
+    // would perform if Bob is verifying her.
+    final expected = await TotpWords.deriveLivenessAction(
+      secret: secret,
+      unixTimeSeconds: nowUnix,
+      senderRole: relationship.role.other,
+    );
+    final own = await TotpWords.deriveLivenessAction(
+      secret: secret,
+      unixTimeSeconds: nowUnix,
+      senderRole: relationship.role,
+    );
     if (!mounted) return;
     setState(() {
       _ownWords = words;
+      _expectedAction = expected;
+      _ownAction = own;
       _secondsRemaining = _windowSeconds - (nowUnix % _windowSeconds);
+    });
+  }
+
+  void _toggleVideoMode(bool next) {
+    if (next == _videoMode) return;
+    setState(() {
+      _videoMode = next;
+      // Only reset when a prior attempt has already resolved to a
+      // banner — that state carries a mode-specific judgment (or a
+      // pending action-judgment in video mode) that would become
+      // inconsistent with the new mode. Typed-but-unsubmitted words in
+      // the input field carry no such state; preserving them lets the
+      // user toggle mid-typing without losing their place.
+      if (_lastResult != null) {
+        _lastResult = null;
+        _resetKey++;
+      }
     });
   }
 
@@ -154,10 +240,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       senderRole: relationship.role.other,
     );
     if (!mounted) return;
+    final wordsStatus =
+        ok ? _VerifyStatus.verified : _VerifyStatus.notVerified;
     setState(() {
       _lastResult = _VerifyResult(
-        ok ? _VerifyStatus.verified : _VerifyStatus.notVerified,
-        DateTime.now(),
+        wordsStatus: wordsStatus,
+        actionRequired: _videoMode,
+        at: DateTime.now(),
       );
       // Bump on BOTH outcomes, not just ❌. If we only bump on ❌, a prior
       // ✅ leaves `WordInput._lastSubmittedOnResetKey` pinned to the current
@@ -168,16 +257,38 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       // verification and guarantees every real attempt actually runs.
       _resetKey++;
     });
-    // Silent-mode: per-relationship opt-in to suppress haptics. A buzzing
-    // phone is an observable tell in coercion / surveillance scenarios —
-    // journalist/activist audience wants this off. Default (false) matches
-    // grandma-test expectations.
+    // Haptic policy:
+    // - Words ❌: immediate heavy — the attempt has already failed
+    //   overall, even in video mode.
+    // - Words ✅ + plain mode: light — overall pass is now confirmed.
+    // - Words ✅ + video mode: no immediate haptic. Defer to action
+    //   judgment where the overall outcome actually resolves.
     if (!relationship.silentHaptics) {
-      if (ok) {
-        unawaited(HapticFeedback.lightImpact());
-      } else {
+      if (!ok) {
         unawaited(HapticFeedback.heavyImpact());
+      } else if (!_videoMode) {
+        unawaited(HapticFeedback.lightImpact());
       }
+    }
+  }
+
+  void _handleActionJudgment(_VerifyStatus status) {
+    final prior = _lastResult;
+    final relationship = _relationship;
+    if (prior == null || !prior.awaitingActionJudgment) return;
+    setState(() {
+      _lastResult = _VerifyResult(
+        wordsStatus: prior.wordsStatus,
+        actionRequired: true,
+        actionStatus: status,
+        at: DateTime.now(),
+      );
+    });
+    if (relationship != null && !relationship.silentHaptics) {
+      final ok = status == _VerifyStatus.verified;
+      unawaited(ok
+          ? HapticFeedback.lightImpact()
+          : HapticFeedback.heavyImpact());
     }
   }
 
@@ -223,6 +334,11 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     }
 
     final scheme = Theme.of(context).colorScheme;
+    final result = _lastResult;
+    final showBanner =
+        result != null && !result.awaitingActionJudgment;
+    final showActionJudgment =
+        result != null && result.awaitingActionJudgment;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -232,6 +348,11 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           const Align(
             alignment: Alignment.centerRight,
             child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+          ),
+          const SizedBox(height: 16),
+          _VideoModeToggle(
+            value: _videoMode,
+            onChanged: _toggleVideoMode,
           ),
           const SizedBox(height: 16),
           const _SectionHeader('CHALLENGE'),
@@ -252,10 +373,17 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
               color: scheme.onSurfaceVariant,
             ),
           ),
+          if (_videoMode && _expectedAction != null) ...<Widget>[
+            const SizedBox(height: 14),
+            _ExpectedActionRow(
+              label: relationship.label,
+              action: _expectedAction!,
+            ),
+          ],
           const SizedBox(height: 20),
-          if (_lastResult != null) ...<Widget>[
+          if (showBanner) ...<Widget>[
             _ResultBanner(
-              result: _lastResult!,
+              result: result,
               relationshipLabel: relationship.label,
             ),
             const SizedBox(height: 20),
@@ -266,6 +394,16 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             onSubmit: _handleSubmit,
             resetKey: _resetKey,
           ),
+          if (showActionJudgment && _expectedAction != null) ...<Widget>[
+            const SizedBox(height: 20),
+            _ActionJudgmentPanel(
+              label: relationship.label,
+              action: _expectedAction!,
+              onSaw: () => _handleActionJudgment(_VerifyStatus.verified),
+              onNotSeen: () =>
+                  _handleActionJudgment(_VerifyStatus.notVerified),
+            ),
+          ],
           const SizedBox(height: 24),
           _OwnWordsSection(
             label: relationship.label,
@@ -273,16 +411,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             onToggle: () => setState(() => _showOwnWords = !_showOwnWords),
             words: _ownWords,
             secondsRemaining: _secondsRemaining,
-          ),
-          const SizedBox(height: 16),
-          // Liveness-challenge entry point. Sibling to Show-my-words —
-          // the user reaches for this when the call has video and they
-          // want to defeat a pre-recorded puppet in addition to the
-          // rotating-word verify.
-          _LivenessEntry(
-            label: relationship.label,
-            onTap: () =>
-                context.go('/liveness/${widget.relationshipId}'),
+            videoModeAction: _videoMode ? _ownAction : null,
           ),
           const SizedBox(height: 24),
           Divider(color: scheme.outlineVariant),
@@ -311,7 +440,7 @@ class _ResultBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isOk = result.status == _VerifyStatus.verified;
+    final isOk = result.isOverallVerified;
 
     // Tokens live in core/theme/signet_theme.dart. The banner intentionally
     // uses hard-coded tokens rather than scheme-derived roles: the ✅/❌
@@ -327,9 +456,7 @@ class _ResultBanner extends StatelessWidget {
     final accent = isOk ? SignetTokens.ok : SignetTokens.fail;
     final statusCode = isOk ? 'STATUS // 200 OK' : 'STATUS // 403 MISMATCH';
     final headline = isOk ? 'VERIFIED' : 'NOT VERIFIED — BE SUSPICIOUS';
-    final subline = isOk
-        ? 'The words match. You can trust this call.'
-        : 'The words did not match. Someone may be impersonating them.';
+    final subline = _sublineFor(result, isOk);
 
     return Semantics(
       liveRegion: true,
@@ -391,6 +518,22 @@ class _ResultBanner extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _sublineFor(_VerifyResult result, bool isOk) {
+    if (isOk) {
+      if (result.actionRequired) {
+        return 'Words matched AND you saw the expected physical action. '
+            'You can trust this call.';
+      }
+      return 'The words match. You can trust this call.';
+    }
+    if (result.wordsStatus == _VerifyStatus.notVerified) {
+      return 'The words did not match. Someone may be impersonating them.';
+    }
+    // Words verified but action missed — only reachable in video mode.
+    return 'Words matched but the physical action did not. Be suspicious '
+        'and treat this as a failed verify.';
   }
 
   static Future<void> _showEducation(
@@ -516,56 +659,220 @@ class _EduStep extends StatelessWidget {
   }
 }
 
-class _LivenessEntry extends StatelessWidget {
-  const _LivenessEntry({required this.label, required this.onTap});
+/// Toggle for "video call mode" — folds the deepfake-resistant liveness
+/// check into the normal verify flow. See .devloop/plan.md Phase 14.
+class _VideoModeToggle extends StatelessWidget {
+  const _VideoModeToggle({required this.value, required this.onChanged});
 
-  final String label;
-  final VoidCallback onTap;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.surfaceContainerHighest,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+    // MergeSemantics folds the native Switch node into the outer
+    // toggled/label container so TalkBack / VoiceOver announces the row
+    // as a single "Video call mode, on/off switch" — without it the
+    // screen reader reads the two nodes separately and users bounce
+    // between them to find the tap target.
+    return MergeSemantics(
+      child: Semantics(
+        label: 'Video call mode',
+        hint: 'Turn on to also check a physical action on video.',
+        toggled: value,
+        child: Material(
+          color: scheme.surfaceContainerHighest,
+          child: InkWell(
+            onTap: () => onChanged(!value),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    value
+                        ? Icons.videocam_outlined
+                        : Icons.videocam_off_outlined,
+                    color: value ? scheme.primary : scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'VIDEO CALL //',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            color: value
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                            letterSpacing: 2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          value
+                              ? 'Request a physical action too. Defeats deepfakes.'
+                              : 'Turn on to also check a physical action.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: scheme.onSurface,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: value,
+                    onChanged: onChanged,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "Watch for: *Touch left ear*" line that appears under CHALLENGE
+/// when video mode is on.
+class _ExpectedActionRow extends StatelessWidget {
+  const _ExpectedActionRow({required this.label, required this.action});
+
+  final String label;
+  final LivenessAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // liveRegion: true so TalkBack / VoiceOver re-announces the expected
+    // action when it changes on window rollover. Without it, a blind user
+    // watching the video can hear the first-derived action but misses the
+    // cutover to the next one 30 seconds later.
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Watch for: $label should ${action.humanReadable}.',
+      child: ExcludeSemantics(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            border: Border(left: BorderSide(color: scheme.primary, width: 3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'LIVENESS CHALLENGE //',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 10,
-                        color: scheme.onSurfaceVariant,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'On video? Ask $label to do a physical challenge '
-                      'only a live human can.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: scheme.onSurface,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
+              Text(
+                'WATCH FOR //',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  color: scheme.primary,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+              const SizedBox(height: 4),
+              Text(
+                '$label should: ${action.humanReadable}.',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                  height: 1.3,
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Appears after a words-✅ in video mode: the verifier judges whether
+/// they *actually saw* the expected action on camera.
+class _ActionJudgmentPanel extends StatelessWidget {
+  const _ActionJudgmentPanel({
+    required this.label,
+    required this.action,
+    required this.onSaw,
+    required this.onNotSeen,
+  });
+
+  final String label;
+  final LivenessAction action;
+  final VoidCallback onSaw;
+  final VoidCallback onNotSeen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // liveRegion: true so the "Words ✅. Did you see …" prompt is
+    // announced the moment it replaces the words-input once the
+    // verifier's typed 4 words have verified. Without it, a blind user
+    // doesn't know the UI has moved from "type words" to "judge action."
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          border: Border(left: BorderSide(color: scheme.secondary, width: 3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              'ACTION //',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                color: scheme.secondary,
+                letterSpacing: 2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Words ✅. Did you see $label: ${action.humanReadable}?',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onNotSeen,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: scheme.error,
+                      side: BorderSide(color: scheme.error),
+                    ),
+                    child: const Text('DID NOT SEE'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: onSaw,
+                    child: const Text('SAW IT'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -579,6 +886,7 @@ class _OwnWordsSection extends StatelessWidget {
     required this.onToggle,
     required this.words,
     required this.secondsRemaining,
+    this.videoModeAction,
   });
 
   final String label;
@@ -586,6 +894,11 @@ class _OwnWordsSection extends StatelessWidget {
   final VoidCallback onToggle;
   final List<String> words;
   final int secondsRemaining;
+
+  /// When non-null (i.e. video mode is on), the own-role action the
+  /// counterparty expects THIS device's user to perform. Displayed
+  /// symmetric to the "WATCH FOR //" row on the other side's screen.
+  final LivenessAction? videoModeAction;
 
   @override
   Widget build(BuildContext context) {
@@ -647,15 +960,59 @@ class _OwnWordsSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: words.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : WordsDisplay(
-                      words: words,
-                      secondsRemaining: secondsRemaining,
-                      windowSeconds: _VerifyScreenState._windowSeconds,
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        WordsDisplay(
+                          words: words,
+                          secondsRemaining: secondsRemaining,
+                          windowSeconds: _VerifyScreenState._windowSeconds,
+                        ),
+                        if (videoModeAction != null) ...<Widget>[
+                          const SizedBox(height: 10),
+                          Text(
+                            '...while ${_gerundFor(videoModeAction!)}.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
+                              color: scheme.onSurface,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
             ),
         ],
       ),
     );
+  }
+
+  /// "Touch the tip of your nose" → "touching the tip of your nose" —
+  /// stitches into "...while touching the tip of your nose." cleanly.
+  /// Keep this list in lockstep with `LivenessAction.humanReadable`; if a
+  /// new action lands, add its gerund here and the test in
+  /// `liveness_challenge_test.dart` will catch the omission via its
+  /// "exactly 8 curated actions" assertion.
+  static String _gerundFor(LivenessAction action) {
+    switch (action) {
+      case LivenessAction.lookUp:
+        return 'looking up at the ceiling';
+      case LivenessAction.lookDown:
+        return 'looking down at the floor';
+      case LivenessAction.lookLeft:
+        return 'looking over your left shoulder';
+      case LivenessAction.lookRight:
+        return 'looking over your right shoulder';
+      case LivenessAction.touchNose:
+        return 'touching the tip of your nose';
+      case LivenessAction.touchForehead:
+        return 'touching your forehead';
+      case LivenessAction.touchLeftEar:
+        return 'touching your left ear';
+      case LivenessAction.touchRightEar:
+        return 'touching your right ear';
+    }
   }
 }
 

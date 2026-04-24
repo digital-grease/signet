@@ -211,9 +211,10 @@ Landed in codebase; no store-packaged release yet. See `.devloop/archive/` for t
 - ✅ **Challenge-response wordlist mode** — an 8×8 grid (64 cells × 3 BIP-39 words per answer; 33 bits of entropy per query) derived from the shared secret via HKDF. Both devices have the digital grid; either side can print a paper card via the Print action in the app. Used as a fallback when the responder has no phone but can speak. See `.devloop/spikes/challenge-response.md` for the derivation + threat-model write-up.
 - ✅ **Local-file backup export + import** — the LPR package can be shipped to/from any file (Files app, encrypted note, USB stick, etc.) via the platform share sheet and a file picker. Complements the QR / copy-paste / paper paths.
 
-### v0.3 — liveness (camera-integrated remains)
+### v0.3 — liveness (camera-integrated remains) + bulk backup
 
 - ✅ **Liveness prompts — prompt-only variant.** App generates a random two-dimensional physical challenge (8 accessible actions × 2048 BIP-39 words ≈ 16,384 prompts — e.g. "Touch your left ear and say 'orbit'"); verifier reads it to the counterparty over video and judges ✅/❌ after a 10-second countdown. Channel-agnostic, no camera pipeline, no ML. Accessibility-filtered corpus (no fine motor, no vision-only cues, no facial expressions).
+- ✅ **Bulk backup** — one file, one 8-word PAKE, every paired relationship. Settings → **Back up all relationships** exports a single encrypted bundle that restores every pairing on a new phone in one step instead of running the per-relationship export N times. Import auto-dispatches on the payload-type byte, so the paste flow is unchanged. See `.devloop/spikes/bulk-backup.md` for the threat-model + design rationale.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
 ### v1.0
@@ -252,6 +253,6 @@ Signet is solo-maintained alpha software. Issues and PRs are welcome, but please
 
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
+AGPL-3.0. See [LICENSE](LICENSE).
 
 This is user-sovereign software. The license reflects that.

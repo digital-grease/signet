@@ -53,9 +53,9 @@ class AboutScreen extends StatelessWidget {
               const _Section(
                 title: 'LICENSE',
                 body:
-                    'GPL-3.0-only. Signet is free software; you are free to '
+                    'AGPL-3.0-only. Signet is free software; you are free to '
                     'use, modify, and redistribute it under the terms of the '
-                    'GNU General Public License version 3.',
+                    'GNU Affero General Public License version 3.',
               ),
               const SizedBox(height: 12),
               _Section(

@@ -17,7 +17,9 @@ Widget _wrap({required FakeSecureStore store}) {
       GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
       GoRoute(
         path: '/verify/:id',
-        builder: (_, _) => const Scaffold(body: Text('VERIFY_ROUTE')),
+        builder: (_, state) => Scaffold(
+          body: Text('VERIFY_${state.pathParameters['id']}'),
+        ),
       ),
       GoRoute(
         path: '/pair/start',
@@ -32,18 +34,14 @@ Widget _wrap({required FakeSecureStore store}) {
         builder: (_, _) => const Scaffold(body: Text('ONBOARDING_ROUTE')),
       ),
       GoRoute(
-        path: '/inspect/binding',
-        builder: (_, _) => const Scaffold(body: Text('BINDING_ROUTE')),
+        path: '/inspect/binding/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('BINDING_${state.pathParameters['id']}')),
       ),
       GoRoute(
         path: '/inspect/export/:id',
         builder: (_, state) =>
             Scaffold(body: Text('EXPORT_${state.pathParameters['id']}')),
-      ),
-      GoRoute(
-        path: '/liveness/:id',
-        builder: (_, state) =>
-            Scaffold(body: Text('LIVENESS_${state.pathParameters['id']}')),
       ),
     ],
   );
@@ -155,7 +153,7 @@ void main() {
       await tester.tap(find.text('Mom'));
       await tester.pumpAndSettle();
 
-      expect(find.text('VERIFY_ROUTE'), findsOneWidget);
+      expect(find.text('VERIFY_${mom.id}'), findsOneWidget);
     });
 
     testWidgets(
@@ -272,7 +270,7 @@ void main() {
     );
 
     testWidgets(
-      'Liveness challenge from menu routes to /liveness/:id',
+      'Verify (video call) from menu routes to /verify/:id?video=1',
       (tester) async {
         await tester.pumpWidget(_wrap(
           store: FakeSecureStore(seeded: mom, secret: secret),
@@ -281,10 +279,10 @@ void main() {
 
         await tester.longPress(find.text('Mom'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Liveness challenge'));
+        await tester.tap(find.text('Verify (video call)'));
         await tester.pumpAndSettle();
 
-        expect(find.text('LIVENESS_${mom.id}'), findsOneWidget);
+        expect(find.text('VERIFY_${mom.id}'), findsOneWidget);
       },
     );
 
@@ -323,7 +321,8 @@ void main() {
     );
 
     testWidgets(
-      'Show binding from menu routes to /inspect/binding',
+      'Show binding from menu routes to /inspect/binding/:id for the '
+      'selected peer',
       (tester) async {
         await tester.pumpWidget(_wrap(
           store: FakeSecureStore(seeded: mom, secret: secret),
@@ -335,7 +334,7 @@ void main() {
         await tester.tap(find.text('Show binding phrase'));
         await tester.pumpAndSettle();
 
-        expect(find.text('BINDING_ROUTE'), findsOneWidget);
+        expect(find.text('BINDING_${mom.id}'), findsOneWidget);
       },
     );
   });

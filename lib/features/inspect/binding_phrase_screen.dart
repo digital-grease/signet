@@ -16,7 +16,13 @@ import '../../shared/widgets/secure_screen.dart';
 /// No commit / verify button on this screen: it's a *re-check* affordance,
 /// not a rekey operation. Rekey lands in Phase 10.6.
 class BindingPhraseScreen extends ConsumerStatefulWidget {
-  const BindingPhraseScreen({super.key});
+  const BindingPhraseScreen({super.key, required this.relationshipId});
+
+  /// Which relationship to re-derive the binding phrase for. Routed from
+  /// `/inspect/binding/:id` at app.dart. Pre-multi-peer this screen
+  /// silently picked `relationships.first`, which showed the wrong peer's
+  /// phrase once v0.2 let users pair with more than one contact.
+  final String relationshipId;
 
   @override
   ConsumerState<BindingPhraseScreen> createState() =>
@@ -37,9 +43,8 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
   Future<void> _load() async {
     try {
       final store = ref.read(secureStoreProvider);
-      final relationships = await store.listRelationships();
       final relationship =
-          relationships.isEmpty ? null : relationships.first;
+          await store.getRelationshipById(widget.relationshipId);
       final secret = relationship == null
           ? null
           : await store.getSharedSecretById(relationship.id);

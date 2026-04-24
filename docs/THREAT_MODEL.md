@@ -78,28 +78,49 @@ words ≠ B→A words for any given window.
 - `test/crypto/totp_words_test.dart` — `per-role asymmetry
   (reflection-attack defense)` group
 
-### 2.3 Pre-recorded video puppet A₃
+### 2.3 AI-capable, secret-less video attacker A₃
 
-**Capabilities:** during a video call, plays back a 30-second loop of
-pre-recorded footage of the target looking natural. Live-voices over
-it.
+**Capabilities:** real-time voice + video deepfake of the target
+(ElevenLabs-class audio + commodity face-reenactment pipelines). Can
+respond in ~500ms to any spoken challenge. Knows biographical details
+about the target. **Does NOT possess** the paired device, the shared
+secret, or the target's Signet installation.
 
-**What Signet proves:** the liveness-prompt mode generates a random
-two-dimensional physical challenge (8 accessible actions × 2048
-BIP-39 words = 16,384 distinct prompts). The verifier issues the
-prompt over audio and watches for the live response. A pre-recorded
-loop cannot match an unpredictable, unknown-in-advance prompt
-performed on-camera within a 10-second window.
+**What Signet proves:** the verify screen's "video mode" toggle folds
+a secret-derived physical action into the rotating-word check. When
+enabled, passing requires BOTH (a) the counterparty speaks the
+role-asymmetric 4-word code for the current window (~44 bits, defeats
+A₁-class attackers without the secret), AND (b) the counterparty
+performs a specific physical action (one of 8, derived from the same
+secret via HKDF info `signet/v2/liveness-action-from-{role}`) which
+the verifier visually confirms on video. Combined attack probability
+for a secret-less A₃ = 1/2⁴⁷ per 30-second window — order-of-magnitude
+hardening over the pre-v0.3-Phase-14 prompt-only flow, which offered
+no cryptographic defense against a realtime-deepfake A₃ (the prompt
+itself was minted with local `Random.secure()` on the verifier's
+device).
 
-**What this does NOT defend against:** real-time deepfake systems
-capable of live puppet generation with correct finger counts / spoken
-words. That threat is explicitly acknowledged; the rotating-word
-defense (2.1) remains the load-bearing check.
+**What this does NOT defend against:** paired-device compromise
+(A₇), co-located accomplice watching the counterparty's screen
+during the active window (a physical co-location attack, out of
+scope). Camera-integrated automated action grading is explicitly
+deferred to a later plan.
 
 **Relevant code:**
-- `lib/core/crypto/liveness_challenge.dart`
-- `lib/features/liveness/liveness_screen.dart`
-- `test/crypto/liveness_challenge_test.dart`
+- `lib/core/crypto/totp_words.dart` — `deriveLivenessAction` +
+  `verifyLivenessAction` + role-asymmetric HKDF info string
+- `lib/core/crypto/liveness_challenge.dart` — `LivenessAction`
+  enum (accessibility-curated corpus); `mint()` deprecated
+- `lib/features/verify/verify_screen.dart` — "VIDEO CALL //" toggle,
+  "WATCH FOR //" expected-action row, "ACTION //" judgment panel,
+  combined ✅/❌ banner logic in `_VerifyResult`
+- `test/crypto/totp_words_liveness_test.dart` — 24 tests incl.
+  fixture vectors, role asymmetry, ±1 window tolerance
+- `test/features/verify_screen_test.dart` — "VerifyScreen video
+  mode" group: toggle UI, deep-link `?video=1`, ✅✅/✅❌/❌_
+  outcomes, mid-attempt invalidation, haptic timing
+- `.devloop/spikes/secret-derived-liveness.md` — design history
+  (Option A/B/C comparison; C chosen)
 
 ### 2.4 Voice-channel dictionary attacker A₄ — OOB pairing interception
 
@@ -253,8 +274,8 @@ is a copy / social-layer concern).
 ### 3.5 Screen-capture blocking
 
 - Android: `WindowManager.LayoutParams.FLAG_SECURE` on all sensitive
-  screens (Verify, Show-my-words, pair QR-show, binding-phrase
-  re-check, backup export, CR grid, liveness).
+  screens (Verify — incl. video-mode expected-action, Show-my-words,
+  pair QR-show, binding-phrase re-check, backup export, CR grid).
 - iOS: blurred `UIVisualEffectView` swapped in on
   `applicationWillResignActive`, removed on
   `applicationDidBecomeActive`. Does not block active AirPlay /
@@ -384,4 +405,13 @@ a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
 
+- 2026-04-22 · Phase 14 — A₃ reframed from "pre-recorded video puppet"
+  to "AI-capable, secret-less video attacker." Liveness flow is now
+  secret-derived via `TotpWords.deriveLivenessAction` (HKDF info
+  `signet/v2/liveness-action-from-{role}`), folded into the verify
+  screen's video-mode toggle. Combined pass probability for a
+  secret-less realtime deepfake dropped from ~100% → 1/2⁴⁷ per 30s
+  window. Standalone liveness screen retired; `/liveness/:id` redirects
+  to `/verify/:id?video=1` for one release. See
+  `.devloop/spikes/secret-derived-liveness.md`.
 - 2026-04-19 · initial consolidation (Phase 12.12).

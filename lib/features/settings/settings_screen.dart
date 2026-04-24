@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/prefs/settings_controller.dart';
+import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
 
 /// Settings — deliberately tiny.
@@ -28,6 +31,11 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final relationshipsAsync = ref.watch(relationshipsProvider);
+    final relationshipCount = relationshipsAsync.maybeWhen(
+      data: (rels) => rels.length,
+      orElse: () => 0,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('SETTINGS')),
       body: SafeArea(
@@ -46,6 +54,27 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (mode) =>
                       ref.read(themeModeProvider.notifier).set(mode),
                 ),
+              ),
+              const SizedBox(height: 12),
+              _Section(
+                title: 'BULK BACKUP',
+                body: relationshipCount == 0
+                    ? 'No relationships paired yet. Pair with someone first, '
+                        'then you can back up every pairing at once.'
+                    : 'Back up all $relationshipCount '
+                        '${relationshipCount == 1 ? 'relationship' : 'relationships'} '
+                        'into one encrypted file with one 8-word PAKE. Use '
+                        'this when switching phones — the new phone unlocks '
+                        'every pairing in one step.',
+                actionLabel: relationshipCount == 0
+                    ? null
+                    : 'BACK UP ALL $relationshipCount',
+                onAction: relationshipCount == 0
+                    ? null
+                    : () => _confirmAndStartBulkExport(
+                          context,
+                          relationshipCount,
+                        ),
               ),
               const SizedBox(height: 12),
               _Section(
@@ -71,6 +100,44 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// One-tap confirm — friction-parity with a seed-phrase export (not a nag).
+  /// The abuse concern is that "back up everything" is an attractive button
+  /// for an abuser with physical access. Showing the count + the PAKE-loss
+  /// consequence once before generation is cheap insurance against a
+  /// misclick; beyond that, additional gating would make the grandma-test
+  /// path harder.
+  Future<void> _confirmAndStartBulkExport(
+    BuildContext context,
+    int count,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('BACK UP EVERYTHING?'),
+        content: Text(
+          'This exports the shared secret for all $count '
+          '${count == 1 ? 'relationship' : 'relationships'} '
+          'into one file. Losing the 8-word PAKE means losing all $count '
+          'backups. The PAKE will be shown once — write it down before '
+          'closing the screen.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('CONTINUE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      unawaited(context.push('/inspect/export-bulk'));
+    }
   }
 }
 

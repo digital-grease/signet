@@ -3,7 +3,13 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 import 'bip39_english_wordlist.dart';
+import 'liveness_challenge.dart';
 import 'pair_role.dart';
+
+// Re-export LivenessAction alongside the TOTP API so consumers of the
+// rotating-verify flow get the video-mode action type from a single
+// import path. See .devloop/plan.md Phase 14 Task 1.2.
+export 'liveness_challenge.dart' show LivenessAction;
 
 /// Rotating 4-word verification code derived from the pairing shared secret.
 ///
@@ -39,6 +45,13 @@ class TotpWords {
 
   static String _hkdfInfoFor(PairRole role) =>
       'signet/v1/totp-words-from-${role.wireName}';
+
+  /// HKDF info string for the v0.3 secret-derived liveness action.
+  /// Domain-separated from `_hkdfInfoFor` so the same shared secret never
+  /// produces the same output across the two usages, and from the pair-time
+  /// verification phrase (`signet/v1/verification-phrase`).
+  static String _livenessInfoFor(PairRole role) =>
+      'signet/v2/liveness-action-from-${role.wireName}';
 
   /// Derive the 4-word code that [senderRole] should read aloud in the
   /// window containing [unixTimeSeconds]. Each role has a distinct code
@@ -121,6 +134,115 @@ class TotpWords {
       }
     }
     return false;
+  }
+
+  /// Derive the expected physical liveness action for the window containing
+  /// [unixTimeSeconds], keyed to [senderRole].
+  ///
+  /// Companion to [generate]: when the verify flow is in "video mode,"
+  /// pair-members derive the same 4 spoken words AND the same single
+  /// physical action for the current window. A secret-less attacker who
+  /// can deepfake the video channel still fails with probability 7/8 per
+  /// window because they don't know *which* action to perform.
+  ///
+  /// Derivation: HKDF-SHA-256(secret, info =
+  /// `signet/v2/liveness-action-from-{role}`, nonce = 8-byte BE window
+  /// counter, outLen = 1). Action index is `byte & 7`; corpus is
+  /// [LivenessAction.values] (accessibility-curated, see
+  /// `liveness_challenge.dart`).
+  ///
+  /// Role asymmetry matches [generate]: an attacker reflecting the
+  /// verifier's displayed action back at her fails, because the verifier's
+  /// own role produces a different action than the counterparty's role.
+  static Future<LivenessAction> deriveLivenessAction({
+    required List<int> secret,
+    required int unixTimeSeconds,
+    required PairRole senderRole,
+    int timeStepSeconds = defaultTimeStepSeconds,
+  }) async {
+    _validateLivenessInputs(
+      secret: secret,
+      timeStepSeconds: timeStepSeconds,
+    );
+    final counter = unixTimeSeconds ~/ timeStepSeconds;
+    return _deriveLivenessAction(
+      secret: secret,
+      counter: counter,
+      senderRole: senderRole,
+    );
+  }
+
+  /// Verify [candidate] is the action the caller (role [senderRole]) should
+  /// be performing this window. Walks ±[windowTolerance] windows, matching
+  /// the word-verify tolerance so the two sub-checks stay in lockstep.
+  ///
+  /// Reflection-attack note (same as [verify]): pass the COUNTERPARTY's
+  /// role, not your own.
+  static Future<bool> verifyLivenessAction({
+    required List<int> secret,
+    required LivenessAction candidate,
+    required int unixTimeSeconds,
+    required PairRole senderRole,
+    int timeStepSeconds = defaultTimeStepSeconds,
+    int windowTolerance = defaultWindowTolerance,
+  }) async {
+    _validateLivenessInputs(
+      secret: secret,
+      timeStepSeconds: timeStepSeconds,
+    );
+    if (windowTolerance < 0) {
+      throw ArgumentError.value(
+        windowTolerance,
+        'windowTolerance',
+        'must not be negative',
+      );
+    }
+    final baseCounter = unixTimeSeconds ~/ timeStepSeconds;
+    for (var offset = -windowTolerance; offset <= windowTolerance; offset++) {
+      final expected = await _deriveLivenessAction(
+        secret: secret,
+        counter: baseCounter + offset,
+        senderRole: senderRole,
+      );
+      if (expected == candidate) return true;
+    }
+    return false;
+  }
+
+  static Future<LivenessAction> _deriveLivenessAction({
+    required List<int> secret,
+    required int counter,
+    required PairRole senderRole,
+  }) async {
+    final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 1);
+    final derived = await hkdf.deriveKey(
+      secretKey: SecretKey(secret),
+      nonce: _encodeCounter(counter),
+      info: _livenessInfoFor(senderRole).codeUnits,
+    );
+    final bytes = await derived.extractBytes();
+    // Corpus is size-8 by invariant (pinned by liveness_challenge_test.dart)
+    // so `% 8` over a uniform byte is itself uniform. If the corpus ever
+    // grows beyond 8, revisit: naive `%` introduces modular bias for
+    // non-power-of-2 sizes and would need a rejection-sampling loop.
+    final index = bytes[0] % LivenessAction.values.length;
+    return LivenessAction.values[index];
+  }
+
+  static void _validateLivenessInputs({
+    required List<int> secret,
+    required int timeStepSeconds,
+  }) {
+    if (secret.isEmpty) {
+      throw ArgumentError.value(secret, 'secret', 'must not be empty');
+    }
+    if (timeStepSeconds <= 0) {
+      throw ArgumentError.value(
+        timeStepSeconds,
+        'timeStepSeconds',
+        'must be positive',
+      );
+    }
   }
 
   static void _validateInputs({

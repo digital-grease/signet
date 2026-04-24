@@ -242,10 +242,10 @@ class HomeScreen extends ConsumerWidget {
                   onTap: () => Navigator.of(sheetCtx).pop('binding'),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.visibility_outlined),
-                  title: const Text('Liveness challenge'),
+                  leading: const Icon(Icons.videocam_outlined),
+                  title: const Text('Verify (video call)'),
                   subtitle: const Text(
-                      'Physical challenge for video calls'),
+                      'Adds a physical-action check — deepfake-resistant'),
                   onTap: () => Navigator.of(sheetCtx).pop('liveness'),
                 ),
                 ListTile(
@@ -290,9 +290,13 @@ class HomeScreen extends ConsumerWidget {
       case 'haptics':
         await _toggleSilentHaptics(ref, relationship);
       case 'binding':
-        context.go('/inspect/binding');
+        context.go('/inspect/binding/${relationship.id}');
       case 'liveness':
-        context.go('/liveness/${relationship.id}');
+        // Direct-path to verify screen's video mode. Phase 14 retired
+        // the standalone liveness screen; the legacy redirect at
+        // /liveness/:id → /verify/:id?video=1 still exists but going
+        // direct avoids a pointless extra hop.
+        context.go('/verify/${relationship.id}?video=1');
       case 'cr-grid':
         context.go('/inspect/cr-grid/${relationship.id}');
       case 'rekey':

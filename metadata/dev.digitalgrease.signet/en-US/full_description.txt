@@ -20,7 +20,7 @@ Core properties:
 * Hardware-backed secrets via Android Keystore, StrongBox when available.
 * Offline-first; airplane mode does not affect any flow.
 * RFC-validated crypto (X25519, HKDF-SHA-256, AES-256-GCM, BIP-39).
-* Open source, GPL-3.0.
+* Open source, AGPL-3.0.
 
 v0.2 includes in-person pairing, long-distance pairing, lost-phone recovery via paper or file, multi-relationship storage, in-person rekey, a printable challenge-response grid for when the other side can't reach their phone, liveness prompts for video calls, and screenshot blocking on sensitive screens.
 

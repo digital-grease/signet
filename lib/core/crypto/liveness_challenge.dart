@@ -2,20 +2,24 @@ import 'dart:math';
 
 import 'bip39_english_wordlist.dart';
 
-/// A randomized two-dimensional physical challenge for liveness detection.
+/// Historical — pre-secret-derivation prompt generator.
 ///
-/// The action-dimension is a short, accessible instruction the counterparty
-/// performs on camera. The voiced-dimension is a BIP-39 word they speak
-/// aloud. Together they are a one-shot challenge that a *pre-recorded*
-/// video loop can't satisfy — the attacker would need live puppet-style
-/// deepfake generation that can respond to unknown-in-advance challenges
-/// in under ~10 seconds. That bar is above commodity deepfake tooling at
-/// time of writing.
+/// The v0.3 prompt-only liveness flow minted challenges with local
+/// `Random.secure()`, betting that commodity deepfake tooling couldn't
+/// respond to an unknown-in-advance prompt inside a 10-second window.
+/// That assumption decayed as realtime voice+video deepfakes improved:
+/// a secret-less attacker who can puppet Bob's likeness in under a
+/// second hears the prompt Alice reads and performs it on the fly.
 ///
-/// Scope: this is **prompt-only** liveness. The app generates the prompt;
-/// the *human* watches and decides ✅/❌. There is no camera pipeline, no
-/// ML, and no auto-grading — those are the separate "camera-integrated"
-/// feature deferred to a later plan per `.devloop/spikes/value-adds.md`.
+/// The current flow lives in `TotpWords.deriveLivenessAction`, which
+/// keys the action to the pair's shared secret via HKDF-SHA-256 — so
+/// passing the combined verify requires BOTH secret possession AND a
+/// live human. See `.devloop/plan.md` Phase 14 for the migration.
+///
+/// [LivenessAction] stays here as the accessibility-curated corpus;
+/// `TotpWords` re-exports it. [LivenessChallenge.mint] is deprecated and
+/// retained for one release so in-flight alpha callers don't hard-fail;
+/// it will be removed after the video-mode verify ships.
 ///
 /// Accessibility constraints applied to the action corpus:
 /// - No prompts requiring fine motor control (no finger counts — excludes
@@ -31,6 +35,11 @@ class LivenessChallenge {
 
   /// Mint a fresh prompt. Uses [Random.secure] by default; a seeded
   /// [Random] is accepted for test determinism.
+  @Deprecated(
+    'Use TotpWords.deriveLivenessAction — secret-derived, HKDF-keyed to '
+    'the pair shared secret, defeats secret-less realtime deepfake '
+    'attackers. Removed in the release after 0.3.x.',
+  )
   static LivenessPrompt mint({Random? random}) {
     final rng = random ?? Random.secure();
     final action =

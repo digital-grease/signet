@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,11 +42,9 @@ Widget wrapWithRouter({
         path: '/',
         builder: (_, _) => const Scaffold(body: Text('HOME_ROUTE')),
       ),
-      GoRoute(
-        path: '/liveness/:id',
-        builder: (_, state) =>
-            Scaffold(body: Text('LIVENESS_${state.pathParameters['id']}')),
-      ),
+      // Legacy /liveness/:id route removed in Phase 14 — the standalone
+      // liveness screen was retired in favor of the verify screen's
+      // video-mode toggle.
     ],
   );
   return ProviderScope(
@@ -394,38 +393,10 @@ void main() {
       },
     );
 
-    testWidgets(
-      'renders the LIVENESS CHALLENGE // entry row',
-      (tester) async {
-        await tester.pumpWidget(
-          wrap(
-            store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('LIVENESS CHALLENGE //'), findsOneWidget);
-        expect(find.textContaining('Ask Mom to do a physical'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'tapping LIVENESS CHALLENGE row routes to /liveness/:id',
-      (tester) async {
-        await tester.pumpWidget(wrapWithRouter(
-          store: FakeSecureStore(seeded: _mom, secret: _secret),
-          verifyId: 'abc',
-        ));
-        await tester.pumpAndSettle();
-
-        await tester.ensureVisible(find.text('LIVENESS CHALLENGE //'));
-        await tester.tap(find.text('LIVENESS CHALLENGE //'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('LIVENESS_abc'), findsOneWidget);
-      },
-    );
+    // Legacy `_LivenessEntry` row tests removed in Phase 14: the row was
+    // replaced by the in-screen "VIDEO CALL //" toggle, and the standalone
+    // `/liveness/:id` route redirects to `/verify/:id?video=1`. Video-mode
+    // coverage lives in the "VerifyScreen video mode" group below.
 
     testWidgets(
       'silentHaptics=true suppresses HapticFeedback on both ✅ and ❌',
@@ -510,6 +481,484 @@ void main() {
         // Sanity: the screen still renders normally after the cycle — if
         // the observer bookkeeping were off, we'd crash on the pump.
         expect(find.text('Show my 4 words'), findsOneWidget);
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------
+  // Phase 14: secret-derived liveness via "video mode" toggle.
+  //
+  // Contract:
+  //   - Toggle renders a VIDEO CALL // row with a Switch.
+  //   - When off, no "WATCH FOR //" action line is shown.
+  //   - When on, "WATCH FOR //" appears with the counterparty's expected
+  //     action for the current window (derived via
+  //     `TotpWords.deriveLivenessAction` against the counterparty role).
+  //   - A words ✅ in video mode DOES NOT show the ✅ banner — it shows
+  //     the "ACTION //" judgment prompt (SAW IT / DID NOT SEE) instead.
+  //   - Words ✅ + SAW IT → overall ✅ banner.
+  //   - Words ✅ + DID NOT SEE → overall ❌ banner.
+  //   - Words ❌ in video mode short-circuits straight to the ❌ banner
+  //     (no action judgment sub-step).
+  //   - `initialVideoMode: true` (deep-link `?video=1`) pre-enables the
+  //     toggle on first frame.
+  //   - Toggling mid-attempt invalidates the current state (resets input
+  //     + clears any pending result).
+  group('VerifyScreen video mode', () {
+    /// Computes counterparty's expected liveness action for the current
+    /// window — the action Alice should watch Mom perform on video.
+    Future<LivenessAction> currentExpectedAction() async {
+      final now =
+          DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      return TotpWords.deriveLivenessAction(
+        secret: _secret,
+        unixTimeSeconds: now,
+        senderRole: _mom.role.other,
+      );
+    }
+
+    testWidgets('renders the VIDEO CALL // toggle row', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          store: FakeSecureStore(seeded: _mom, secret: _secret),
+          child: const VerifyScreen(relationshipId: 'abc'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('VIDEO CALL //'), findsOneWidget);
+      expect(find.byType(Switch), findsOneWidget);
+    });
+
+    testWidgets(
+      'plain mode hides WATCH FOR // and does not require action judgment',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('WATCH FOR //'), findsNothing);
+
+        // Words ✅ in plain mode → immediate overall ✅ banner; no
+        // action judgment panel.
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+        expect(find.text('VERIFIED'), findsOneWidget);
+        expect(find.text('ACTION //'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'toggling video mode on shows WATCH FOR // with the current action',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
+
+        expect(find.text('WATCH FOR //'), findsOneWidget);
+        final action = await currentExpectedAction();
+        expect(
+          find.textContaining(action.humanReadable),
+          findsWidgets,
+        );
+      },
+    );
+
+    testWidgets(
+      'initialVideoMode=true (deep-link ?video=1) pre-enables the toggle',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('WATCH FOR //'), findsOneWidget);
+        final s = tester.widget<Switch>(find.byType(Switch));
+        expect(s.value, isTrue);
+      },
+    );
+
+    testWidgets(
+      '✅✅: words ✅ + SAW IT → overall VERIFIED banner',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+
+        // Banner deferred — awaiting action judgment.
+        expect(find.text('VERIFIED'), findsNothing);
+        expect(find.text('ACTION //'), findsOneWidget);
+        expect(find.text('SAW IT'), findsOneWidget);
+        expect(find.text('DID NOT SEE'), findsOneWidget);
+
+        await tester.ensureVisible(find.text('SAW IT'));
+        await tester.tap(find.text('SAW IT'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('VERIFIED'), findsOneWidget);
+        expect(
+          find.textContaining('you saw the expected physical action'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      '✅❌: words ✅ + DID NOT SEE → overall NOT VERIFIED banner',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('DID NOT SEE'));
+        await tester.tap(find.text('DID NOT SEE'));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+        expect(
+          find.textContaining('physical action did not'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      '❌_: words ❌ in video mode → immediate NOT VERIFIED, no action panel',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const bogus = <String>['orange', 'anchor', 'abandon', 'ability'];
+        await _enterWords(tester, bogus);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
+        expect(find.text('ACTION //'), findsNothing);
+        expect(find.text('SAW IT'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'toggling video mode mid-attempt clears a pending result',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Plain-mode verify → ✅.
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+        expect(find.text('VERIFIED'), findsOneWidget);
+
+        // Flip the toggle — the stale ✅ banner should clear.
+        await tester.ensureVisible(find.text('VIDEO CALL //'));
+        await tester.tap(find.text('VIDEO CALL //'));
+        await tester.pumpAndSettle();
+        expect(find.text('VERIFIED'), findsNothing);
+        expect(find.text('WATCH FOR //'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'toggling video mode with typed-but-unsubmitted words preserves input',
+      (tester) async {
+        // Lighter fix for the M4 finding: previously every toggle would
+        // reset the WordInput, wiping typed-so-far words mid-typing. The
+        // fix only resets when a verify result already exists. A user who
+        // types 3 words, realises they want video mode, and toggles,
+        // should keep those 3 words in place.
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Partial input — only the first 3 slots, so no auto-submit fires.
+        await tester.enterText(_slotField(0), 'orange');
+        await tester.pumpAndSettle();
+        await tester.enterText(_slotField(1), 'anchor');
+        await tester.pumpAndSettle();
+        await tester.enterText(_slotField(2), 'abandon');
+        await tester.pumpAndSettle();
+
+        // Toggle to video mode.
+        await tester.ensureVisible(find.text('VIDEO CALL //'));
+        await tester.tap(find.text('VIDEO CALL //'));
+        await tester.pumpAndSettle();
+
+        // All three typed words remain in their slots.
+        expect(
+          tester.widget<TextField>(_slotField(0)).controller!.text,
+          'orange',
+        );
+        expect(
+          tester.widget<TextField>(_slotField(1)).controller!.text,
+          'anchor',
+        );
+        expect(
+          tester.widget<TextField>(_slotField(2)).controller!.text,
+          'abandon',
+        );
+        // Slot 3 is still empty; no submission has happened.
+        expect(
+          tester.widget<TextField>(_slotField(3)).controller!.text,
+          '',
+        );
+        expect(find.text('VERIFIED'), findsNothing);
+        expect(find.text('NOT VERIFIED'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Show-my-4-words panel gains a "...while X" line in video mode',
+      (tester) async {
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('Show my 4 words'));
+        await tester.tap(find.text('Show my 4 words'));
+        await tester.pumpAndSettle();
+
+        // The gerund phrase starts with "...while" and should render
+        // alongside the rotating word display.
+        final gerundFinder = find.textContaining('...while');
+        expect(gerundFinder, findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'VIDEO CALL toggle exposes a toggled Semantics node for TalkBack',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        // Dispose inline at test end — addTearDown runs AFTER
+        // _endOfTestVerifications, which is what checks for leaked handles,
+        // so tearDown-based disposal trips the sanity check.
+
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(relationshipId: 'abc'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // MergeSemantics folds the Switch node into the outer row, so the
+        // merged node's label is a concatenation of our explicit label and
+        // the child Text runs. Match any Semantics node whose label
+        // contains our entry-point string.
+        var toggleSemantics = tester.getSemantics(
+          find.bySemanticsLabel(RegExp('Video call mode')),
+        );
+        expect(
+          toggleSemantics.flagsCollection.hasToggledState,
+          isTrue,
+          reason: 'row is announced as a toggle, not just a button',
+        );
+        expect(
+          toggleSemantics.flagsCollection.isToggled,
+          isFalse,
+          reason: 'off by default',
+        );
+
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
+
+        toggleSemantics = tester.getSemantics(
+          find.bySemanticsLabel(RegExp('Video call mode')),
+        );
+        expect(toggleSemantics.flagsCollection.isToggled, isTrue);
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'WATCH FOR // is a liveRegion so window rollover is announced',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        // Dispose inline at test end — addTearDown runs AFTER
+        // _endOfTestVerifications, which is what checks for leaked handles,
+        // so tearDown-based disposal trips the sanity check.
+
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final action = await currentExpectedAction();
+        final watchForSemantics = tester.getSemantics(
+          find.bySemanticsLabel(
+            RegExp('Watch for: Mom should ${action.humanReadable}'),
+          ),
+        );
+        expect(
+          watchForSemantics.flagsCollection.isLiveRegion,
+          isTrue,
+          reason:
+              'blind users need the screen-reader re-announcement on window '
+              'rollover — otherwise the visible prompt updates silently.',
+        );
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'ACTION // judgment panel is a liveRegion when it appears post-words-✅',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        // Dispose inline at test end — addTearDown runs AFTER
+        // _endOfTestVerifications, which is what checks for leaked handles,
+        // so tearDown-based disposal trips the sanity check.
+
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+
+        // Tree traversal — find the Semantics node that contains the
+        // action-judgment prompt. Can't use bySemanticsLabel because
+        // the prompt includes a generated humanReadable action name.
+        final panelSemantics = tester.getSemantics(
+          find.ancestor(
+            of: find.textContaining('Did you see Mom'),
+            matching: find.byType(Semantics),
+          ).first,
+        );
+        expect(
+          panelSemantics.flagsCollection.isLiveRegion,
+          isTrue,
+          reason:
+              'blind users need the screen-reader re-announcement when the '
+              'UI transitions from type-words to judge-action — otherwise '
+              'they remain at the empty-input state with no cue to proceed.',
+        );
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'haptics fire at action-judgment step in video mode (not at words-✅)',
+      (tester) async {
+        final calls = <MethodCall>[];
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          calls.add(call);
+          return null;
+        });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null);
+        });
+
+        await tester.pumpWidget(
+          wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: const VerifyScreen(
+              relationshipId: 'abc',
+              initialVideoMode: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final words = await _currentWordsFromMom();
+        await _enterWords(tester, words);
+        await tester.pumpAndSettle();
+
+        // Words ✅ in video mode must defer haptic — otherwise the user
+        // feels a "verified" buzz before the overall outcome is known.
+        var hapticCalls = calls.where(
+          (c) => c.method == 'HapticFeedback.vibrate',
+        );
+        expect(hapticCalls, isEmpty,
+            reason: 'no haptic at pending-action step');
+
+        await tester.ensureVisible(find.text('SAW IT'));
+        await tester.tap(find.text('SAW IT'));
+        await tester.pumpAndSettle();
+
+        hapticCalls = calls.where(
+          (c) => c.method == 'HapticFeedback.vibrate',
+        );
+        expect(hapticCalls, hasLength(1),
+            reason: 'one haptic on overall ✅');
       },
     );
   });

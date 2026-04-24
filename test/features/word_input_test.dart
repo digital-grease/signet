@@ -210,4 +210,132 @@ void main() {
     expect(submissions, hasLength(2));
     expect(submissions.last, <String>['able', 'above', 'absent', 'absurd']);
   });
+
+  group('prefillWords', () {
+    Widget buildWithPrefill({
+      required Future<void> Function(List<String>) onSubmit,
+      required List<String>? prefill,
+      int resetKey = 0,
+      int wordCount = 4,
+    }) {
+      return MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: WordInput(
+              onSubmit: onSubmit,
+              wordCount: wordCount,
+              resetKey: resetKey,
+              prefillWords: prefill,
+              autofocus: false,
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('populates all slots on first build and auto-submits once',
+        (tester) async {
+      final submissions = <List<String>>[];
+      await tester.pumpWidget(
+        buildWithPrefill(
+          onSubmit: (w) async => submissions.add(w),
+          prefill: const <String>['orange', 'anchor', 'abandon', 'ability'],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 4; i++) {
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(i)).controller!.text,
+          ['orange', 'anchor', 'abandon', 'ability'][i],
+        );
+      }
+      expect(submissions, <List<String>>[
+        <String>['orange', 'anchor', 'abandon', 'ability'],
+      ]);
+    });
+
+    testWidgets(
+        'length mismatch falls back to empty slots with no auto-submit',
+        (tester) async {
+      var submitCount = 0;
+      await tester.pumpWidget(
+        buildWithPrefill(
+          onSubmit: (_) async => submitCount++,
+          prefill: const <String>['orange', 'anchor', 'abandon'], // wrong length
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 4; i++) {
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(i)).controller!.text,
+          '',
+        );
+      }
+      expect(submitCount, 0);
+    });
+
+    testWidgets('resetKey bump re-applies an updated prefill', (tester) async {
+      final submissions = <List<String>>[];
+      Widget build(int key, List<String> pre) => MaterialApp(
+            home: Scaffold(
+              body: WordInput(
+                onSubmit: (w) async => submissions.add(w),
+                resetKey: key,
+                prefillWords: pre,
+                autofocus: false,
+              ),
+            ),
+          );
+
+      await tester.pumpWidget(build(0,
+          const <String>['orange', 'anchor', 'abandon', 'ability']));
+      await tester.pumpAndSettle();
+      expect(submissions, hasLength(1));
+
+      await tester.pumpWidget(build(1,
+          const <String>['able', 'above', 'absent', 'absurd']));
+      await tester.pumpAndSettle();
+
+      expect(submissions, hasLength(2));
+      expect(submissions.last,
+          <String>['able', 'above', 'absent', 'absurd']);
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text,
+        'able',
+      );
+    });
+
+    testWidgets('supports 8-slot prefill (PAKE length)', (tester) async {
+      final submissions = <List<String>>[];
+      const pake = <String>[
+        'abandon',
+        'ability',
+        'able',
+        'about',
+        'above',
+        'absent',
+        'absorb',
+        'abstract',
+      ];
+      await tester.pumpWidget(
+        buildWithPrefill(
+          onSubmit: (w) async => submissions.add(w),
+          prefill: pake,
+          wordCount: 8,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 8; i++) {
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(i)).controller!.text,
+          pake[i],
+        );
+      }
+      expect(submissions, <List<String>>[pake]);
+    });
+  });
 }

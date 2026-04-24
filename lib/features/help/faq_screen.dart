@@ -98,14 +98,21 @@ class FaqScreen extends StatelessWidget {
           'it matches what your app says, the pairing is genuine.',
     ),
     _FaqEntry(
-      question: 'What\'s a liveness challenge?',
+      question: 'Why does video-call verify ask for a physical action?',
       answer:
-          'For video calls where the caller might be a pre-recorded or '
-          'real-time deepfake of actual footage. The app gives you a '
-          'physical prompt like "touch your left ear and say \'orbit\'" '
-          'and a 10-second timer. Ask your counterparty to perform it '
-          'on camera. Pre-recorded deepfakes fail immediately; real-time '
-          'ones struggle with simultaneous gesture + novel word.',
+          'AI voice and video deepfakes keep getting better. A realtime '
+          'deepfake that hears you ask for the 4 words can just say them '
+          '— unless those words came from the paired device, which is '
+          'why plain verify works. But a deepfake that hears you read a '
+          'random prompt like "touch your ear" aloud can also mimic '
+          'that action immediately. So Signet turns the action into '
+          'something derived from the shared secret too: only the real '
+          'paired device knows which action is expected in this window. '
+          'When you turn on VIDEO CALL mode, passing requires BOTH the '
+          'right 4 words AND the counterparty performing the expected '
+          'action. A deepfake without the paired device can only guess, '
+          'and the combined odds drop to roughly 1 in 100 trillion per '
+          '30-second window.',
     ),
     _FaqEntry(
       question: 'Why no account? What if I need recovery?',
