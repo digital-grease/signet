@@ -43,8 +43,8 @@ i18n:
   # English-only at v0.2 alpha.
 
 graphics:
-  feature_graphic: TBD  # 1024x500 PNG, drafted when real theme lands
-  app_icon: TBD         # 512x512 PNG, drafted when real icon lands
+  feature_graphic: feature-graphic.png  # 1024x500 PNG
+  app_icon: store-icon-512.png          # 512x512 PNG
   screenshots:
     phone: screenshots/phone/*.png
     7in_tablet: screenshots/7in/*.png

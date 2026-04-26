@@ -1,5 +1,6 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -812,13 +813,13 @@ void main() {
           find.bySemanticsLabel(RegExp('Video call mode')),
         );
         expect(
-          toggleSemantics.flagsCollection.hasToggledState,
-          isTrue,
+          toggleSemantics.flagsCollection.isToggled,
+          isNot(Tristate.none),
           reason: 'row is announced as a toggle, not just a button',
         );
         expect(
           toggleSemantics.flagsCollection.isToggled,
-          isFalse,
+          Tristate.isFalse,
           reason: 'off by default',
         );
 
@@ -828,7 +829,10 @@ void main() {
         toggleSemantics = tester.getSemantics(
           find.bySemanticsLabel(RegExp('Video call mode')),
         );
-        expect(toggleSemantics.flagsCollection.isToggled, isTrue);
+        expect(
+          toggleSemantics.flagsCollection.isToggled,
+          Tristate.isTrue,
+        );
         handle.dispose();
       },
     );

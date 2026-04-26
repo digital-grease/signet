@@ -1,11 +1,15 @@
-v0.2 alpha — the first shippable version.
+v0.3 — phone-switch day, made easy.
 
-• In-person QR pairing + 4-word rotating verify.
-• Long-distance pairing via encrypted transport package.
-• Lost-phone recovery via paper or saved file.
-• Multi-relationship + in-person rekey.
-• Challenge-response fallback + printable card.
-• Liveness prompts for video calls.
-• Screenshot blocking. Offline-only. Zero telemetry.
+• Bulk backup: one file, one 8-word PAKE, every paired relationship.
+  Settings → Back up all relationships. Paste on the new phone to
+  bring every pairing across in one step.
+• Single-relationship backup (from each contact's menu) still works
+  the same way; pick whichever matches the moment.
+• Payload-type dispatch on import — paste any Signet backup and the
+  app routes you to the right commit flow automatically.
 
-Alpha: expect rough edges. Issues: https://github.com/digital-grease/signet/issues.
+Upgrading from v0.2: your existing pairings migrate untouched. First
+time you open Settings → Back up all relationships after updating
+is a good moment to create a fresh bulk backup.
+
+Issues: https://github.com/digital-grease/signet/issues.

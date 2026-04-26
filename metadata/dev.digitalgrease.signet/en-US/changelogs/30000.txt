@@ -1,0 +1,10 @@
+v0.3.0 — phone-switch day, made easy.
+
+* Bulk backup: every paired relationship in one encrypted file, one
+  8-word PAKE. Settings → Back up all relationships.
+* Single-relationship backup (per-contact menu) still works the same.
+* Import auto-routes on payload-type — paste any Signet backup and
+  the app picks the right commit flow.
+
+Existing pairings migrate untouched on update. Issues:
+https://github.com/digital-grease/signet/issues

@@ -23,18 +23,19 @@ Core properties:
 • RFC-validated crypto: X25519 / HKDF-SHA-256 / AES-256-GCM, all verified against published test vectors.
 • Open source, AGPL-3.0.
 
-What's in v0.2:
+What's in v0.3:
 
 • In-person QR pairing
 • Long-distance pairing via encrypted transport package (for journalists, activists, distributed teams — the 8-word unlock secret lives on a channel you already trust)
 • Lost-phone recovery via printed paper or saved file
 • Multi-relationship storage with in-person rekey
+• Bulk backup: export every paired relationship in one encrypted file, restore on a new phone with one 8-word secret (phone-switch day, made easy)
 • Challenge-response fallback (printable card for when the other side can't reach their phone)
 • Liveness prompts for video calls (physical challenges a pre-recorded loop can't match)
 • Screenshot + screen-recording blocking on sensitive screens
 • First-run walkthrough + post-pair practice nudge
 
-What's NOT in v0.2:
+What's NOT in v0.3:
 
 • Duress codes (gated on an abuse-analysis pass)
 • Small-org shared verification (requires group-key agreement research)

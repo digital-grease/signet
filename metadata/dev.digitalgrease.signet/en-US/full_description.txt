@@ -22,6 +22,6 @@ Core properties:
 * RFC-validated crypto (X25519, HKDF-SHA-256, AES-256-GCM, BIP-39).
 * Open source, AGPL-3.0.
 
-v0.2 includes in-person pairing, long-distance pairing, lost-phone recovery via paper or file, multi-relationship storage, in-person rekey, a printable challenge-response grid for when the other side can't reach their phone, liveness prompts for video calls, and screenshot blocking on sensitive screens.
+v0.3 includes in-person pairing, long-distance pairing, lost-phone recovery via paper or file, multi-relationship storage, in-person rekey, bulk backup (every paired relationship in one encrypted file with a single 8-word unlock), a printable challenge-response grid for when the other side can't reach their phone, liveness prompts for video calls, and screenshot blocking on sensitive screens.
 
 Not included: duress codes (gated on an abuse-analysis pass), account recovery (there is no account), cloud backup (out of scope forever).

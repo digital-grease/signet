@@ -14,9 +14,9 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.1 alpha. Android-only. Not yet shipped to any app store.** See [Development roadmap](#development-roadmap) for what's missing.
+**v0.3.0 alpha · Android · v0.2.0 in Google Play Internal Testing; v0.3.0 queued for tag.** See [Development roadmap](#development-roadmap) for what's still ahead.
 
-Built on Flutter for future cross-platform support; iOS is generated but not tested in this release.
+Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. F-Droid inclusion follows v0.3.0; TestFlight is staged separately.
 
 ## How it works
 
@@ -201,7 +201,7 @@ Ordered roughly by shipping impact.
 
 ### v0.2 — multi-peer + unified transport package + recovery
 
-Landed in codebase; no store-packaged release yet. See `.devloop/archive/` for the full plan trail.
+Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive/` for the full plan trail.
 
 - ✅ **Multiple paired contacts** with a real v1 → v2 storage migration (no wipe). Home is a ListView; FAB + long-press menus drive per-peer actions.
 - ✅ **Unified transport-package primitive** that services two use cases from one wire format (`signet:tp1:...`, AES-256-GCM keyed by HKDF-SHA-256 of an 8-word BIP-39 PAKE secret):
@@ -211,9 +211,9 @@ Landed in codebase; no store-packaged release yet. See `.devloop/archive/` for t
 - ✅ **Challenge-response wordlist mode** — an 8×8 grid (64 cells × 3 BIP-39 words per answer; 33 bits of entropy per query) derived from the shared secret via HKDF. Both devices have the digital grid; either side can print a paper card via the Print action in the app. Used as a fallback when the responder has no phone but can speak. See `.devloop/spikes/challenge-response.md` for the derivation + threat-model write-up.
 - ✅ **Local-file backup export + import** — the LPR package can be shipped to/from any file (Files app, encrypted note, USB stick, etc.) via the platform share sheet and a file picker. Complements the QR / copy-paste / paper paths.
 
-### v0.3 — liveness (camera-integrated remains) + bulk backup
+### v0.3 — secret-derived liveness + bulk backup
 
-- ✅ **Liveness prompts — prompt-only variant.** App generates a random two-dimensional physical challenge (8 accessible actions × 2048 BIP-39 words ≈ 16,384 prompts — e.g. "Touch your left ear and say 'orbit'"); verifier reads it to the counterparty over video and judges ✅/❌ after a 10-second countdown. Channel-agnostic, no camera pipeline, no ML. Accessibility-filtered corpus (no fine motor, no vision-only cues, no facial expressions).
+- ✅ **Secret-derived liveness for video-mode verify** (Phase 14, supersedes the earlier prompt-only variant). The expected physical action is now derived from the shared secret via HKDF-SHA-256 (role-asymmetric, matching the rotating words) instead of locally minted from `Random.secure()`. Folded into the existing verify screen as a `VIDEO CALL //` toggle: pass = words-✅ AND counterparty-physical-action-observed. Combined attack probability for a realtime voice+video deepfake without the secret drops from ~100% to 1/2⁴⁷ per 30s window. See `.devloop/spikes/secret-derived-liveness.md`.
 - ✅ **Bulk backup** — one file, one 8-word PAKE, every paired relationship. Settings → **Back up all relationships** exports a single encrypted bundle that restores every pairing on a new phone in one step instead of running the per-relationship export N times. Import auto-dispatches on the payload-type byte, so the paste flow is unchanged. See `.devloop/spikes/bulk-backup.md` for the threat-model + design rationale.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
