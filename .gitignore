@@ -55,5 +55,3 @@ google-services.json
 # Android Profiling
 *.hprof
 
-# ignored — they're agent/owner planning artifacts, not repo state,
-# and are handled by ~/.gitignore_global.
