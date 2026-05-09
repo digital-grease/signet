@@ -34,9 +34,12 @@ RepoType: git
 Repo: https://github.com/digital-grease/signet.git
 
 Builds:
-  - versionName: 0.3.0
-    versionCode: 30000
-    commit: bf4faa6b0ae0bfa6acbea313b2b9dfd34193f4e3
+  - versionName: 0.3.1
+    versionCode: 30001
+    # Owner: replace with full SHA from `git rev-parse v0.3.1^{commit}`
+    # before filing the fdroiddata MR. Tag-name commits work for local
+    # `fdroid build` testing but fdroiddata convention prefers SHA.
+    commit: v0.3.1
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
@@ -67,8 +70,8 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 0.3.0
-CurrentVersionCode: 30000
+CurrentVersion: 0.3.1
+CurrentVersionCode: 30001
 
 # Anti-features: none. Signet has no ads, no tracking, no proprietary
 # deps (the v0.3.0 mobile_scanner ML Kit issue is fixed in v0.3.1 by

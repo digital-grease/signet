@@ -5,6 +5,42 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.3.1] — 2026-05-08
+
+F-Droid compliance + maintenance polish. No user-visible behavior
+changes; QR pairing, sharing, and file import all behave the same as
+v0.3.0.
+
+### Changed
+- **QR pairing scanner**: replaced `mobile_scanner` (which bundled
+  Google ML Kit Barcode Scanning + Play Services as proprietary native
+  code) with `flutter_zxing` 2.3.0 (MIT, ZXing C++ via FFI). Required
+  for F-Droid inclusion — F-Droid Inclusion Policy item 5 forbids
+  proprietary Google libraries. APK shrinks from 73.1 MB to 64.2 MB.
+- `share_plus` 11.1.0 → 12.0.2. No call-site changes (already on the
+  v11+ `SharePlus.instance.share(ShareParams(...))` API). Pinned at 12
+  rather than 13 because share_plus 13 requires win32 ^6.0.1 which
+  conflicts with `flutter_secure_storage_windows`'s win32 ^5.5.4 lock.
+- `file_picker` 10.3.10 → 11.0.2. Mechanical migration:
+  `FilePicker.platform.pickFiles()` → `FilePicker.pickFiles()` (v11
+  refactored to static methods).
+- `flutter pub upgrade` refreshed 7 within-range pins:
+  `flutter_secure_storage` 10.0.0 → 10.1.0, `go_router` 17.2.1 →
+  17.2.3, `vm_service` 15.1.0 → 15.2.0, plus 4 transitives.
+
+### Fixed
+- Stripped Gradle 8.5+'s V3.1 "Dependency metadata" signing block via
+  `dependenciesInfo.includeInApk = false` in `android/app/build.gradle.kts`.
+  F-Droid's APK scanner flagged this block as the 158th anomaly on
+  v0.3.0; Play Console accepts AABs without it.
+
+### Internal
+- Restructured F-Droid metadata to Fastlane layout
+  (`fastlane/metadata/android/en-US/`). F-Droid auto-imports
+  description / screenshot / changelog updates from this canonical
+  path on every release tag — no further manual fdroiddata content
+  MRs needed for future releases.
+
 ## [0.3.0] — 2026-04-24
 
 First Internal Testing release. v0.3 adds the bulk-backup primitive

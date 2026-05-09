@@ -1,0 +1,11 @@
+F-Droid compliance + maintenance polish.
+
+- QR pairing scanner: replaced mobile_scanner (bundled Google ML Kit +
+  Play Services as proprietary code) with flutter_zxing (MIT, ZXing
+  via FFI). APK ~9 MB smaller.
+- Stripped Gradle dependency-metadata signing block.
+- Refreshed deps: share_plus 11→12, file_picker 10→11, plus 7
+  within-range bumps.
+- Restructured metadata for F-Droid auto-import on each tag.
+
+No user-visible changes.
