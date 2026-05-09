@@ -1,103 +1,78 @@
 # F-Droid build metadata for Signet.
 #
-# This file lives in THIS repo at `metadata/dev.digitalgrease.signet.yml` as a
-# canonical source. To actually submit to F-Droid, copy it into a
-# PR against
-#   https://gitlab.com/fdroid/fdroiddata
-# at the path
+# This file is the canonical source for the YAML that ends up at
 #   metadata/dev.digitalgrease.signet.yml
-# See https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/
+# in https://gitlab.com/fdroid/fdroiddata.
 #
-# F-Droid's build server will clone the source at `SourceCode`, check
-# out `commit`, and run the `build:` recipe to reproduce the APK.
-# The fingerprint of the resulting APK is compared to upstream's
-# signed release fingerprint (`AllowedAPKSigningKeys`). Matching
-# fingerprints → F-Droid distributes our release-signed APK as-is.
-# Non-matching → F-Droid distributes its own signed build and flags
-# the mismatch.
+# When filing a new fdroiddata MR, copy this file directly. F-Droid's
+# build server clones SourceCode, checks out `commit`, and runs the
+# `build:` recipe to reproduce the APK.
 #
-# Fields that need to be filled by the OWNER at submission time are
-# marked with TODO below.
+# Localized listing content (descriptions, screenshots, changelog) is
+# auto-imported from this repo's `fastlane/metadata/android/en-US/`
+# directory on each release tag. Do NOT duplicate that content into the
+# fdroiddata MR — F-Droid pulls it directly.
+#
+# Fields the owner updates per release:
+#   Builds[] — versionName, versionCode, commit (SHA, not tag name)
+#   CurrentVersion / CurrentVersionCode
 
 Categories:
-  - Security
   - Phone & SMS
-
+  - Security
 License: AGPL-3.0-only
 AuthorName: digital-grease
-AuthorWebSite: https://github.com/digital-grease
+AuthorEmail: dg@digitalgrease.net
+WebSite: https://github.com/digital-grease/signet
 SourceCode: https://github.com/digital-grease/signet
 IssueTracker: https://github.com/digital-grease/signet/issues
-# Translations: TODO — set when any locale beyond en-US lands.
-Changelog: https://github.com/digital-grease/signet/releases
+Donate: https://www.buymeacoffee.com/digitalgrease
 
 AutoName: Signet
 
-# SHA-256 fingerprint of the Signet release keystore (generated
-# 2026-04-20, stored at ~/keystores/signet-release.jks with 3-backup
-# hygiene per docs/RELEASE.md §1). F-Droid uses this to confirm the
-# APK it receives was signed by the upstream-published key; a
-# non-match means F-Droid would build + sign its own APK and flag
-# the mismatch.
-# Original from `keytool -list -v`:
-#   E6:3E:48:AC:F7:99:18:27:2C:E4:77:8F:D1:C0:80:DF:
-#   09:65:1A:2A:CE:8B:9E:F4:75:16:94:14:12:87:0A:C7
-# F-Droid format is lowercase hex, no colons.
-AllowedAPKSigningKeys:
-  - e63e48acf79918272ce4778fd1c080df09651a2ace8b9ef47516941412870ac7
-
-# Build recipe per F-Droid's metadata spec. Signet is reproducible
-# via the Dockerfile/script in `Dockerfile.reproducible` +
-# `scripts/reproducible-build.sh`, but F-Droid's buildserver is
-# stricter than ours — it uses its own sandbox. The build recipe
-# below is what F-Droid's sandbox runs; it needs to be equivalent
-# in spirit to our reproducible script but expressed in F-Droid's
-# YAML format.
+RepoType: git
+Repo: https://github.com/digital-grease/signet.git
 
 Builds:
-  - versionName: 0.2.0
-    versionCode: 1
-    # TODO(owner): set `commit` to the exact tag (e.g. `v0.2.0`) once
-    # that tag is pushed. F-Droid will `git checkout` this ref.
-    commit: v0.2.0
-
-    # Flutter is not in F-Droid's default sandbox. The `srclibs`
-    # mechanism adds pinned external sources.
-    srclibs:
-      - Flutter@3.41.6
-
+  - versionName: 0.3.0
+    versionCode: 30000
+    commit: bf4faa6b0ae0bfa6acbea313b2b9dfd34193f4e3
     sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
-      - apt-get install -y openjdk-17-jdk-headless xz-utils
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    srclibs:
+      - flutter@3.41.6
+    rm:
+      - ios
+    output: build/app/outputs/flutter-apk/app-release.apk
+    build:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter packages pub get
+      - $$flutter$$/bin/flutter build apk --release
 
-    # Build steps. F-Droid's buildserver runs these from the
-    # repo root.
-    build: |
-      export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-      export PATH="$$Flutter$$/bin:$JAVA_HOME/bin:$PATH"
+# AllowedAPKSigningKeys intentionally omitted: F-Droid signs with their
+# own key. Cross-channel migration (Play <-> F-Droid) is handled by
+# the in-app BackupBundle export/import, not by signature compatibility.
 
-      # Silence the Flutter analytics on F-Droid's sandbox.
-      flutter config --no-analytics --no-cli-animations
-
-      flutter pub get
-      flutter build apk --release --split-per-abi
-
-    output: build/app/outputs/flutter-apk/app-*-release.apk
-
-    ndk: 26.3.11579264
-
+# Auto-update via tag detection. F-Droid's daily checkupdates job:
+#   1. Detects new vX.Y.Z tags on digital-grease/signet (leading `v` is
+#      auto-stripped by the Tags-mode parser; same pattern as the
+#      Flutter app `agersant.polaris`).
+#   2. Reads pubspec.yaml at the tag, extracts versionCode + versionName
+#      via UpdateCheckData regex.
+#   3. Auto-promotes a new Builds[] entry on fdroiddata/master.
+# No further manual fdroiddata MRs needed for content updates.
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-VercodeOperation:
-  - "%c"
+UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
+CurrentVersion: 0.3.0
+CurrentVersionCode: 30000
 
-CurrentVersion: 0.2.0
-CurrentVersionCode: 1
-
-# Anti-features: per F-Droid's convention, flag anything users might
-# want to know about that would otherwise get through. Signet has
-# none of the usual anti-features (no ads, no tracking, no upstream
-# non-free dependencies), so this list is empty. If we ever add a
-# component that tracks (we won't) or a proprietary dep (we won't),
-# it goes here.
+# Anti-features: none. Signet has no ads, no tracking, no proprietary
+# deps (the v0.3.0 mobile_scanner ML Kit issue is fixed in v0.3.1 by
+# the swap to flutter_zxing). If a future release introduces something
+# that triggers an Anti-feature, declare here per
+# https://f-droid.org/docs/Anti-Features/
 # AntiFeatures: []

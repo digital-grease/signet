@@ -57,7 +57,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   // ------------------------------------------------------------------
 
   Future<void> _handleLoadFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.any,
       // Allow either plain text or arbitrary — don't filter on extension
       // because Android's file picker is flaky about .txt vs .* filtering.

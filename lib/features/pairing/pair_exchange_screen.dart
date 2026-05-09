@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:camera/camera.dart' show CameraException;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../shared/widgets/big_button.dart';
@@ -360,85 +361,90 @@ class _ScanningPane extends StatefulWidget {
 }
 
 class _ScanningPaneState extends State<_ScanningPane> {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-  );
   bool _handled = false;
+  bool _permissionDenied = false;
   String? _error;
 
-  Future<void> _handleCapture(BarcodeCapture capture) async {
+  Future<void> _handleScan(Code code) async {
     if (_handled) return;
-    for (final barcode in capture.barcodes) {
-      final raw = barcode.rawValue;
-      if (raw == null) continue;
-      try {
-        final key = PairingCodec.decodePublicKey(raw);
-        _handled = true;
-        await _controller.stop();
-        await widget.onDetected(key);
-        return;
-      } on FormatException catch (e) {
-        if (!mounted) return;
-        setState(() => _error = e.message);
-      }
+    final raw = code.text;
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final key = PairingCodec.decodePublicKey(raw);
+      _handled = true;
+      await widget.onDetected(key);
+    } on FormatException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    }
+  }
+
+  // CameraException codes for permission denial vary slightly between
+  // platforms; both Android and iOS surface 'CameraAccessDenied' from
+  // package:camera when the user has refused the runtime prompt or
+  // toggled it off in OS settings.
+  void _handleControllerCreated(
+    CameraController? controller,
+    Exception? error,
+  ) {
+    if (error is CameraException &&
+        (error.code == 'CameraAccessDenied' ||
+            error.code == 'CameraAccessDeniedWithoutPrompt' ||
+            error.code == 'CameraAccessRestricted')) {
+      if (!mounted) return;
+      setState(() => _permissionDenied = true);
     }
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<MobileScannerState>(
-      valueListenable: _controller,
-      builder: (context, state, _) {
-        final error = state.error;
-        if (error?.errorCode == MobileScannerErrorCode.permissionDenied) {
-          return _PermissionDeniedPane(onCancel: widget.onCancel);
-        }
-        return Stack(
-          children: <Widget>[
-            MobileScanner(
-              controller: _controller,
-              onDetect: (capture) => unawaited(_handleCapture(capture)),
-            ),
-            Positioned.fill(
-              child: CustomPaint(painter: _ViewfinderPainter()),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 32,
-              child: Column(
-                children: <Widget>[
-                  if (_error != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  FilledButton.tonal(
-                    onPressed: widget.onCancel,
-                    child: const Text('Cancel'),
+    if (_permissionDenied) {
+      return _PermissionDeniedPane(onCancel: widget.onCancel);
+    }
+    return Stack(
+      children: <Widget>[
+        ReaderWidget(
+          codeFormat: Format.qrCode,
+          tryRotate: true,
+          showScannerOverlay: false,
+          showFlashlight: false,
+          showToggleCamera: false,
+          showGallery: false,
+          lensDirection: CameraLensDirection.back,
+          onScan: (code) => unawaited(_handleScan(code)),
+          onControllerCreated: _handleControllerCreated,
+        ),
+        Positioned.fill(
+          child: CustomPaint(painter: _ViewfinderPainter()),
+        ),
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 32,
+          child: Column(
+            children: <Widget>[
+              if (_error != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              FilledButton.tonal(
+                onPressed: widget.onCancel,
+                child: const Text('Cancel'),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

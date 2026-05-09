@@ -39,7 +39,15 @@ dependencies:
   cryptography: ^2.9.0
   cryptography_flutter: ^2.3.4
   flutter_secure_storage: ^10.0.0
-  mobile_scanner: ^7.2.0
+  # FOSS QR scanner: ZXing C++ via FFI. Replaced mobile_scanner in v0.3.1
+  # because mobile_scanner bundles Google ML Kit + Play Services as native
+  # code (proprietary), which blocks F-Droid inclusion (Inclusion Policy
+  # item 5). flutter_zxing is MIT, no GMS deps.
+  flutter_zxing: ^2.3.0
+  # Direct dep on `camera` so we can name `CameraException` in the
+  # permission-denial fallback. flutter_zxing pulls camera in transitively
+  # but its `export` clause omits CameraException specifically.
+  camera: ^0.12.0
   qr_flutter: ^4.1.0
   bip39: ^1.0.6
   # Non-sensitive app prefs (onboarding-completed flag etc.). Secrets
@@ -53,10 +61,14 @@ dependencies:
   # Platform share sheet for exporting backup packages + PAKE to a
   # destination of the user's choice (Files / Drive / Notes / etc.).
   # Share sheet is OS-mediated; we don't make network calls.
-  share_plus: ^11.1.0
+  # Pinned at ^12 (not 13) because 13.x requires win32 ^6.0.1 which
+  # conflicts with flutter_secure_storage's transitive
+  # flutter_secure_storage_windows ^4.1.0 (locked to win32 ^5.5.4).
+  # Revisit after flutter_secure_storage_windows bumps its win32 dep.
+  share_plus: ^12.0.2
   # File picker for importing a saved backup. User opens a picker,
   # chooses a .txt file, we read it locally. No network.
-  file_picker: ^10.3.1
+  file_picker: ^11.0.2
   # Launches external URLs from the About screen (source, privacy,
   # support/donate). Hands off to the OS browser; no network calls
   # from Signet itself.

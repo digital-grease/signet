@@ -63,6 +63,16 @@ android {
             }
         }
     }
+
+    // F-Droid's APK scanner flags AGP 8.5+'s "Dependency metadata"
+    // signing block as an extra signature anomaly. Disable to keep the
+    // signature surface clean. Play Console accepts AABs without this
+    // block (it's metadata for Play Console's app-bundle integrity
+    // tooling, not a hard requirement).
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 flutter {
