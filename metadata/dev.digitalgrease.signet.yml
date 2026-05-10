@@ -13,9 +13,16 @@
 # directory on each release tag. Do NOT duplicate that content into the
 # fdroiddata MR — F-Droid pulls it directly.
 #
+# Per-ABI build splits per fdroiddata's templates/build-flutter.yml
+# convention. Each ABI gets its own Builds[] entry with a versionCode
+# computed as `pubspec-versionCode * 10 + abi-suffix`. The gradle
+# override in `android/app/build.gradle.kts` matches this scheme so
+# the on-APK versionCode equals the YAML's declared versionCode.
+#
 # Fields the owner updates per release:
-#   Builds[] — versionName, versionCode, commit (SHA, not tag name)
-#   CurrentVersion / CurrentVersionCode
+#   Builds[].commit (full SHA, not tag name)
+#   Builds[].versionName + .versionCode  (× 3 ABI entries)
+#   CurrentVersion / CurrentVersionCode  (highest ABI versionCode)
 
 Categories:
   - Phone & SMS
@@ -34,26 +41,59 @@ RepoType: git
 Repo: https://github.com/digital-grease/signet.git
 
 Builds:
-  - versionName: 0.3.1
-    versionCode: 30001
-    # Owner: replace with full SHA from `git rev-parse v0.3.1^{commit}`
-    # before filing the fdroiddata MR. Tag-name commits work for local
-    # `fdroid build` testing but fdroiddata convention prefers SHA.
-    commit: v0.3.1
+  - versionName: 0.3.2
+    versionCode: 300021
+    commit: v0.3.2  # owner: replace with full SHA from `git rev-parse v0.3.2^{commit}`
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
       - apt-get install -y -t bookworm openjdk-17-jdk-headless
       - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@3.41.6
     rm:
       - ios
-    output: build/app/outputs/flutter-apk/app-release.apk
     build:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter packages pub get
-      - $$flutter$$/bin/flutter build apk --release
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
+
+  - versionName: 0.3.2
+    versionCode: 300022
+    commit: v0.3.2  # owner: replace with full SHA from `git rev-parse v0.3.2^{commit}`
+    sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@3.41.6
+    rm:
+      - ios
+    build:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter packages pub get
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+
+  - versionName: 0.3.2
+    versionCode: 300023
+    commit: v0.3.2  # owner: replace with full SHA from `git rev-parse v0.3.2^{commit}`
+    sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    srclibs:
+      - flutter@3.41.6
+    rm:
+      - ios
+    build:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter packages pub get
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
 
 # AllowedAPKSigningKeys intentionally omitted: F-Droid signs with their
 # own key. Cross-channel migration (Play <-> F-Droid) is handled by
@@ -61,21 +101,21 @@ Builds:
 
 # Auto-update via tag detection. F-Droid's daily checkupdates job:
 #   1. Detects new vX.Y.Z tags on digital-grease/signet (leading `v` is
-#      auto-stripped by the Tags-mode parser; same pattern as the
-#      Flutter app `agersant.polaris`).
+#      auto-stripped by the Tags-mode parser).
 #   2. Reads pubspec.yaml at the tag, extracts versionCode + versionName
 #      via UpdateCheckData regex.
-#   3. Auto-promotes a new Builds[] entry on fdroiddata/master.
+#   3. Promotes 3 new Builds[] entries via VercodeOperation: each ABI
+#      variant gets pubspec-versionCode * 10 + abi-suffix.
 # No further manual fdroiddata MRs needed for content updates.
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
+VercodeOperation:
+  - '%c * 10 + 1'
+  - '%c * 10 + 2'
+  - '%c * 10 + 3'
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 0.3.1
-CurrentVersionCode: 30001
+CurrentVersion: 0.3.2
+CurrentVersionCode: 300023
 
-# Anti-features: none. Signet has no ads, no tracking, no proprietary
-# deps (the v0.3.0 mobile_scanner ML Kit issue is fixed in v0.3.1 by
-# the swap to flutter_zxing). If a future release introduces something
-# that triggers an Anti-feature, declare here per
-# https://f-droid.org/docs/Anti-Features/
+# Anti-features: none.
 # AntiFeatures: []

@@ -1,0 +1,8 @@
+F-Droid: ABI-split builds.
+
+Per-architecture APKs (armeabi-v7a, arm64-v8a, x86_64) reduce
+per-user download size ~3×. F-Droid distributes the right APK for
+your device's CPU automatically. Universal AAB still ships to Play.
+
+Internal restructure for F-Droid maintainer review feedback. No
+user-visible feature changes from v0.3.1.

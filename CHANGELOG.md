@@ -5,6 +5,29 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.3.2] — 2026-05-09
+
+F-Droid maintainer review feedback for MR #37990. No user-visible
+feature changes; affects build outputs for F-Droid distribution only.
+
+### Added
+- **ABI-split APK builds** for F-Droid. Per-architecture APKs
+  (`armeabi-v7a`, `arm64-v8a`, `x86_64`) carry distinct versionCodes
+  (`pubspec-versionCode * 10 + abi-suffix`) computed via a gradle
+  `applicationVariants.configureEach` override in
+  `android/app/build.gradle.kts`. F-Droid users now download only
+  the binary their CPU runs (~3× smaller per-user). Play continues to
+  receive a universal AAB at the unmodified pubspec versionCode (the
+  override only fires for outputs that carry an ABI filter).
+
+### Changed
+- Trimmed `fastlane/metadata/android/en-US/short_description.txt` to
+  77 chars (was 81); F-Droid summary policy is strictly < 80 chars.
+- Restructured F-Droid `Builds:` block to 3 ABI entries plus
+  `VercodeOperation: ['%c * 10 + 1', '%c * 10 + 2', '%c * 10 + 3']`,
+  matching the canonical Flutter-app pattern from `templates/build-flutter.yml`
+  and `app.bitbag`.
+
 ## [0.3.1] — 2026-05-08
 
 F-Droid compliance + maintenance polish. No user-visible behavior
