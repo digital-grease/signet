@@ -1,0 +1,8 @@
+F-Droid: dynamic Flutter version extraction.
+
+Build recipe now reads the pinned Flutter version from this repo's
+.github/workflows/release.yml instead of from a hardcoded srclibs
+version in fdroiddata. F-Droid auto-detects future Flutter bumps.
+
+Internal restructure for F-Droid maintainer review feedback. No
+user-visible changes from v0.3.2.

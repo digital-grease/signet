@@ -5,6 +5,22 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.3.3] — 2026-05-11
+
+F-Droid maintainer review feedback (round 3) for MR #37990. No
+user-visible feature changes versus v0.3.2.
+
+### Changed
+- `.github/workflows/release.yml` line 76: inlined `flutter-version: '3.41.6'`
+  literal so F-Droid's prebuild can extract the pinned version using
+  the canonical regex from `fdroiddata/templates/build-flutter.yml`
+  lines 32-34. Source of Flutter-version-truth is now this single
+  release.yml line; F-Droid auto-detects future bumps. Comment block
+  added to flag the maintenance dependency.
+- F-Droid `srclibs:` flipped from `flutter@3.41.6` (hardcoded in
+  fdroiddata) to `flutter@stable` + `prebuild:` extract + `git checkout`
+  to force the version pinned in release.yml.
+
 ## [0.3.2] — 2026-05-09
 
 F-Droid maintainer review feedback for MR #37990. No user-visible

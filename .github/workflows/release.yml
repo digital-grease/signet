@@ -73,7 +73,13 @@ jobs:
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # Pinned literal (not ${{ env.FLUTTER_VERSION }}) so F-Droid's
+          # prebuild can extract via the exact regex from
+          # fdroiddata/templates/build-flutter.yml lines 32-34:
+          #   sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml
+          # MUST stay in sync with FLUTTER_VERSION above and with the
+          # second flutter-action step below.
+          flutter-version: '3.41.6'
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
           cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
