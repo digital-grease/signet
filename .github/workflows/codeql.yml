@@ -1,0 +1,78 @@
+name: CodeQL
+
+# Replaces GitHub's "default setup" for code scanning. Default setup
+# uses `autobuild` for compiled languages, which fails on Flutter
+# projects because both java-kotlin (`./gradlew clean`) and swift
+# (`xcodebuild build -workspace Runner.xcworkspace`) require Flutter's
+# `pub get` to have run first, populating `.flutter-plugins-dependencies`
+# and `Generated.xcconfig` respectively. See run 25818410733 for the
+# failure trace and `.devloop/plan.md` Phase 5 for the design rationale.
+#
+# Languages scanned:
+#   - java-kotlin (build-mode: none) — covers MainActivity.kt and platform-
+#     channel stubs. Source-level extraction; no gradle bootstrap.
+#   - actions    (build-mode: none) — scans these workflow files for vuln
+#     patterns (script injection, etc.).
+#   - python     (build-mode: none) — covers tools/ scripts.
+#
+# Language omitted: SWIFT.
+#   Signet's ios/ folder is Flutter-generated boilerplate (AppDelegate.swift,
+#   Runner-Bridging-Header.h, GeneratedPluginRegistrant.swift). No
+#   hand-written Swift. The crypto + threat-model code is all Dart, which
+#   CodeQL does not scan in any language. Enabling Swift would require a
+#   full Flutter + CocoaPods install in CI for ~0 coverage gain. If
+#   Signet ever grows hand-written Swift (e.g. a custom platform channel
+#   on iOS), revisit this.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Mon 11:30 UTC. Off-peak relative to push-triggered CI on
+    # this repo. Cron mins != 0 per GitHub recommendation to spread
+    # load across runners.
+    - cron: '30 11 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: none
+          - language: actions
+            build-mode: none
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
