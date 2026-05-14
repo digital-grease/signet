@@ -2,27 +2,31 @@ name: CodeQL
 
 # Replaces GitHub's "default setup" for code scanning. Default setup
 # uses `autobuild` for compiled languages, which fails on Flutter
-# projects because both java-kotlin (`./gradlew clean`) and swift
-# (`xcodebuild build -workspace Runner.xcworkspace`) require Flutter's
-# `pub get` to have run first, populating `.flutter-plugins-dependencies`
-# and `Generated.xcconfig` respectively. See run 25818410733 for the
-# failure trace and `.devloop/plan.md` Phase 5 for the design rationale.
+# projects because gradle can't configure without Flutter's `pub get`
+# having run first to populate `.flutter-plugins-dependencies`. See
+# `.devloop/plan.md` Phase 5 for full design rationale.
 #
 # Languages scanned:
-#   - java-kotlin (build-mode: none) — covers MainActivity.kt and platform-
-#     channel stubs. Source-level extraction; no gradle bootstrap.
-#   - actions    (build-mode: none) — scans these workflow files for vuln
-#     patterns (script injection, etc.).
-#   - python     (build-mode: none) — covers tools/ scripts.
+#   - java-kotlin (build-mode: manual)
+#       Pre-installs Flutter, runs `flutter pub get`, then `flutter
+#       build apk --debug` so CodeQL can trace the Kotlin/Java
+#       compilation. We tried `build-mode: none` first (run
+#       25841753355) — extracted zero source ("CodeQL detected code
+#       written in Java/Kotlin but could not process any of it using
+#       the 'none' build mode"). Falling back to manual + Flutter
+#       bootstrap is the contingency documented in plan.md Task 5.4.
+#   - actions (build-mode: none) — scans these workflow files for
+#       vuln patterns (script injection, etc.).
+#   - python (build-mode: none) — covers tools/ scripts.
 #
 # Language omitted: SWIFT.
-#   Signet's ios/ folder is Flutter-generated boilerplate (AppDelegate.swift,
-#   Runner-Bridging-Header.h, GeneratedPluginRegistrant.swift). No
-#   hand-written Swift. The crypto + threat-model code is all Dart, which
-#   CodeQL does not scan in any language. Enabling Swift would require a
-#   full Flutter + CocoaPods install in CI for ~0 coverage gain. If
-#   Signet ever grows hand-written Swift (e.g. a custom platform channel
-#   on iOS), revisit this.
+#   Signet's ios/ folder is Flutter-generated boilerplate (AppDelegate
+#   .swift, Runner-Bridging-Header.h, GeneratedPluginRegistrant.swift)
+#   with no hand-written Swift. The crypto + threat-model logic is
+#   all Dart, which CodeQL does not scan in any language. Enabling
+#   Swift would require Flutter + CocoaPods install in CI for ~0
+#   coverage gain. If Signet ever grows hand-written Swift (e.g. a
+#   custom iOS platform channel), revisit this.
 
 on:
   push:
@@ -44,7 +48,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: read
@@ -56,7 +60,7 @@ jobs:
       matrix:
         include:
           - language: java-kotlin
-            build-mode: none
+            build-mode: manual
           - language: actions
             build-mode: none
           - language: python
@@ -66,11 +70,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Flutter is only needed for the java-kotlin build below. Pin
+      # version inline (matching .github/workflows/release.yml line 76)
+      # so F-Droid's extractor and this workflow agree.
+      - name: Set up Flutter
+        if: matrix.language == 'java-kotlin'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+          cache-key: flutter-3.41.6-${{ runner.os }}
+
+      - name: flutter pub get
+        if: matrix.language == 'java-kotlin'
+        run: flutter pub get
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+
+      # Manual build for java-kotlin. `flutter build apk --debug`
+      # is the simplest invocation that compiles Kotlin + Java sources
+      # with the Flutter gradle plugin context already wired up.
+      # --debug avoids release signing / lint vital / R8 minification.
+      - name: Build for CodeQL trace
+        if: matrix.language == 'java-kotlin'
+        run: flutter build apk --debug
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
