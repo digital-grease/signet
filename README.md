@@ -3,6 +3,7 @@
 [![CI](https://github.com/digital-grease/signet/actions/workflows/ci.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/ci.yml)
 [![Android Build](https://github.com/digital-grease/signet/actions/workflows/android-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/android-build.yml)
 [![iOS Build](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/ios-build.yml)
+[![CodeQL](https://github.com/digital-grease/signet/actions/workflows/codeql.yml/badge.svg)](https://github.com/digital-grease/signet/actions/workflows/codeql.yml)
 
 <a href="https://www.buymeacoffee.com/digitalgrease" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
@@ -14,9 +15,9 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.3.0 alpha · Android · v0.2.0 in Google Play Internal Testing; v0.3.0 queued for tag.** See [Development roadmap](#development-roadmap) for what's still ahead.
+**v0.3.3 alpha · Android · v0.3.0 in Google Play Closed Testing · F-Droid inclusion MR ([#37990](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/37990)) open and in review.** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
 
-Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. F-Droid inclusion follows v0.3.0; TestFlight is staged separately.
+Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. TestFlight is staged separately.
 
 ## How it works
 
@@ -45,7 +46,7 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 
 ### Requirements
 
-- Flutter stable channel (3.41+)
+- Flutter 3.41.6 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
 - Android toolchain: SDK Platform 34+, Command-line Tools, and licenses accepted
 - An Android 9+ device or emulator (the minimum SDK is API 28 — StrongBox availability)
 
@@ -120,7 +121,7 @@ flutter test            # all unit and widget tests
 flutter analyze         # static analysis against strict lints
 ```
 
-The test suite is ~80 tests across crypto, storage, pairing state, and widget layers. The crypto modules are pure-Dart pure functions validated against RFC reference vectors and are safe to port elsewhere.
+The test suite is 369 tests across crypto, storage, pairing state, transport package, verify screen (including video-mode liveness), backup import/export, and widget layers. The crypto modules are pure-Dart pure functions validated against RFC reference vectors and are safe to port elsewhere.
 
 On-device integration testing (full two-phone pair + verify roundtrip) is manual in v0.1 and lives in the [pre-release checklist](#pre-release-manual-qa).
 
@@ -132,22 +133,28 @@ lib/
 ├── app.dart               # MaterialApp + go_router
 ├── core/
 │   ├── crypto/            # pure-Dart TOTP-words, X25519 ECDH, 4-word phrase,
-│   │                      # per-role derivation, BIP-39 wordlist
-│   ├── storage/           # flutter_secure_storage wrapper (single-slot for v0.1)
+│   │                      # per-role derivation, secret-derived liveness
+│   │                      # action, transport-package AEAD, BIP-39 wordlist
+│   ├── storage/           # flutter_secure_storage wrapper (multi-peer v2)
 │   ├── models/            # Relationship metadata (no secret on model)
 │   ├── prefs/             # non-secret app flags (onboarding, etc.)
 │   ├── theme/             # SignetTokens + signetTheme (operator language)
 │   └── providers.dart     # Riverpod wiring
 ├── features/
-│   ├── home/              # home list — empty / paired-list
+│   ├── home/              # home list — empty / paired-list (long-press menu)
 │   ├── onboarding/        # first-run 3-slide walkthrough
 │   ├── pairing/           # in-person (start/exchange/confirm/complete) +
 │   │                      # long-distance (transport-in/transport-out) +
 │   │                      # rekey (reuses exchange/confirm via controller)
 │   ├── inspect/           # binding-phrase re-check, backup export/import,
-│   │                      # challenge-response grid viewer + print
-│   ├── liveness/          # prompt-only physical challenge for video calls
-│   └── verify/            # type-and-verify input + show-my-words fallback
+│   │                      # bulk-backup export, challenge-response grid +
+│   │                      # printable PDF card
+│   ├── verify/            # type-and-verify input + show-my-words fallback;
+│   │                      # VIDEO CALL // toggle folds secret-derived
+│   │                      # liveness-action prompt into the same screen
+│   ├── settings/          # bulk-backup entry, secret-haptics toggle, etc.
+│   ├── about/             # version + license + source + donate links
+│   └── help/              # in-app FAQ
 └── shared/widgets/        # BigButton, WordsDisplay, SecureScreen
 ```
 
@@ -211,11 +218,22 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - ✅ **Challenge-response wordlist mode** — an 8×8 grid (64 cells × 3 BIP-39 words per answer; 33 bits of entropy per query) derived from the shared secret via HKDF. Both devices have the digital grid; either side can print a paper card via the Print action in the app. Used as a fallback when the responder has no phone but can speak. See `.devloop/spikes/challenge-response.md` for the derivation + threat-model write-up.
 - ✅ **Local-file backup export + import** — the LPR package can be shipped to/from any file (Files app, encrypted note, USB stick, etc.) via the platform share sheet and a file picker. Complements the QR / copy-paste / paper paths.
 
-### v0.3 — secret-derived liveness + bulk backup
+### v0.3.0 — secret-derived liveness + bulk backup
 
-- ✅ **Secret-derived liveness for video-mode verify** (Phase 14, supersedes the earlier prompt-only variant). The expected physical action is now derived from the shared secret via HKDF-SHA-256 (role-asymmetric, matching the rotating words) instead of locally minted from `Random.secure()`. Folded into the existing verify screen as a `VIDEO CALL //` toggle: pass = words-✅ AND counterparty-physical-action-observed. Combined attack probability for a realtime voice+video deepfake without the secret drops from ~100% to 1/2⁴⁷ per 30s window. See `.devloop/spikes/secret-derived-liveness.md`.
+- ✅ **Secret-derived liveness for video-mode verify** (supersedes the earlier prompt-only variant). The expected physical action is now derived from the shared secret via HKDF-SHA-256 (role-asymmetric, matching the rotating words) instead of locally minted from `Random.secure()`. Folded into the existing verify screen as a `VIDEO CALL //` toggle: pass = words-✅ AND counterparty-physical-action-observed. Combined attack probability for a realtime voice+video deepfake without the secret drops from ~100% to 1/2⁴⁷ per 30s window. See `.devloop/spikes/secret-derived-liveness.md`.
 - ✅ **Bulk backup** — one file, one 8-word PAKE, every paired relationship. Settings → **Back up all relationships** exports a single encrypted bundle that restores every pairing on a new phone in one step instead of running the per-relationship export N times. Import auto-dispatches on the payload-type byte, so the paste flow is unchanged. See `.devloop/spikes/bulk-backup.md` for the threat-model + design rationale.
+
+### v0.3.1 – v0.3.3 — F-Droid compliance + maintenance
+
+- ✅ **FOSS-only QR scanner.** Replaced `mobile_scanner` (which bundles Google ML Kit + Play Services as proprietary native code) with `flutter_zxing` (MIT, ZXing C++ via FFI). F-Droid Inclusion Policy item 5 forbids proprietary Google libraries; this swap unblocked the F-Droid submission. APK shrinks 73.1 MB → 64.2 MB.
+- ✅ **ABI-split builds for F-Droid.** Per-architecture APKs (armeabi-v7a, arm64-v8a, x86_64) via a `versionCodeOverride` in `android/app/build.gradle.kts`. F-Droid users now download a CPU-specific binary ~3× smaller than the universal AAB. Play AAB unchanged.
+- ✅ **F-Droid metadata moved to Fastlane layout** at `fastlane/metadata/android/en-US/`. F-Droid auto-imports description/screenshots/changelogs from this canonical path on every release tag; no fdroiddata content MR needed for future releases.
+- ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: `.github/workflows/release.yml:76` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
+
+### v0.4 — in-app crash detection + log-to-issue shipping (next)
+
+When the app crashes, a next-launch dialog offers to file a GitHub issue with a pre-filled bug-report form (device + version + scrubbed stack trace). Mirrors the pattern used by `digital-grease/fauxx`, adapted for Signet's stricter threat model — the scrubber is deny-by-default (the Kotlin reference impl was allow-by-default; Signet needs the inversion because a scrubber miss could leak a shared secret) and trace content is AES-GCM-encrypted at rest until the user explicitly taps "File issue". OS-browser handoff preserves the zero-network claim. Design spike at `.devloop/spikes/log-shipping.md` (approved); implementation queued.
 
 ### v1.0
 
