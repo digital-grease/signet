@@ -50,7 +50,7 @@ Repo: https://github.com/digital-grease/signet.git
 Builds:
   - versionName: 0.3.3
     versionCode: 300031
-    commit: da9bd057f18670fbb881d82a7175cc0b466c8fa4  # OWNER: replace with v0.3.3 SHA after tagging
+    commit: d9f2d7c593e6021d91a88d2f1e70030f04ab09d3
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -71,7 +71,7 @@ Builds:
 
   - versionName: 0.3.3
     versionCode: 300032
-    commit: da9bd057f18670fbb881d82a7175cc0b466c8fa4  # OWNER: replace with v0.3.3 SHA after tagging
+    commit: d9f2d7c593e6021d91a88d2f1e70030f04ab09d3
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -92,7 +92,7 @@ Builds:
 
   - versionName: 0.3.3
     versionCode: 300033
-    commit: da9bd057f18670fbb881d82a7175cc0b466c8fa4  # OWNER: replace with v0.3.3 SHA after tagging
+    commit: d9f2d7c593e6021d91a88d2f1e70030f04ab09d3
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
