@@ -117,9 +117,13 @@ class Relationship {
   int get hashCode =>
       Object.hash(id, label, pairedAt.toUtc(), role, silentHaptics);
 
+  // The label is the human-identifying field on this model ("Mom", "Source A").
+  // Per the Phase 7 leak-prevention audit it stays out of toString so the
+  // primary code-side defense holds even if a Relationship slips into a crash
+  // report. `leak_prevention_test.dart` enforces this invariant.
   @override
   String toString() =>
-      'Relationship(id: $id, label: $label, role: ${role.wireName}, '
+      'Relationship(id: $id, label: [redacted], role: ${role.wireName}, '
       'pairedAt: ${pairedAt.toIso8601String()}, '
       'silentHaptics: $silentHaptics)';
 }
