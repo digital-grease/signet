@@ -74,6 +74,7 @@ class LogScrubber {
   // base64-only punctuation (`_-`).
   static final _base64RunPattern = RegExp(r'\b[A-Za-z0-9_-]{16,}={0,2}\b');
   static final _allLettersPattern = RegExp(r'^[A-Za-z]+$');
+  static final _identifierLikeRunPattern = RegExp(r'^[A-Za-z_]+$');
 
   static String _forcedRedactMechanical(String line) {
     line = line.replaceAllMapped(
@@ -88,7 +89,13 @@ class LogScrubber {
       _base64RunPattern,
       (Match m) {
         final s = m.group(0)!;
+        // Exempt pure-letter runs (English words, class names).
         if (_allLettersPattern.hasMatch(s)) return s;
+        // Exempt pure letter+underscore runs (Dart identifiers like
+        // `_RenderObjectElement`). Real base64 of random bytes virtually
+        // always contains digits or `-`/`=`; an underscore alone doesn't
+        // distinguish a payload from an identifier.
+        if (_identifierLikeRunPattern.hasMatch(s)) return s;
         return _redactToken(s.length);
       },
     );
@@ -184,25 +191,35 @@ class LogScrubber {
   }
 
   // Heuristic for "this quoted string looks like a Dart template-generated
-  // exception message (no user data)". Required shape: ≥ 2 alphabetic words
-  // (1..7 separators), no digits, total length ≤ 64. Dart's
-  // RangeError/FormatException template messages match this; pair labels
-  // like "Mom" / "Source A" fall through (single-word or short).
+  // exception message (no user data)". Two gates, both must pass:
   //
-  // Single-identifier quotes (e.g. NoSuchMethodError quoting a method name)
-  // could theoretically pass this gate too, but distinguishing "MyClass"
-  // (code identifier) from "Mom" (pair label) by shape alone is unreliable —
-  // they're both short CamelCase / capitalized words. Bias toward redaction:
-  // losing the quoted method name in a NoSuchMethodError is recoverable
-  // (the surrounding stack frame and error type still identify the failure);
-  // losing a pair label is not.
+  //   1. Shape: ≥ 2 alphabetic words, total length ≤ 64.
+  //   2. Capitalization: at most ONE word starts with a capital letter
+  //      (the sentence opener).
+  //
+  // Examples:
+  //   - "Unexpected character"   → 2 words, 1 cap → pass.
+  //   - "Index out of range"     → 4 words, 1 cap → pass.
+  //   - "Mom" / "Dad"            → 1 word        → fail → redact.
+  //   - "Source A" / "Finance Team" / "My Therapist" → 2 words, 2 caps → redact.
+  //   - "CONFIDENTIAL_SOURCE"    → has _         → fail → redact.
+  //   - "Bob from work"          → 3 words, 1 cap → pass (RESIDUAL slip;
+  //     structurally identical to "Some natural sentence"; an accepted
+  //     judgment-class miss within the ≥95% bar).
+  //
+  // Bias: any ambiguity → redact. False positives lose debugging signal,
+  // false negatives lose secrets.
   static final _multiWordTemplatePattern =
       RegExp(r'^[A-Za-z]+(?: [A-Za-z]+){1,7}$');
+  static final _capitalizedWordStart = RegExp(r'^[A-Z]');
 
   static bool _isTemplateMessage(String s) {
     if (s.isEmpty) return true; // empty string isn't a leak
     if (s.length > 64) return false;
-    return _multiWordTemplatePattern.hasMatch(s);
+    if (!_multiWordTemplatePattern.hasMatch(s)) return false;
+    // At most one capitalized word (the sentence opener).
+    final caps = s.split(' ').where(_capitalizedWordStart.hasMatch).length;
+    return caps <= 1;
   }
 
   // ===========================================================================
