@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/crypto/transport_package.dart';
 import 'core/prefs/app_prefs.dart';
 import 'core/prefs/settings_controller.dart';
 import 'core/theme/signet_theme.dart';
 import 'features/about/about_screen.dart';
+import 'features/crash_report/crash_report_dialog.dart';
 import 'features/help/faq_screen.dart';
 import 'features/home/home_screen.dart';
-import 'core/crypto/transport_package.dart';
 import 'features/inspect/backup_export_screen.dart';
 import 'features/inspect/backup_import_screen.dart';
 import 'features/inspect/binding_phrase_screen.dart';
@@ -24,6 +25,8 @@ import 'features/pairing/pair_transport_in_screen.dart';
 import 'features/pairing/pair_transport_out_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/verify/verify_screen.dart';
+import 'core/logging/crash_detector.dart';
+import 'core/logging/crash_recorder.dart';
 
 /// Root widget. Keeps `main.dart` tiny — all routing lives here; the theme
 /// lives in `core/theme/signet_theme.dart`.
@@ -36,9 +39,60 @@ import 'features/verify/verify_screen.dart';
 /// First-run: if `prefs.onboardingCompleted` is false, the router starts
 /// at `/onboarding` instead of `/`. Users can re-trigger onboarding via
 /// the Settings screen or the Home AppBar overflow.
-class SignetApp extends ConsumerWidget {
-  SignetApp({super.key, required this.prefs})
-      : _router = GoRouter(
+class SignetApp extends ConsumerStatefulWidget {
+  const SignetApp({
+    super.key,
+    required this.prefs,
+    this.pendingCrash,
+    this.crashDetector,
+  });
+
+  final AppPrefs prefs;
+
+  /// Crash report from a previous session, if any. main() reads this via
+  /// `CrashDetector.readPendingReport()` before runApp; SignetApp surfaces
+  /// `CrashReportDialog` over the home screen on first frame when non-null.
+  final CrashReport? pendingCrash;
+
+  /// Companion to [pendingCrash] — the detector instance whose
+  /// `dismissPendingReport()` is called when the dialog closes.
+  final CrashDetector? crashDetector;
+
+  @override
+  ConsumerState<SignetApp> createState() => _SignetAppState();
+}
+
+class _SignetAppState extends ConsumerState<SignetApp> {
+  late final GoRouter _router;
+  bool _crashDialogShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = _buildRouter();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowCrashDialog());
+  }
+
+  Future<void> _maybeShowCrashDialog() async {
+    if (_crashDialogShown) return;
+    final report = widget.pendingCrash;
+    if (report == null) return;
+    _crashDialogShown = true;
+    final detector = widget.crashDetector;
+    final ctx = _router.routerDelegate.navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    await CrashReportDialog.show(
+      ctx,
+      report: report,
+      onClose: () async {
+        await detector?.dismissPendingReport();
+      },
+    );
+  }
+
+  GoRouter _buildRouter() {
+    final prefs = widget.prefs;
+    return GoRouter(
           initialLocation: prefs.onboardingCompleted ? '/' : '/onboarding',
           routes: <RouteBase>[
             GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
@@ -143,12 +197,10 @@ class SignetApp extends ConsumerWidget {
             ),
           ],
         );
-
-  final AppPrefs prefs;
-  final GoRouter _router;
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'Signet',
