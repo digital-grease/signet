@@ -1,0 +1,67 @@
+name: Crash report
+description: Signet crashed (e.g. an unexpected stop, a "Signet has stopped" dialog, or the in-app crash dialog appeared on next launch)
+title: "Crash: "
+labels: ["bug", "crash", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a crash. Before you file:
+
+        - **Are you running the latest version?** See [releases](https://github.com/digital-grease/signet/releases/latest). If you're on an older build, please update first.
+        - **Have you checked the [FAQ](https://github.com/digital-grease/signet#faq)?** It covers the most common issues.
+        - **Filing from the app's "File a GitHub Issue" button?** Most of these fields will be pre-filled for you. The stack trace will already be scrubbed of cryptographic secrets before it leaves your device — you only need to (optionally) say what you were doing.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Manufacturer + model (the in-app reporter fills this automatically)
+      placeholder: Google Pixel 7 Pro
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS version
+      description: Android or iOS major version. API level is fine if that's what you know.
+      placeholder: "14"
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Signet version
+      description: From Settings → About, or pre-filled by the in-app reporter
+      placeholder: 0.3.3 (4)
+    validations:
+      required: true
+
+  - type: textarea
+    id: stack_trace
+    attributes:
+      label: Stack trace / crash log
+      description: |
+        Paste the crash report here. The in-app reporter will pre-fill this section if it fits;
+        if the trace is too long for a URL, the in-app reporter copies the full log to your
+        clipboard for you to paste. The trace is scrubbed on-device before it reaches GitHub —
+        cryptographic material (shared secrets, verify codes, transport packages, paired
+        relationship labels) is replaced with `[redacted:N]` markers.
+      placeholder: |
+        === Signet Crash Report ===
+        Time: 2026-05-20 ...
+        ...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What were you doing when it crashed?
+      description: Optional. Anything that helps reproduce, or "I tapped Verify on my Mom pairing and the app crashed" is fine.
+      placeholder: I opened the verify screen for a paired contact and tapped the autocomplete chip.
+    validations:
+      required: false
