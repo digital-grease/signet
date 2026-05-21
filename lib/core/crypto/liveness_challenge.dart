@@ -75,8 +75,12 @@ class LivenessPrompt {
   @override
   int get hashCode => Object.hash(action, word);
 
+  // The word is low-medium sensitive per the threat model (fingerprints the
+  // window + lets attacker pre-rehearse). Kept out of toString so the primary
+  // code-side defense holds even if a LivenessPrompt slips into a crash report.
+  // `leak_prevention_test.dart` enforces this invariant.
   @override
-  String toString() => 'LivenessPrompt(${action.name}, "$word")';
+  String toString() => 'LivenessPrompt(${action.name}, "[redacted]")';
 }
 
 /// The curated set of physical actions used by the prompt-only liveness
