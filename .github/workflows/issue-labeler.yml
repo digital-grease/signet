@@ -1,0 +1,110 @@
+name: Issue Labeler
+
+# Adds labels to new issues based on content signals (crash markers + area).
+# Belt-and-suspenders for the form-applied labels: covers issues filed via the API,
+# `gh issue create`, the "Other" Markdown fallback, or that bypass the forms.
+#
+# Idempotent — re-running on the same issue doesn't error (gh issue edit --add-label
+# is a no-op if the label is already applied).
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  label:
+    name: Apply content-based labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply labels from issue title + body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          labels_to_add=()
+
+          # --- Crash signals ---
+          # Title-based: any "crash" word in the title.
+          if echo "$TITLE" | grep -qiE 'crash|crashed|crashing'; then
+            labels_to_add+=("crash")
+          fi
+          # Body-based: Dart/Flutter unhandled-exception markers. Catches bug-shaped
+          # filings that paste a stack trace without using the crash form.
+          if echo "$BODY" | grep -qE '\b(RangeError|FormatException|TypeError|StateError|AssertionError|UnsupportedError|UnimplementedError|StackOverflowError|OutOfMemoryError)\b'; then
+            labels_to_add+=("crash")
+          fi
+          if echo "$BODY" | grep -qE 'Unhandled (Exception|Error)|=== Signet Crash Report ==='; then
+            labels_to_add+=("crash")
+          fi
+
+          # --- Area signals (content-based fallback for the bug-report dropdown) ---
+          # Word-boundaries on common terms (\bpairing\b, \bverify\b, etc.) reduce
+          # false positives. Domain-specific markers (TotpWords, signet:tp1:,
+          # BackupBundle, flutter_zxing) don't need anchoring — they're unique to
+          # Signet's surface area.
+
+          if echo "$BODY" | grep -qiE '\bpair(ing)?\b|QR scan|pair_exchange|pair_intake|pair_role'; then
+            labels_to_add+=("area:pairing")
+          fi
+          if echo "$BODY" | grep -qiE '\bverify\b|TOTP|TotpWords|4 ?BIP-?39 words|rotating (code|word)|verify_screen'; then
+            labels_to_add+=("area:verify")
+          fi
+          if echo "$BODY" | grep -qiE '\bliveness\b|VIDEO CALL|action prompt|deriveLivenessAction'; then
+            labels_to_add+=("area:liveness")
+          fi
+          if echo "$BODY" | grep -qE 'BackupBundle|signet:tp1:|PAKE|transport[_ ]package|TransportPackage|bulk backup|\bLPR\b|\bLDP\b|\bBLK\b'; then
+            labels_to_add+=("area:backup")
+          fi
+          if echo "$BODY" | grep -qiE '\bscanner\b|flutter_zxing|mobile_scanner|\bcamera\b|QR (code|decode)'; then
+            labels_to_add+=("area:scanner")
+          fi
+          if echo "$BODY" | grep -qiE '\bkeystore\b|secure_store|SecureStore|HKDF|AES-?GCM|X25519|ECDH|shared secret|\bsecret\b'; then
+            labels_to_add+=("area:crypto")
+          fi
+          if echo "$BODY" | grep -qiE '\bviewfinder\b|\bhaptic[s]?\b|TalkBack|VoiceOver|live region|Semantics|accessibility|a11y'; then
+            labels_to_add+=("area:ui")
+          fi
+          if echo "$BODY" | grep -qE 'SecureStore\._ensureMigrated|relationship store|persistence migration|store/v[12]'; then
+            labels_to_add+=("area:storage")
+          fi
+
+          # --- Crash → likely pairing/crypto co-tag ---
+          # Stack frames referencing Signet codec/crypto paths get an area co-tag.
+          if echo "$BODY" | grep -qE 'package:signet/core/crypto/|cryptography\.dart\b'; then
+            labels_to_add+=("area:crypto")
+          fi
+          if echo "$BODY" | grep -qE 'package:signet/features/pairing/|pair_exchange_screen|pair_intake'; then
+            labels_to_add+=("area:pairing")
+          fi
+
+          # --- Form dropdown: bug-report `area` field ---
+          # GitHub renders dropdown answers as a "### Area\n\nvalue" section in body.
+          # Match the line that follows a "### Area" header to derive area:<value>.
+          area_value=$(printf '%s\n' "$BODY" \
+            | awk '/^### Area$/{flag=1; next} flag && NF{print; flag=0}' \
+            | tr '[:upper:]' '[:lower:]' \
+            | tr -d '[:space:]' \
+            | head -c 32 || true)
+          case "$area_value" in
+            pairing|verify|liveness|backup|scanner|crypto|ui|storage)
+              labels_to_add+=("area:$area_value")
+              ;;
+            # "other" or anything else: don't guess, fall through to content matches.
+          esac
+
+          # --- Dedup + apply ---
+          if [ "${#labels_to_add[@]}" -eq 0 ]; then
+            echo "No content-based labels matched; nothing to add."
+            exit 0
+          fi
+          unique_labels=$(printf '%s\n' "${labels_to_add[@]}" | sort -u | tr '\n' ',' | sed 's/,$//')
+          echo "Applying labels: $unique_labels"
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "$unique_labels"
