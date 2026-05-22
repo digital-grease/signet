@@ -219,18 +219,45 @@ void main() {
       ]);
     });
 
-    test('does not re-add id to index when it is already present', () async {
+    test(
+        'on duplicate id: skips index rewrite, but DOES overwrite metadata + secret',
+        () async {
+      // Already-indexed id. The implementation should detect the dedup
+      // and skip the index write, but rel + secret are unconditionally
+      // delete-then-rewritten (supports rekey / metadata edits via the
+      // same code path).
       when(() => mockStorage.read(key: 'signet.v2.index'))
           .thenAnswer((_) async => '["abc123"]');
+
       await store.saveRelationshipV2(
         relationship,
         sharedSecret: sharedSecret,
       );
-      // The index write should NOT be called with a duplicated id.
+
+      // Index unchanged.
       verifyNever(() => mockStorage.write(
             key: 'signet.v2.index',
             value: any(named: 'value'),
           ));
+
+      // Metadata and secret slots WERE re-written. Pin this so a future
+      // refactor that "optimises" by skipping all writes on dedup is
+      // surfaced loudly — silent-skip would break the rekey + label-edit
+      // paths that route through saveRelationshipV2.
+      verify(() => mockStorage.write(
+            key: 'signet.v2.rel.abc123',
+            value: relationship.toJson(),
+          )).called(1);
+      verify(() => mockStorage.write(
+            key: 'signet.v2.secret.abc123',
+            value: any(named: 'value'),
+          )).called(1);
+
+      // The implementation's pre-write delete pair is also load-bearing
+      // (clears any prior value before the new write lands) — pin it.
+      verify(() => mockStorage.delete(key: 'signet.v2.rel.abc123')).called(1);
+      verify(() => mockStorage.delete(key: 'signet.v2.secret.abc123'))
+          .called(1);
     });
 
     test('rejects empty shared secret', () async {
