@@ -11,12 +11,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/core/logging/crashlog_cipher.dart';
 
+import '../support/in_memory_secure_storage.dart';
+
 void main() {
-  late _InMemoryStorage storage;
+  late InMemoryFlutterSecureStorage storage;
   late CrashlogCipher cipher;
 
   setUp(() {
-    storage = _InMemoryStorage();
+    storage = InMemoryFlutterSecureStorage();
     // Seeded RNG for determinism. Production uses Random.secure().
     cipher = CrashlogCipher(storage: storage as FlutterSecureStorage, random: Random(42));
   });
@@ -70,58 +72,4 @@ void main() {
     await cipher.resetKey();
     expect(() => cipher.decrypt(blob), throwsException);
   });
-}
-
-/// In-memory FlutterSecureStorage stub for tests. Implements only the
-/// methods CrashlogCipher uses; everything else throws if accidentally
-/// hit so we notice unexpected coupling.
-class _InMemoryStorage implements FlutterSecureStorage {
-  final Map<String, String> _store = <String, String>{};
-
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => _store[key];
-
-  @override
-  Future<void> write({
-    required String key,
-    required String? value,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    if (value == null) {
-      _store.remove(key);
-    } else {
-      _store[key] = value;
-    }
-  }
-
-  @override
-  Future<void> delete({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    _store.remove(key);
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-        '_InMemoryStorage stub does not implement ${invocation.memberName}',
-      );
 }
