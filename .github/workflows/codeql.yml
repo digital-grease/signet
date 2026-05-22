@@ -68,7 +68,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Flutter is only needed for the java-kotlin build below. Pin
       # version inline (matching .github/workflows/release.yml line 76)
