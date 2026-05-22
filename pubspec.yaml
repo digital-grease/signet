@@ -75,7 +75,12 @@ dependencies:
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
   package_info_plus: ^9.0.1
-  device_info_plus: ^12.4.0
+  # Pinned at ^11.x: 12.x uses `NSProcessInfo.isiOSAppOnVision`
+  # (iOS 17 / Xcode 15 SDK), which the macos-latest GitHub runner's
+  # default Xcode doesn't yet ship. v11.x supplies the same fields
+  # we consume (manufacturer/model/version) and builds clean on the
+  # runner. Bump back to ^12 once macos-latest defaults to Xcode 16+.
+  device_info_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:
