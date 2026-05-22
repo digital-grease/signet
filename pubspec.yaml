@@ -74,7 +74,7 @@ dependencies:
   # from Signet itself.
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.0.0
   # Pinned at ^11.x: 12.x uses `NSProcessInfo.isiOSAppOnVision`
   # (iOS 17 / Xcode 15 SDK), which the macos-latest GitHub runner's
   # default Xcode doesn't yet ship. v11.x supplies the same fields
