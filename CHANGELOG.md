@@ -5,6 +5,55 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.3.4] — 2026-05-22
+
+In-app crash reporter (one-tap file a pre-filled GitHub Issue with a
+scrubbed stack trace) + in-person pairing deadlock fix.
+
+### Added
+- **In-app crash reporter.** If the app crashes during a session, the
+  next launch surfaces a modal dialog offering to file a GitHub Issue
+  pre-filled with device, OS, app version, and stack trace. Three
+  actions: FILE ISSUE (opens the OS browser to a pre-filled
+  `crash_report.yml` form), COPY LOG (clipboard only), DISMISS. The
+  trace is scrubbed on-device before it leaves the phone:
+  cryptographic material (paired shared secrets, the rotating 4-word
+  verify code, transport-package wires `signet:tp1:...`, BIP-39 PAKE
+  words, paired-contact labels) is replaced with `[redacted:N]`
+  markers. AES-256-GCM at rest under a key in the Android Keystore /
+  iOS Keychain. **Zero in-process network** — the "File issue" button
+  hands off to the OS browser via `url_launcher`; the Android manifest
+  still declares no `INTERNET` permission. The full four-layer defense
+  is documented in `docs/THREAT_MODEL.md` §3.6.
+- Structured GitHub Issue templates (bug / crash / feature / question /
+  other) + content-aware autolabeler workflow on the repo.
+- CI release-gate workflow: pubspec version-line, CHANGELOG, fastlane
+  changelogs, and Play whats-new.txt changes must ship under a
+  `release:`-prefixed commit subject, with version bumps and matching
+  changelog files required to land together.
+
+### Fixed
+- **#1 — Pair-in-Person deadlock.** When one device scanned the
+  other's QR before the originator scanned back, the receiver
+  auto-advanced to the four-word verification screen, leaving the
+  originator showing its QR with no way to complete the reverse scan
+  (going back was treated as cancelling). Pair derivation is now
+  gated on both `didShowQr` AND a recorded counterparty key; both
+  devices reach verification independently after completing both
+  steps. Regression coverage in `pairing_controller_test.dart`.
+
+### Changed
+- `Relationship.toString()` and `LivenessPrompt.toString()` now redact
+  their sensitive fields (paired-contact label, liveness word) so the
+  primary code-side discipline guarantee holds even if either
+  representation slips into an error message. Enforced going forward
+  by `test/logging/leak_prevention_test.dart`, which canary-injects
+  every sensitive type and asserts `toString()` does not contain the
+  payload.
+- `TotpWords.generate` now has fixed snapshot vectors in
+  `test/crypto/totp_words_test.dart` so a silent HKDF or BIP-39
+  word-index regression fails the test, not just the property suite.
+
 ## [0.3.3] — 2026-05-11
 
 F-Droid maintainer review feedback (round 3) for MR #37990. No
