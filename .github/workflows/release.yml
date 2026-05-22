@@ -49,6 +49,13 @@ env:
   FLUTTER_CHANNEL: stable
   JAVA_VERSION: 17
 
+# Least-privilege default. The publish job overrides to `contents: write`
+# because it pushes assets to the GitHub Release via
+# softprops/action-gh-release. Closes a CodeQL
+# `actions/missing-workflow-permissions` finding.
+permissions:
+  contents: read
+
 jobs:
   build-android:
     name: Signed Android AAB + APK

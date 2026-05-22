@@ -17,6 +17,11 @@ env:
   # android/app/build.gradle.kts.
   JAVA_VERSION: 17
 
+# Least-privilege default. Closes a CodeQL
+# `actions/missing-workflow-permissions` finding.
+permissions:
+  contents: read
+
 jobs:
   build-android:
     name: Release AAB + APK (debug-signed)
