@@ -84,21 +84,36 @@ void main() {
     });
 
     test('rolls over at the next 30-second window', () async {
-      final windowA = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: 60, // window counter = 2
-        senderRole: PairRole.a,
+      // We want to assert "adjacent windows are independently sampled and
+      // therefore usually produce different actions" without depending on a
+      // specific (w, w+1) pair happening to differ — for an 8-action corpus,
+      // any specific pair collides with probability 1/8.
+      //
+      // Deterministic strategy: scan adjacent counters and require that at
+      // least one pair within 32 attempts differs. Probability of failing 32
+      // consecutive trials when adjacent samples are independently uniform:
+      // (1/8)^32 ≈ 10^-29 — effectively impossible. A real regression where
+      // adjacent windows are pinned to the same action (e.g., HKDF wired to
+      // ignore the counter, or the corpus collapsed to size 1) would fire
+      // the explicit failure below.
+      final samples = <LivenessAction>[];
+      for (var w = 0; w < 33; w++) {
+        samples.add(await TotpWords.deriveLivenessAction(
+          secret: secret,
+          unixTimeSeconds: w * 30,
+          senderRole: PairRole.a,
+        ));
+      }
+      final foundDifferentPair = <int>[
+        for (var i = 0; i < samples.length - 1; i++)
+          if (samples[i] != samples[i + 1]) i,
+      ].isNotEmpty;
+      expect(
+        foundDifferentPair,
+        isTrue,
+        reason: 'No adjacent windows in 32 samples differed. The corpus or '
+            'HKDF wiring may have regressed to a constant output.',
       );
-      final windowB = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: 90, // window counter = 3
-        senderRole: PairRole.a,
-      );
-      // Two adjacent windows *could* happen to collide (1/8 chance). Our
-      // fixture at unix=60 (counter=2) vs unix=90 (counter=3) does not —
-      // verified via the generator harness. If the corpus or derivation
-      // changes in a way that makes them collide, pick a different pair.
-      expect(windowA, isNot(equals(windowB)));
     });
 
     test('always returns a value from the curated corpus', () async {
