@@ -65,7 +65,7 @@ dependencies:
   # conflicts with flutter_secure_storage's transitive
   # flutter_secure_storage_windows ^4.1.0 (locked to win32 ^5.5.4).
   # Revisit after flutter_secure_storage_windows bumps its win32 dep.
-  share_plus: ^12.0.2
+  share_plus: ^13.0.0
   # File picker for importing a saved backup. User opens a picker,
   # chooses a .txt file, we read it locally. No network.
   file_picker: ^11.0.2
