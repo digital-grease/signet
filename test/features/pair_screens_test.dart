@@ -106,6 +106,7 @@ void main() {
       final ctrl = container.read(pairingControllerProvider.notifier);
       ctrl.setLabel('Mom');
       await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
       await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 7)));
       final phrase = container.read(pairingControllerProvider).phrase!;
 
@@ -138,6 +139,7 @@ void main() {
       final ctrl = container.read(pairingControllerProvider.notifier);
       ctrl.setLabel('Mom');
       await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
       await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 2)));
 
       await tester.pumpWidget(
@@ -203,6 +205,7 @@ void main() {
 
         ctrl.startRekey(id: existing.id, label: existing.label);
         await ctrl.ensureOurKeyPair();
+        await ctrl.markQrShown();
         // A *different* counterparty public key than the original, to
         // guarantee a different derived secret after rekey.
         await ctrl.recordTheirPublicKey(

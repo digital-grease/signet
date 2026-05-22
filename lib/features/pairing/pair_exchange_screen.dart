@@ -90,8 +90,11 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
             ),
           _ExchangeMode.showing => _ShowingPane(
               state: pair,
-              onDone: () {
-                ref.read(pairingControllerProvider.notifier).markQrShown();
+              onDone: () async {
+                await ref
+                    .read(pairingControllerProvider.notifier)
+                    .markQrShown();
+                if (!mounted) return;
                 setState(() => _mode = _ExchangeMode.overview);
               },
             ),
@@ -111,7 +114,7 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
                 final notifier = ref.read(pairingControllerProvider.notifier);
                 final key = PairingCodec.decodePublicKey(payload);
                 await notifier.recordTheirPublicKey(key);
-                notifier.markQrShown();
+                await notifier.markQrShown();
                 if (!mounted) return;
                 setState(() => _mode = _ExchangeMode.overview);
               },

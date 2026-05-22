@@ -94,14 +94,33 @@ class PairingController extends Notifier<PairingState> {
 
   /// Record that the user has confirmed the other device has scanned our QR.
   /// This is a soft signal — we cannot detect scan completion — but we need
-  /// it to avoid auto-advancing before the user has finished showing.
-  void markQrShown() {
+  /// it to avoid auto-advancing before the user has finished showing. If
+  /// the scan has already happened (other ordering), this also triggers
+  /// derivation since both prerequisites are now met.
+  Future<void> markQrShown() async {
     state = state.copyWith(didShowQr: true, clearError: true);
+    await _maybeDerive();
   }
 
-  /// Record the scanned public key, then (if we already have our own key pair)
-  /// derive the shared secret, TOTP secret, and 4-word verification phrase.
+  /// Record the scanned public key, then (if we already have our own key pair
+  /// AND have shown our QR) derive the shared secret, TOTP secret, and
+  /// 4-word verification phrase. Holding derivation until didShowQr is the
+  /// fix for Issue #1 — without it, the scanning device auto-advances to
+  /// the confirm screen before the other device has finished scanning ours,
+  /// leaving the flow deadlocked.
   Future<void> recordTheirPublicKey(Uint8List theirKey) async {
+    // Validate up-front so a malformed scan is rejected immediately,
+    // regardless of whether derivation would otherwise be deferred until
+    // markQrShown. Previously this surfaced via the deriveSharedSecret
+    // exception path inside _maybeDerive; with derivation now gated on
+    // didShowQr the bad-length scan would otherwise be silently swallowed.
+    if (theirKey.length != PairingHandshake.publicKeyLength) {
+      state = state.copyWith(
+        error: 'Scanned key is ${theirKey.length} bytes; '
+            'expected ${PairingHandshake.publicKeyLength}.',
+      );
+      return;
+    }
     state = state.copyWith(theirPublicKey: theirKey, clearError: true);
     await _maybeDerive();
   }
@@ -110,6 +129,11 @@ class PairingController extends Notifier<PairingState> {
     final ours = state.ourKeyPair;
     final theirs = state.theirPublicKey;
     if (ours == null || theirs == null) return;
+    // The "show my QR" tap is a soft confirmation that the other side has
+    // scanned us. Without this gate, scanning their QR alone is enough to
+    // advance past the symmetric exchange — causing Issue #1's deadlock
+    // when the other device hasn't yet scanned ours.
+    if (!state.didShowQr) return;
     try {
       final sharedSecret = await PairingHandshake.deriveSharedSecret(
         ours: ours,
