@@ -64,7 +64,7 @@ jobs:
         # Coverage report is consumed locally / by downstream tooling;
         # we don't push it to codecov because that would add a network
         # dependency in the CI path that didn't exist before.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-lcov
