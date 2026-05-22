@@ -35,8 +35,8 @@ Widget wrapWithRouter({
     routes: <RouteBase>[
       GoRoute(
         path: '/verify/:id',
-        builder: (_, state) => VerifyScreen(
-          relationshipId: state.pathParameters['id']!,
+        builder: (_, state) => _verifyScreen(
+          id: state.pathParameters['id']!,
         ),
       ),
       GoRoute(
@@ -64,13 +64,36 @@ final _mom = Relationship(
 );
 final _secret = List<int>.generate(32, (i) => i + 1);
 
+/// Fixed unix time the test harness pins for every VerifyScreen pump and
+/// helper-derived expected-words computation. Both sides of the test must
+/// derive from the same wall-clock value or they may straddle a 30-second
+/// window boundary and mismatch.
+///
+/// Value chosen to land at exactly the start of a window (`% 30 == 0`) so
+/// `_secondsRemaining` is predictable too.
+const int _kFixedUnixTime = 1735776000; // 2025-01-02 00:00:00 UTC
+
+int _fixedClock() => _kFixedUnixTime;
+
+/// Build a [VerifyScreen] with the fixed test clock pre-wired so that the
+/// screen's internal `TotpWords.generate` calls and the helper
+/// `_currentWordsFromMom` / `_currentWordsFromSelf` calls all see the same
+/// `unixTimeSeconds` value. Without this they would race the wall clock
+/// across a window boundary and intermittently fail in CI.
+Widget _verifyScreen({String id = 'abc', bool initialVideoMode = false}) {
+  return VerifyScreen(
+    relationshipId: id,
+    initialVideoMode: initialVideoMode,
+    unixTimeSecondsProvider: _fixedClock,
+  );
+}
+
 /// Words *Mom* (the counterparty) would read aloud in the current window.
 /// These are what Alice should hear and type into her verify input to get ✅.
 Future<List<String>> _currentWordsFromMom() async {
-  final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
   return TotpWords.generate(
     secret: _secret,
-    unixTimeSeconds: now,
+    unixTimeSeconds: _kFixedUnixTime,
     senderRole: _mom.role.other,
   );
 }
@@ -79,10 +102,9 @@ Future<List<String>> _currentWordsFromMom() async {
 /// into Alice's own verify input simulates the reflection attack and must
 /// produce ❌.
 Future<List<String>> _currentWordsFromSelf() async {
-  final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
   return TotpWords.generate(
     secret: _secret,
-    unixTimeSeconds: now,
+    unixTimeSeconds: _kFixedUnixTime,
     senderRole: _mom.role,
   );
 }
@@ -103,7 +125,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -118,7 +140,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -144,7 +166,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -182,7 +204,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -215,7 +237,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -244,7 +266,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -273,7 +295,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -292,7 +314,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -306,7 +328,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -329,7 +351,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -347,7 +369,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -381,7 +403,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -417,7 +439,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: silent, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -449,7 +471,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -507,13 +529,13 @@ void main() {
   //     + clears any pending result).
   group('VerifyScreen video mode', () {
     /// Computes counterparty's expected liveness action for the current
-    /// window — the action Alice should watch Mom perform on video.
+    /// window — the action Alice should watch Mom perform on video. Uses
+    /// the same fixed clock as the screen under test so the derived action
+    /// matches what the widget displays.
     Future<LivenessAction> currentExpectedAction() async {
-      final now =
-          DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
       return TotpWords.deriveLivenessAction(
         secret: _secret,
-        unixTimeSeconds: now,
+        unixTimeSeconds: _kFixedUnixTime,
         senderRole: _mom.role.other,
       );
     }
@@ -522,7 +544,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           store: FakeSecureStore(seeded: _mom, secret: _secret),
-          child: const VerifyScreen(relationshipId: 'abc'),
+          child: _verifyScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -536,7 +558,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -559,7 +581,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -582,10 +604,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -602,10 +621,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -638,10 +654,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -668,10 +681,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -692,7 +702,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -723,7 +733,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -770,10 +780,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -800,7 +807,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(relationshipId: 'abc'),
+            child: _verifyScreen(),
           ),
         );
         await tester.pumpAndSettle();
@@ -848,10 +855,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -884,10 +888,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
@@ -934,10 +935,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             store: FakeSecureStore(seeded: _mom, secret: _secret),
-            child: const VerifyScreen(
-              relationshipId: 'abc',
-              initialVideoMode: true,
-            ),
+            child: _verifyScreen(initialVideoMode: true),
           ),
         );
         await tester.pumpAndSettle();
