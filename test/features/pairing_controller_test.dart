@@ -30,7 +30,7 @@ void main() {
       // Put the controller in a half-way state first.
       await ctrl.ensureOurKeyPair();
       ctrl.setLabel('Dad');
-      ctrl.markQrShown();
+      await ctrl.markQrShown();
 
       ctrl.startRekey(id: 'abc123', label: 'Mom');
 
@@ -183,7 +183,7 @@ void main() {
       final ctrl = container.read(pairingControllerProvider.notifier);
       ctrl.setLabel('Mom');
       await ctrl.ensureOurKeyPair();
-      ctrl.markQrShown();
+      await ctrl.markQrShown();
       ctrl.reset();
       final s = container.read(pairingControllerProvider);
       expect(s.label, isNull);
