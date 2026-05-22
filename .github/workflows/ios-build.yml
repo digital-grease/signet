@@ -18,6 +18,11 @@ env:
   FLUTTER_VERSION: 3.41.6
   FLUTTER_CHANNEL: stable
 
+# Least-privilege default. Closes a CodeQL
+# `actions/missing-workflow-permissions` finding.
+permissions:
+  contents: read
+
 jobs:
   build-ios:
     name: iOS build (unsigned)

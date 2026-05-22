@@ -15,7 +15,9 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.3.3 alpha · Android · v0.3.0 in Google Play Closed Testing · F-Droid inclusion MR ([#37990](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/37990)) open and in review.** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
+**v0.3.4 beta · Android · v0.3.0 in Google Play Closed Testing · F-Droid inclusion [merged](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/37990); v0.3.4 will auto-publish on the next F-Droid scrape.** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
+
+v0.3.4 adds the in-app crash reporter (one-tap pre-filled GitHub issue with a scrubbed stack trace) and fixes the in-person pairing deadlock reported as issue [#1](https://github.com/digital-grease/signet/issues/1).
 
 Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. TestFlight is staged separately.
 
@@ -231,9 +233,13 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: `.github/workflows/release.yml:76` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
-### v0.4 — in-app crash detection + log-to-issue shipping (next)
+### v0.3.4 — in-app crash detection + log-to-issue shipping
 
-When the app crashes, a next-launch dialog offers to file a GitHub issue with a pre-filled bug-report form (device + version + scrubbed stack trace). Mirrors the pattern used by `digital-grease/fauxx`, adapted for Signet's stricter threat model — the scrubber is deny-by-default (the Kotlin reference impl was allow-by-default; Signet needs the inversion because a scrubber miss could leak a shared secret) and trace content is AES-GCM-encrypted at rest until the user explicitly taps "File issue". OS-browser handoff preserves the zero-network claim. Design spike at `.devloop/spikes/log-shipping.md` (approved); implementation queued.
+- ✅ **In-app crash reporter.** When the app crashes, a next-launch modal dialog offers to file a GitHub issue with a pre-filled `crash_report.yml` form (device + OS + app version + scrubbed stack trace). Three actions: FILE ISSUE (OS-browser handoff via `url_launcher`), COPY LOG (clipboard only), DISMISS.
+- ✅ **Deny-by-default scrubber.** Mechanical patterns (`signet:tp1:` wire, hex≥16, base64url≥16, BIP-39 4-tuple + 8-tuple clusters) enforced at a 100% pass-or-fail-CI bar. Judgment patterns (pair labels in toString dumps, user-input quoted strings) at ≥95%. The Kotlin reference impl in `digital-grease/fauxx` is allow-by-default; Signet needs the inversion because a scrubber miss could leak a shared secret.
+- ✅ **AES-256-GCM at rest.** Sentinel file encrypted under a key in the Android Keystore / iOS Keychain. Layered so a scrubber regression doesn't surface plaintext on disk.
+- ✅ **Zero in-process network.** No `INTERNET` permission added to the Android manifest; the "File issue" button hands off to the OS browser. Full four-layer defense documented at `docs/THREAT_MODEL.md` §3.6.
+- ✅ **Fixed: in-person pairing deadlock** ([#1](https://github.com/digital-grease/signet/issues/1)). Derivation gated on both `didShowQr` AND a recorded counterparty key; both devices now reach verification independently after completing both scan + show steps.
 
 ### v1.0
 
@@ -267,7 +273,7 @@ Before any real-world distribution, validate on physical hardware:
 
 ## Contributing
 
-Signet is solo-maintained alpha software. Issues and PRs are welcome, but please understand that the threat model and UX constraints (the "grandma test" in particular) are design constraints, not suggestions — PRs that add network calls, analytics, or account systems will not be merged under any circumstances.
+Signet is solo-maintained beta software. Issues and PRs are welcome, but please understand that the threat model and UX constraints (the "grandma test" in particular) are design constraints, not suggestions — PRs that add network calls, analytics, or account systems will not be merged under any circumstances.
 
 ## License
 

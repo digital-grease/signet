@@ -30,7 +30,7 @@ void main() {
       // Put the controller in a half-way state first.
       await ctrl.ensureOurKeyPair();
       ctrl.setLabel('Dad');
-      ctrl.markQrShown();
+      await ctrl.markQrShown();
 
       ctrl.startRekey(id: 'abc123', label: 'Mom');
 
@@ -75,12 +75,12 @@ void main() {
   });
 
   group('PairingController.markQrShown', () {
-    test('flips didShowQr to true', () {
+    test('flips didShowQr to true', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final ctrl = container.read(pairingControllerProvider.notifier);
       expect(container.read(pairingControllerProvider).didShowQr, isFalse);
-      ctrl.markQrShown();
+      await ctrl.markQrShown();
       expect(container.read(pairingControllerProvider).didShowQr, isTrue);
     });
   });
@@ -97,17 +97,55 @@ void main() {
       expect(s.phrase, isNull);
     });
 
-    test('derives phrase + TOTP secret once both sides are present', () async {
+    // ISSUE #1 regression coverage. Before the fix, recording the
+    // counterparty's key alone was enough to derive the phrase + TOTP
+    // secret and advance the screen, leaving the other device deadlocked
+    // because we'd never shown them our QR. The fix gates derivation on
+    // didShowQr as well.
+    test('does NOT derive when only scan happened (issue #1)', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final ctrl = container.read(pairingControllerProvider.notifier);
       await ctrl.ensureOurKeyPair();
-      // Use a dummy public key — derivation succeeds for any 32-byte value.
+      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 9)));
+      final s = container.read(pairingControllerProvider);
+      expect(s.hasScannedTheirKey, isTrue);
+      expect(s.didShowQr, isFalse);
+      expect(s.confirmationReady, isFalse,
+          reason: 'must not auto-advance before user marks QR shown');
+      expect(s.phrase, isNull);
+      expect(s.totpSecret, isNull);
+    });
+
+    test('derives only after BOTH scan AND markQrShown (scan first)', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      await ctrl.ensureOurKeyPair();
+      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 9)));
+      // Mid-state: scan done, show pending. Must not be ready yet.
+      expect(container.read(pairingControllerProvider).confirmationReady,
+          isFalse);
+      await ctrl.markQrShown();
+      final s = container.read(pairingControllerProvider);
+      expect(s.confirmationReady, isTrue);
+      expect(s.phrase, hasLength(4));
+      expect(s.totpSecret, hasLength(32));
+    });
+
+    test('derives only after BOTH scan AND markQrShown (show first)', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
+      // Mid-state: show done, scan pending. Must not be ready yet.
+      expect(container.read(pairingControllerProvider).confirmationReady,
+          isFalse);
       await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 9)));
       final s = container.read(pairingControllerProvider);
       expect(s.confirmationReady, isTrue);
       expect(s.phrase, hasLength(4));
-      expect(s.totpSecret, isNotNull);
       expect(s.totpSecret, hasLength(32));
     });
 
@@ -127,6 +165,7 @@ void main() {
       addTearDown(container.dispose);
       final ctrl = container.read(pairingControllerProvider.notifier);
       await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
       await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 4)));
       expect(container.read(pairingControllerProvider).phrase, isNotNull);
       ctrl.clearScan();
@@ -144,7 +183,7 @@ void main() {
       final ctrl = container.read(pairingControllerProvider.notifier);
       ctrl.setLabel('Mom');
       await ctrl.ensureOurKeyPair();
-      ctrl.markQrShown();
+      await ctrl.markQrShown();
       ctrl.reset();
       final s = container.read(pairingControllerProvider);
       expect(s.label, isNull);

@@ -1,0 +1,11 @@
+v0.3.4
+
+New: in-app crash reporter. If the app crashes, the next launch
+offers to file a pre-filled GitHub Issue with the stack trace.
+Cryptographic material (paired secrets, verify codes, backup
+payloads, contact labels) is redacted on-device before anything
+leaves your phone. No in-process network — "File issue" opens
+your OS browser.
+
+Fixed: in-person pairing deadlock (#1). Both devices now wait for
+both scan + show before advancing to verification.

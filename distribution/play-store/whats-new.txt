@@ -1,15 +1,12 @@
-v0.3 — phone-switch day, made easy.
+v0.3.4 — actionable crash reports, in-person pairing fix.
 
-• Bulk backup: one file, one 8-word PAKE, every paired relationship.
-  Settings → Back up all relationships. Paste on the new phone to
-  bring every pairing across in one step.
-• Single-relationship backup (from each contact's menu) still works
-  the same way; pick whichever matches the moment.
-• Payload-type dispatch on import — paste any Signet backup and the
-  app routes you to the right commit flow automatically.
-
-Upgrading from v0.2: your existing pairings migrate untouched. First
-time you open Settings → Back up all relationships after updating
-is a good moment to create a fresh bulk backup.
+• In-app crash reporter: if Signet crashes, the next launch offers
+  to file a pre-filled GitHub Issue with a stack trace. Crypto
+  material (paired secrets, verify codes, backup payloads, contact
+  labels) is redacted on-device before anything leaves your phone.
+  No in-process network — "File issue" opens your OS browser.
+• Fixed: in-person pairing could deadlock if one device scanned
+  the other's QR before the originator scanned back. Both devices
+  now wait for both scan + show before advancing.
 
 Issues: https://github.com/digital-grease/signet/issues.

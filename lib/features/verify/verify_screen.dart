@@ -31,6 +31,7 @@ class VerifyScreen extends ConsumerStatefulWidget {
     super.key,
     required this.relationshipId,
     this.initialVideoMode = false,
+    this.unixTimeSecondsProvider = _realUnixTimeSeconds,
   });
 
   /// Which relationship to verify. Routed from `/verify/:id` at app.dart.
@@ -40,9 +41,21 @@ class VerifyScreen extends ConsumerStatefulWidget {
   /// parameter `?video=1` (legacy `/liveness/:id` redirect) flips this on.
   final bool initialVideoMode;
 
+  /// Injection seam for the unix-time-seconds reading used by every
+  /// TotpWords derivation on this screen. Production uses the real wall
+  /// clock via [_realUnixTimeSeconds]; widget tests pass a fixed-clock
+  /// function so the test's own derivation matches what the screen
+  /// derives internally — without this, a test running at the boundary
+  /// of a 30-second window can derive at T, the screen pumps at T+ε in
+  /// the next window, and the candidate mismatches.
+  final int Function() unixTimeSecondsProvider;
+
   @override
   ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
 }
+
+int _realUnixTimeSeconds() =>
+    DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 
 enum _VerifyStatus { verified, notVerified }
 
@@ -177,7 +190,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     final secret = _secret;
     final relationship = _relationship;
     if (secret == null || relationship == null) return;
-    final nowUnix = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final nowUnix = widget.unixTimeSecondsProvider();
     // Our role emits "Show my 4 words" — this is what the other side will
     // read to verify us, and what we would read to them.
     final words = await TotpWords.generate(
@@ -229,7 +242,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     final secret = _secret;
     final relationship = _relationship;
     if (secret == null || relationship == null) return;
-    final nowUnix = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final nowUnix = widget.unixTimeSecondsProvider();
     // Verify against the COUNTERPARTY's role — the words the other device
     // would emit. Using our own role here would accept our own displayed
     // words reflected back at us (the reflection attack).

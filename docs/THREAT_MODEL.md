@@ -219,6 +219,34 @@ silently flags the verification log. Gated on an abuse-analysis
 spike — duress features carry real misuse potential (fabricated
 coercion claims) and aren't ship-safe without that analysis.
 
+### 2.10 Forensic crash-log adversary A₁₀
+
+**Capabilities:** post-incident read access to the on-device crash
+sentinel file (`<app-support-dir>/crashes/last.bin`). Two realistic
+shapes:
+
+- **Forensic / law-enforcement extraction** with root + unlocked
+  device (FDE has already been bypassed via the screen lock).
+  Reads the sentinel; needs to recover plaintext to identify the
+  user's paired contacts, recently-displayed verify codes, or
+  pasted backup payloads.
+- **A second app on the device** with elevated privileges (rooted
+  device, OEM-level access) trying to scan Signet's private files.
+  Same shape of read; same recovery goal.
+
+**Defending property:** the sentinel never contains a paired
+secret, pair label, verify code, or transport-package body in
+plaintext, even after a forensic extraction. See §3.6 for the
+four-layer pipeline that enforces this.
+
+**Residual risk:** sustained access to BOTH the on-disk sentinel
+AND the Android Keystore / iOS Keychain. The at-rest encryption
+key lives in the Keystore; recovering it requires either an
+exploitable Keystore weakness or device-side persistence that's
+already past the storage trust boundary in §4. This is the same
+adversary capability that recovers the paired shared secret —
+i.e., a forensic-level compromise of the OS itself.
+
 ## 3. Protocol-level defenses
 
 ### 3.1 In-person QR pairing
@@ -269,7 +297,10 @@ is a copy / social-layer concern).
   `kSecAttrAccessibleAfterFirstUnlock`. See
   `docs/IOS_STORAGE_AUDIT.md` for what's verifiable and what isn't.
 - No `INTERNET` permission on Android. No network-dependent APIs
-  invoked anywhere in the code path.
+  invoked anywhere in the code path. The in-app "File a GitHub
+  Issue" button (§3.6) hands off to the OS browser via
+  `url_launcher` — out-of-process navigation by user-explicit
+  action, not an in-app network call.
 
 ### 3.5 Screen-capture blocking
 
@@ -281,6 +312,81 @@ is a copy / social-layer concern).
   `applicationDidBecomeActive`. Does not block active AirPlay /
   HDMI mirror sessions (acknowledged limit; iOS offers no user-space
   override).
+
+### 3.6 Crash-log shipping (in-app issue reporter)
+
+Signet runs an in-app crash detector that, on next launch after an
+uncaught exception, surfaces a dialog offering to file a GitHub
+Issue against the pre-filled `crash_report.yml` form. This is
+useful — without stack traces from field crashes, alpha-user bug
+reports are essentially unactionable — but it introduces a leak
+surface: arbitrary uncaught material flowing into a string that
+the user might agree to send. The full design rationale lives in
+`.devloop/spikes/log-shipping.md`; this section summarises the
+properties the runtime guarantees.
+
+**Four-layer defense.** Each layer compensates for a failure of
+the previous one. No single regression breaks the leak-prevention
+guarantee.
+
+| Layer | Mechanism | What it catches | What it misses |
+|---|---|---|---|
+| 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `LivenessPrompt`, `PairingKeyPair`, `BackupBundle`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
+| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16, base64url≥16, `signet:tp1:` wire, BIP-39 4-tuple and 8-tuple clusters) have a 100% pass-or-fail-CI bar. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
+| 3. AES-GCM at rest | `lib/core/logging/crashlog_cipher.dart` — AES-256-GCM with 12-byte nonce + 16-byte tag. Key under `crashlog.aead_key.v1` in `flutter_secure_storage` (Android Keystore / iOS Keychain). Lazy-generated on first crash. | The ~5% the judgment scrubber misses, while the file sits on disk. | In-process attackers running with our keys; nothing post-decryption. |
+| 4. OS sandbox + FDE | Android app-private storage; iOS sandbox; full-disk encryption when the device is locked. | Other apps reading our private storage; lost-device-pre-unlock. | Forensic-level adversary with root + screen-lock bypass (§4 limit). |
+
+**Test bars (`.devloop/spikes/log-shipping.md`, "Pass thresholds"
+table):**
+
+- **Mechanical redacts: 100%, build-failing.** Any single miss on
+  hex≥16, base64url≥16, `signet:tp1:` wire, or BIP-39 4/8-tuple
+  clusters fails CI. Adding a new transport-package version or
+  secret-pattern shape requires matching scrubber-test entries in
+  the same commit.
+- **Judgment redacts: ≥95%** on a 20-label curated corpus. Slip
+  rate is hedged by layer 3.
+- **Framework allow-pass: ≥95%** so legit stack frames stay
+  readable. False redactions are UX papercuts, not security
+  regressions.
+- **Real-trace shape preserved: 100%.** A scrubbed trace must
+  remain identifiable as a stack trace; otherwise the feature
+  defeats its own purpose.
+
+**Crash-storm protection.** `CrashRecorder` enforces a 24h
+cooldown via the in-blob `recordedAt` timestamp — a second crash
+within 24h leaves the existing sentinel in place. Prevents an
+every-launch crash-loop from re-firing the dialog (which the user
+would dismiss-fatigue past).
+
+**Zero-network claim preserved.** Signet does not initiate the
+GitHub upload. The "File issue" button hands off to
+`url_launcher` → OS browser → user-explicit-action navigates to
+github.com. From Signet's process perspective, the only
+out-of-process call is to the OS browser — exactly what a user
+would do manually if they typed the URL themselves. The Android
+manifest does **NOT** declare the `INTERNET` permission (§3.4),
+and `flutter analyze` + the CodeQL workflow would flag any
+in-process network call added in future versions.
+
+**Sentinel file location and lifecycle.** Written by
+`CrashRecorder.record()` to
+`<getApplicationSupportDirectory()>/crashes/last.bin`.
+Read once by `CrashDetector.readPendingReport()` on next launch;
+explicitly deleted via `dismissPendingReport()` after the dialog
+action (file/copy/dismiss). A corrupt or non-decryptable sentinel
+is silently cleaned up so a poisoned file doesn't loop.
+
+**Worst-case scenarios:**
+
+- *Scrubber misses a hex pattern.* Layer 3 encrypts the blob;
+  recovery needs both the scrubber miss AND Keystore extraction.
+- *AES-GCM cipher implementation regresses to plaintext output.*
+  Layer 2 ensures the plaintext is already scrubbed; recovery
+  needs both the cipher regression AND a scrubber-miss.
+- *Both layer 2 and layer 3 fail.* Layer 4 (OS sandbox) blocks
+  same-device other-app reads; FDE blocks lost-device-pre-unlock.
+  Forensic recovery requires §4-level OS compromise.
 
 ## 4. Platform trust assumptions
 
@@ -396,6 +502,22 @@ Suggested scope for an external audit (Cure53-class firm or similar):
    malformed method calls don't crash the activity / app delegate,
    and that the blur-overlay / FLAG_SECURE state can't get stuck
    on after `secureOff`.
+9. **Crash-log shipping pipeline (§3.6).** Audit the four-layer
+   defense:
+   - `LogScrubber` deny-by-default against a custom adversarial
+     corpus (not just the bundled tests). Mechanical patterns
+     should be exhaustive on hex / base64url / `signet:tp1:` /
+     BIP-39 cluster shapes.
+   - `CrashlogCipher` AES-256-GCM at-rest: nonce uniqueness across
+     writes, auth-tag rejection on bit-flips, key lifecycle in
+     `flutter_secure_storage` (re-install behaviour, key absence on
+     a fresh install).
+   - `CrashReportUrlBuilder` 7000-char budget, defensive 75% shrink
+     on tight budgets, decoded form-field round-trip.
+   - Confirm the `AndroidManifest.xml` still does NOT declare
+     `INTERNET` after the log-shipping feature ships — the OS-browser
+     handoff via `url_launcher` is the only network path, and it
+     runs out-of-process.
 
 ## 9. Document freshness
 

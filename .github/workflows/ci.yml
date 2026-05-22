@@ -20,6 +20,12 @@ env:
   FLUTTER_VERSION: 3.41.6
   FLUTTER_CHANNEL: stable
 
+# Least-privilege default. Jobs that need broader scope must override
+# explicitly. Closes a CodeQL `actions/missing-workflow-permissions`
+# finding by removing the implicit broad-default token.
+permissions:
+  contents: read
+
 jobs:
   analyze-and-test:
     name: Analyze + test
