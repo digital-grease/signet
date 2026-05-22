@@ -11,6 +11,55 @@ void main() {
   final secret = utf8.encode('12345678901234567890123456789012');
   final wordSet = bip39EnglishWordlist.toSet();
 
+  // ===========================================================================
+  // Fixed output vectors
+  // ===========================================================================
+  //
+  // TotpWords is Signet's own primitive (no equivalent of RFC 6238 to crib
+  // from). These vectors are SNAPSHOTS of the current implementation pinned
+  // here as the ground-truth contract. The rest of this file tests
+  // self-consistency properties (determinism, role asymmetry, domain
+  // separation), but a silent regression in the HKDF wiring or the BIP-39
+  // word-index mapping could pass every property test while emitting
+  // different words in production — Alice and Bob would derive mismatched
+  // codes from the same shared secret, and no test would catch it.
+  //
+  // To verify these vectors against an independent implementation: run
+  // HKDF-SHA-256(secret=ASCII("12345..."), info="signet/v1/totp-words-from-X",
+  // nonce=BE-uint64(time/30), outLen=6 bytes), then read 4 11-bit chunks
+  // big-endian and index into the BIP-39 English wordlist.
+  //
+  // Update procedure: if these break after an intentional crypto-layer
+  // change, regenerate via a one-shot capture (see git history for the
+  // pattern) and re-pin. NEVER tweak the expected values to make a failing
+  // test pass without verifying the cause.
+  group('TotpWords.generate — fixed snapshot vectors', () {
+    final vectors = <
+        (int unixTime, PairRole role),
+        List<String>>{
+      (59, PairRole.a): const ['brain', 'kit', 'exercise', 'express'],
+      (59, PairRole.b): const ['nominee', 'awake', 'grocery', 'soup'],
+      (1111111109, PairRole.a): const ['volcano', 'occur', 'fire', 'setup'],
+      (1111111109, PairRole.b): const ['piano', 'please', 'erode', 'novel'],
+      (1234567890, PairRole.a): const ['service', 'divert', 'song', 'live'],
+      (1234567890, PairRole.b): const ['cloth', 'coast', 'payment', 'cry'],
+      (2000000000, PairRole.a): const ['program', 'high', 'quarter', 'sponsor'],
+      (2000000000, PairRole.b): const ['parent', 'olive', 'canal', 'unaware'],
+    };
+
+    vectors.forEach((key, expected) {
+      final (unixTime, role) = key;
+      test('T=$unixTime role=${role.wireName} → $expected', () async {
+        final actual = await TotpWords.generate(
+          secret: secret,
+          unixTimeSeconds: unixTime,
+          senderRole: role,
+        );
+        expect(actual, equals(expected));
+      });
+    });
+  });
+
   group('TotpWords.generate', () {
     test('produces exactly 4 words by default', () async {
       final words = await TotpWords.generate(
