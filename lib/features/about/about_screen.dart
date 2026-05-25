@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/signet_theme.dart';
@@ -13,16 +14,34 @@ import '../../core/theme/signet_theme.dart';
 /// External links (source, privacy, BMC) open in the OS browser via
 /// `url_launcher`. Signet itself has no `INTERNET` permission; the
 /// browser handles the actual fetch, off-process.
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
-  static const String _version = 'v0.2.0-alpha';
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
   static const String _sourceUrl = 'https://github.com/digital-grease/signet';
   static const String _privacyUrl =
       'https://github.com/digital-grease/signet/blob/main/PRIVACY.md';
   static const String _issuesUrl =
       'https://github.com/digital-grease/signet/issues';
   static const String _supportUrl = 'https://www.buymeacoffee.com/digitalgrease';
+
+  // Version is loaded asynchronously from PackageInfo so it always tracks
+  // pubspec.yaml rather than drifting from a hand-bumped constant. The "…"
+  // placeholder is shown for the single frame before PackageInfo resolves.
+  String _version = '…';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (!mounted) return;
+      setState(() => _version = 'v${info.version}');
+    });
+  }
 
   Future<void> _open(String url) async {
     final uri = Uri.parse(url);
@@ -40,7 +59,7 @@ class AboutScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const _Section(
+              _Section(
                 title: 'SIGNET',
                 body:
                     'Cryptographic multi-factor authentication for human '
