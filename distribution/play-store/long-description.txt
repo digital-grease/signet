@@ -17,7 +17,7 @@ Built for a world where AI voice cloning is commodity and social-engineering vis
 Core properties:
 
 • No server. No cloud. No account. The app has no INTERNET permission.
-• No telemetry. No analytics. No ads. No crash reporting. Not now, not ever.
+• No telemetry. No analytics. No ads. Not now, not ever.
 • Hardware-backed secrets via Android Keystore. StrongBox when your device supports it.
 • Offline-first by design. Airplane mode doesn't affect any flow.
 • RFC-validated crypto: X25519 / HKDF-SHA-256 / AES-256-GCM, all verified against published test vectors.

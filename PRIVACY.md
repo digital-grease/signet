@@ -115,9 +115,14 @@ responsibility is yours.
 
 Stated for clarity, in case any of these are surprising:
 
-- **No crash reporting.** If Signet crashes, you see the crash.
-  Nothing reports to Firebase Crashlytics / Sentry / any other
-  service.
+- **No automatic crash reporting.** Nothing reports automatically
+  to Firebase Crashlytics / Sentry / any other service. If Signet
+  crashes, the stack trace is captured locally, encrypted at rest
+  with AES-256-GCM under a key in your device's secure enclave, and
+  stays on your device until you act. On the next launch the app
+  will offer to open a pre-filled GitHub issue with the trace; you
+  see and can edit everything before you submit. If you decline,
+  nothing leaves the device.
 - **No remote kill switch.** Signet cannot disable itself on your
   device. We couldn't push a kill even if we wanted to — there's
   no server connection to push over.

@@ -16,7 +16,7 @@ Built for a world where AI voice cloning is commodity. Defends against:
 Core properties:
 
 * No server. No cloud. No account. No INTERNET permission.
-* No telemetry. No analytics. No ads. No crash reporting.
+* No telemetry. No analytics. No ads.
 * Hardware-backed secrets via Android Keystore, StrongBox when available.
 * Offline-first; airplane mode does not affect any flow.
 * RFC-validated crypto (X25519, HKDF-SHA-256, AES-256-GCM, BIP-39).
