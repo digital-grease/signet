@@ -1,0 +1,9 @@
+v0.3.5
+
+Fixed: About screen now shows the actual installed version
+(previously stuck on a hardcoded "v0.2.0-alpha" string that
+never got bumped through several releases).
+
+Privacy policy updated to accurately describe the in-app
+crash-report flow added in v0.3.4 — your crash data still stays
+on your phone until you tap "Send".
