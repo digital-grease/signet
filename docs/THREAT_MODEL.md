@@ -219,27 +219,34 @@ silently flags the verification log. Gated on an abuse-analysis
 spike — duress features carry real misuse potential (fabricated
 coercion claims) and aren't ship-safe without that analysis.
 
-### 2.10 Forensic crash-log adversary A₁₀
+### 2.10 Forensic crash-log + debug-log adversary A₁₀
 
-**Capabilities:** post-incident read access to the on-device crash
-sentinel file (`<app-support-dir>/crashes/last.bin`). Two realistic
-shapes:
+**Capabilities:** post-incident read access to Signet's on-device
+log files — the crash sentinel (`<app-support-dir>/crashes/last.bin`)
+and, when present, the opt-in debug session
+(`<app-support-dir>/debug/session.bin`). Three realistic shapes:
 
 - **Forensic / law-enforcement extraction** with root + unlocked
   device (FDE has already been bypassed via the screen lock).
-  Reads the sentinel; needs to recover plaintext to identify the
+  Reads the files; needs to recover plaintext to identify the
   user's paired contacts, recently-displayed verify codes, or
   pasted backup payloads.
 - **A second app on the device** with elevated privileges (rooted
   device, OEM-level access) trying to scan Signet's private files.
   Same shape of read; same recovery goal.
+- **A device seized while debug logging happens to be active.** The
+  debug session file exists *only* while the user has opt-in logging
+  turned on (off by default; 24h auto-expiry), so for almost all
+  users at almost all times there is nothing to seize.
 
-**Defending property:** the sentinel never contains a paired
-secret, pair label, verify code, or transport-package body in
-plaintext, even after a forensic extraction. See §3.6 for the
-four-layer pipeline that enforces this.
+**Defending property:** neither file contains a paired secret, pair
+label, verify code, or transport-package body in plaintext, even
+after a forensic extraction. The crash sentinel is enforced by the
+four-layer pipeline in §3.6; the debug session is structured
+by construction (only enumerated events + opaque relationship ids,
+never a label or secret reach it) and encrypted at rest — see §3.7.
 
-**Residual risk:** sustained access to BOTH the on-disk sentinel
+**Residual risk:** sustained access to BOTH an on-disk file
 AND the Android Keystore / iOS Keychain. The at-rest encryption
 key lives in the Keystore; recovering it requires either an
 exploitable Keystore weakness or device-side persistence that's
@@ -388,6 +395,70 @@ is silently cleaned up so a poisoned file doesn't loop.
   same-device other-app reads; FDE blocks lost-device-pre-unlock.
   Forensic recovery requires §4-level OS compromise.
 
+### 3.7 Debug-log shipping (opt-in diagnostic logging)
+
+For non-crash bugs — a verify that returns the wrong result, a
+pairing that hangs without throwing — Signet offers **opt-in** debug
+logging. Off by default: a user who never enables it keeps a zero
+on-disk behavioral-log footprint. Design rationale lives in
+`.devloop/spikes/debug-log-export.md`; this section summarises the
+runtime guarantees.
+
+**Retention is opt-in and bounded.** Logging records only while the
+user turns it on in Settings. The session is held encrypted at
+`<getApplicationSupportDirectory()>/debug/session.bin` (AES-256-GCM,
+key `debuglog.aead_key.v1` — distinct from the crash key so resetting
+one never wipes the other), auto-stops and erases after 24h, and is
+byte-capped at 2 MB (oldest-first prune). A persistent on-screen
+banner means it is never silently on. An always-on in-memory
+breadcrumb ring (never persisted on its own) is folded into a crash
+report if one fires.
+
+**Write-time discipline, not write-time scrubbing.** Unlike the crash
+path (whose trace is arbitrary, so it is scrubbed before write), the
+session log is structured by construction: the logging API accepts an
+enumerated `BreadcrumbEvent` plus a relationship's **opaque id**, with
+no path that accepts a label or a free-form string. No secret or
+contact name enters the file in the first place, so the at-rest file
+is relationship-id-pseudonymous. Running `LogScrubber` at write time
+would shred those ids (they are 32-hex) and is therefore deliberately
+omitted; the public-facing scrub runs at export.
+
+**Export scrubber (the public-facing leak surface).** Debug logs go
+to a public GitHub issue, the OS share sheet, or the clipboard, so
+before anything leaves the device `DebugLogExportScrubber`
+(`lib/core/logging/debug_log_export_scrubber.dart`) runs a four-step
+pipeline whose order is load-bearing:
+
+| Step | Action | Why this position |
+|---|---|---|
+| 1. map ids | each 32-hex `Relationship.id` → stable `<peer-N>` | before the secret scrub, else the hex id is redacted and `<peer-N>` correlation is lost |
+| 2. secret scrub | `LogScrubber.scrub` (the §3.6 layer-2 module) | before the label sweep, else a label substitution fragments a secret below threshold |
+| 3. label sweep | each known label → its same `<peer-N>` | on already-secret-free text, so a BIP-39-word / `tp1`-ish / base64-substring label cannot break secret detection |
+| 4. PII sweep | email + phone | defense in depth |
+
+A relationship's id and label collapse to one stable `<peer-N>`
+token, so a maintainer can follow one contact through the log without
+learning who it is. The label matcher uses escaped-literal matching
+(labels are free text and routinely contain regex metacharacters),
+word-boundary guards (`Mom's` redacts but `MomCare` does not),
+whitespace-flex, and NFC + case-insensitive matching. `LabelPolicy`
+rejects, at contact creation, any label that is itself
+`signet:tp1:`-shaped or pure ≥16-hex, keeping every label on the
+pseudonymization path.
+
+**Residual.** A colloquial / partial / accent-stripped contact name
+the user hand-types (e.g. `Jose` for a `José` contact) is not caught
+by the exact-match backstop. Primary defense is the write-time
+discipline (no label ever enters the log automatically); additionally
+the export sheet warns the user not to type contact names into the
+free-text issue description, which is a separate field that is **not**
+scrubbed.
+
+**Zero-network preserved.** As in §3.6, the "File a GitHub issue"
+path hands off to the OS browser via `url_launcher`; no in-process
+network call, no `INTERNET` permission.
+
 ## 4. Platform trust assumptions
 
 Signet's security properties assume the following from the OS:
@@ -518,6 +589,20 @@ Suggested scope for an external audit (Cure53-class firm or similar):
      `INTERNET` after the log-shipping feature ships — the OS-browser
      handoff via `url_launcher` is the only network path, and it
      runs out-of-process.
+10. **Debug-log shipping pipeline (§3.7).** Audit the opt-in
+   `DebugSession` + `DebugLogExportScrubber`:
+   - Export-scrubber order (id-map → secret-scrub → label-sweep →
+     PII) against an adversarial corpus. A label that is a
+     base64 / BIP-39 / `signet:tp1:` substring of a secret on the
+     same line must not let the secret leak; every known label
+     (incl. regex-metacharacter, possessive, whitespace-split, and
+     Unicode forms) must collapse to its `<peer-N>` token.
+   - `DebugSession` at-rest: the distinct `debuglog.aead_key.v1` key,
+     24h auto-expiry, 2 MB oldest-first prune, no plaintext id/secret
+     leak, and that the structured logging API admits no label or
+     free-form path (the write-time discipline the at-rest model
+     depends on).
+   - Confirm `AndroidManifest.xml` still does NOT declare `INTERNET`.
 
 ## 9. Document freshness
 
@@ -527,6 +612,14 @@ a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
 
+- 2026-06-12 · Phase 8 — opt-in debug logging added. A₁₀ extended to
+  cover the debug `session.bin` artifact (present only while opt-in
+  logging is active). New §3.7 covers the opt-in retention model, the
+  write-time-discipline at-rest guarantee (structured events + opaque
+  ids, no write-time `LogScrubber`), and the export scrubber's
+  four-step pipeline (id-map → secret-scrub → label-sweep → PII) with
+  `<peer-N>` pseudonymization. Audit scope item #10 added. See
+  `.devloop/spikes/debug-log-export.md`.
 - 2026-04-22 · Phase 14 — A₃ reframed from "pre-recorded video puppet"
   to "AI-capable, secret-less video attacker." Liveness flow is now
   secret-derived via `TotpWords.deriveLivenessAction` (HKDF info
