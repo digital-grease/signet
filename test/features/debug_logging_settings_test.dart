@@ -12,6 +12,7 @@ import 'package:signet/core/logging/debug_session.dart';
 import 'package:signet/core/prefs/app_prefs.dart';
 import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
+import 'package:signet/features/home/home_screen.dart';
 import 'package:signet/features/settings/debug_logging_controller.dart';
 import 'package:signet/features/settings/settings_screen.dart';
 
@@ -138,6 +139,46 @@ void main() {
       expect(find.text('EXPORT DEBUG LOGS'), findsOneWidget);
       expect(find.text('STOP & WIPE'), findsOneWidget);
       expect(find.text('ENABLE DEBUG LOGGING'), findsNothing);
+    });
+  });
+
+  group('Home recording indicator', () {
+    testWidgets('banner hidden when not recording', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('signet_home_off_');
+      addTearDown(() {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            secureStoreProvider.overrideWithValue(FakeSecureStore()),
+            debugLogProvider.overrideWithValue(_wiredDebugLog(dir)),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('DEBUG LOGGING ON'), findsNothing);
+    });
+
+    testWidgets('banner shown while a session is recording', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('signet_home_on_');
+      addTearDown(() {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+      final debugLog = _wiredDebugLog(dir);
+      await tester.runAsync(() => debugLog.session!.start());
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            secureStoreProvider.overrideWithValue(FakeSecureStore()),
+            debugLogProvider.overrideWithValue(debugLog),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('DEBUG LOGGING ON'), findsOneWidget);
     });
   });
 }

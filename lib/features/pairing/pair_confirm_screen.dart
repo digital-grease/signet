@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/pair_role.dart';
+import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets/big_button.dart';
@@ -59,6 +60,9 @@ class PairConfirmScreen extends ConsumerWidget {
         relationship = Relationship.fresh(label: label, role: role);
         await store.saveRelationshipV2(relationship, sharedSecret: secret);
       }
+      ref
+          .read(debugLogProvider)
+          .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
       ref.read(pairingControllerProvider.notifier).reset();
       ref.invalidate(relationshipsProvider);
       if (!context.mounted) return;
