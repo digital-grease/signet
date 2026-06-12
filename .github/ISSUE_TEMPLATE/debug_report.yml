@@ -1,0 +1,90 @@
+name: Debug log
+description: Something works incorrectly but the app didn't crash, and you captured a debug log from the app
+title: "Debug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. This form is for **non-crash** bugs where you captured a debug log.
+
+        - For an app **crash** (with a stack trace), use the **Crash report** form instead.
+        - No debug log? The plain **Bug report** form is fine — a log just helps us reproduce.
+
+        How to capture one: in the app, open **Settings → Debug logging**, tap **Enable**, reproduce the
+        problem, then tap **Export debug logs**. Filing from there pre-fills most of these fields for you.
+
+        **Your log is scrubbed on your device before it leaves the phone** — cryptographic material
+        (shared secrets, verify codes, transport packages) is replaced with `[redacted:N]`, and your
+        contacts' names are replaced with anonymous tags like `<peer-1>`. ⚠️ The free-text box at the
+        bottom is **not** scrubbed — please don't type a contact's real name or nickname there.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Manufacturer + model (the in-app exporter fills this automatically)
+      placeholder: Google Pixel 7 Pro
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS version
+      description: Android or iOS major version. API level is fine if that's what you know.
+      placeholder: "14"
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Signet version
+      description: From Settings → About, or pre-filled by the in-app exporter
+      placeholder: 0.3.6 (30006)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Best guess of what part of the app this affects. The auto-labeler reads this to tag the issue.
+      options:
+        - pairing
+        - verify
+        - liveness
+        - backup
+        - scanner
+        - crypto
+        - ui
+        - storage
+        - other
+    validations:
+      required: false
+
+  - type: textarea
+    id: debug_log
+    attributes:
+      label: Debug log
+      description: |
+        Paste the exported debug log here. The in-app exporter pre-fills this if it fits; if the log
+        is too long for a URL, the exporter copies the full log to your clipboard (or use the Share
+        option) for you to paste. The log is scrubbed on-device — secrets become `[redacted:N]` and
+        contact names become `<peer-N>` tags before it reaches GitHub.
+      placeholder: |
+        === Signet Debug Log ===
+        ...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What went wrong?
+      description: "What did you see, and what did you expect? ⚠️ Don't include contact names or nicknames here — this box is not scrubbed."
+      placeholder: I tapped Verify on a paired contact and the words never appeared.
+    validations:
+      required: false

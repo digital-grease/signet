@@ -147,5 +147,27 @@ void main() {
     expect(await detector.readPendingReport(), isNull);
     expect(await detector.hasPendingReport(), isFalse);
   });
+
+  test('breadcrumb dump is folded into the report and scrubbed', () async {
+    final recorderWithCrumbs = CrashRecorder(
+      cipher: cipher,
+      crashesDir: tempDir,
+      breadcrumbDump: () =>
+          '+0ms app.start\n+12ms verify.result.fail '
+          'ref=0a1b2c3d4e5f60718293a4b5c6d7e8f9',
+    );
+    await recorderWithCrumbs.record(
+      error: const FormatException('boom'),
+      stack: null,
+      context: ctx,
+    );
+    final report = await detector.readPendingReport();
+    expect(report!.scrubbedTrace, contains('Breadcrumbs'));
+    expect(report.scrubbedTrace, contains('verify.result.fail'));
+    // The 32-hex ref id is redacted by LogScrubber (crash path has no
+    // pseudonymization step).
+    expect(report.scrubbedTrace,
+        isNot(contains('0a1b2c3d4e5f60718293a4b5c6d7e8f9')));
+  });
 }
 

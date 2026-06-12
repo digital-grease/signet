@@ -16,8 +16,14 @@
 class CrashReportUrlBuilder {
   const CrashReportUrlBuilder._();
 
-  static const String _baseUrl =
-      'https://github.com/digital-grease/signet/issues/new?template=crash_report.yml';
+  static const String _issuesNewBase =
+      'https://github.com/digital-grease/signet/issues/new';
+
+  /// Default issue template + body field (the crash path). The Phase-8
+  /// debug-log path overrides these via [build]'s named params, or uses the
+  /// [buildDebugLog] convenience wrapper.
+  static const String _defaultTemplate = 'crash_report.yml';
+  static const String _defaultBodyField = 'stack_trace';
 
   /// Conservative max URL length before GitHub starts 500-ing on long body
   /// params. Verified empirically on fauxx in 2024-Q4; re-verify pre-ship via
@@ -53,27 +59,29 @@ class CrashReportUrlBuilder {
     required String osVersion,
     required String appVersion,
     required String trace,
+    String template = _defaultTemplate,
+    String bodyField = _defaultBodyField,
     int maxUrlLength = defaultMaxUrlLength,
   }) {
-    final shortFieldsUrl = '$_baseUrl'
+    final shortFieldsUrl = '$_issuesNewBase?template=${_enc(template)}'
         '&device=${_enc(device)}'
         '&os_version=${_enc(osVersion)}'
         '&app_version=${_enc(appVersion)}';
 
-    const traceParamOverhead = '&stack_trace='.length;
+    final traceParamOverhead = '&$bodyField='.length;
     final remaining = maxUrlLength - shortFieldsUrl.length - traceParamOverhead;
 
     final encodedFullTrace = _enc(trace);
     if (encodedFullTrace.length <= remaining) {
       return CrashReportUrlEmbedded(
-        '$shortFieldsUrl&stack_trace=$encodedFullTrace',
+        '$shortFieldsUrl&$bodyField=$encodedFullTrace',
       );
     }
 
     // Truncate the raw trace, append the marker, encode, and verify it fits.
     // Work in raw chars (truncatedHeadChars) rather than encoded chars so the
     // truncation point is predictable for users — the visible content is the
-    // first N chars of their stack trace.
+    // first N chars of their trace.
     final headRaw = _take(trace, truncatedHeadChars) + _truncationMarker;
     final encodedHead = _enc(headRaw);
 
@@ -88,10 +96,31 @@ class CrashReportUrlBuilder {
       finalHead = _enc(_take(trace, safeRawLen) + _truncationMarker);
     }
     return CrashReportUrlTruncated(
-      url: '$shortFieldsUrl&stack_trace=$finalHead',
+      url: '$shortFieldsUrl&$bodyField=$finalHead',
       fullTrace: trace,
     );
   }
+
+  /// Convenience wrapper for the Phase-8 debug-log export path — pre-fills the
+  /// `debug_report.yml` form's `debug_log` field. Identical budget / truncation
+  /// / clipboard-fallback behavior as [build]; only the template and body-field
+  /// id differ.
+  static CrashReportUrl buildDebugLog({
+    required String device,
+    required String osVersion,
+    required String appVersion,
+    required String log,
+    int maxUrlLength = defaultMaxUrlLength,
+  }) =>
+      build(
+        device: device,
+        osVersion: osVersion,
+        appVersion: appVersion,
+        trace: log,
+        template: 'debug_report.yml',
+        bodyField: 'debug_log',
+        maxUrlLength: maxUrlLength,
+      );
 
   static String _enc(String value) => Uri.encodeQueryComponent(value);
 

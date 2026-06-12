@@ -29,9 +29,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Self-contained — no header, no version byte. Future-rev would add a
 /// version byte and bump [_keyStorageKey] to `crashlog.aead_key.v2`.
 class CrashlogCipher {
-  CrashlogCipher({FlutterSecureStorage? storage, Random? random})
-      : _storage = storage ?? _defaultStorage,
-        _random = random ?? Random.secure();
+  CrashlogCipher({
+    FlutterSecureStorage? storage,
+    Random? random,
+    String keyStorageKey = 'crashlog.aead_key.v1',
+  })  : _storage = storage ?? _defaultStorage,
+        _random = random ?? Random.secure(),
+        _keyStorageKey = keyStorageKey;
 
   // Match SecureStore's AndroidOptions so all signet keys share the same
   // preferences namespace and reset policy. Keystore-backed; not biometric.
@@ -42,13 +46,17 @@ class CrashlogCipher {
     ),
   );
 
-  static const String _keyStorageKey = 'crashlog.aead_key.v1';
   static const int _keyLength = 32; // 256 bits
   static const int _nonceLength = 12; // AES-GCM standard
   static const int _tagLength = 16;
 
   final FlutterSecureStorage _storage;
   final Random _random;
+
+  /// `flutter_secure_storage` key under which this cipher's AES key lives.
+  /// Defaults to the crash sentinel key; the Phase-8 debug session passes a
+  /// distinct `debuglog.aead_key.v1` so resetting one never wipes the other.
+  final String _keyStorageKey;
 
   /// Encrypt [plaintext]. Generates the per-cipher key on first call.
   /// The returned blob is self-contained — pass it back to [decrypt] later.
