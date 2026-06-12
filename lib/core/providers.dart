@@ -2,12 +2,21 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'logging/debug_log.dart';
 import 'models/relationship.dart';
 import 'storage/secure_store.dart';
 
 /// Singleton secure-storage wrapper. Override in tests to inject a mock.
 final Provider<SecureStore> secureStoreProvider = Provider<SecureStore>(
   (Ref ref) => SecureStore(),
+);
+
+/// App-wide breadcrumb logger (Phase 8). The default carries an in-memory ring
+/// only (no session), so any screen can call `ref.read(debugLogProvider).log(...)`
+/// safely in tests. `main()` overrides this with a [DebugLog] wired to an
+/// encrypted [DebugSession] so opt-in debug logging actually persists.
+final Provider<DebugLog> debugLogProvider = Provider<DebugLog>(
+  (Ref ref) => DebugLog(),
 );
 
 /// All currently paired relationships. In v0.1 single-slot territory this

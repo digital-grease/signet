@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/logging/debug_log_export_scrubber.dart';
+import '../../core/logging/report_context.dart';
 import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
+import 'debug_logging_controller.dart';
+import 'log_export_sheet.dart';
 
 /// Settings — deliberately tiny.
 ///
@@ -36,6 +40,8 @@ class SettingsScreen extends ConsumerWidget {
       data: (rels) => rels.length,
       orElse: () => 0,
     );
+    final debugState = ref.watch(debugLoggingProvider);
+    final debugAvailable = ref.read(debugLoggingProvider.notifier).available;
     return Scaffold(
       appBar: AppBar(title: const Text('SETTINGS')),
       body: SafeArea(
@@ -76,6 +82,47 @@ class SettingsScreen extends ConsumerWidget {
                           relationshipCount,
                         ),
               ),
+              if (debugAvailable) ...<Widget>[
+                const SizedBox(height: 12),
+                _Section(
+                  title: 'DEBUG LOGGING',
+                  body: debugState.active
+                      ? 'Recording app activity to an encrypted file on this '
+                          'device. It auto-erases '
+                          '${_formatExpiry(debugState.expiresAt)} (or tap '
+                          'Stop). Export it to send a bug report — secrets are '
+                          'removed and contacts become tags like <peer-1> '
+                          'before it leaves your phone.'
+                      : 'Off — nothing is recorded. If you hit a bug, turn '
+                          'this on, reproduce it, then export the log to send '
+                          'us. It never includes your secrets or your '
+                          "contacts' names.",
+                  actionLabel:
+                      debugState.active ? null : 'ENABLE DEBUG LOGGING',
+                  onAction: debugState.active
+                      ? null
+                      : () =>
+                          ref.read(debugLoggingProvider.notifier).enable(),
+                  child: debugState.active
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            OutlinedButton(
+                              onPressed: () => _startDebugExport(context, ref),
+                              child: const Text('EXPORT DEBUG LOGS'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              onPressed: () => ref
+                                  .read(debugLoggingProvider.notifier)
+                                  .stop(),
+                              child: const Text('STOP & WIPE'),
+                            ),
+                          ],
+                        )
+                      : null,
+                ),
+              ],
               const SizedBox(height: 12),
               _Section(
                 title: 'GUIDED TOUR',
@@ -138,6 +185,41 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       unawaited(context.push('/inspect/export-bulk'));
     }
+  }
+
+  /// Decrypt the session log, run the export scrubber, then open the share
+  /// sheet. Gathers device context best-effort for the GitHub-issue pre-fill.
+  Future<void> _startDebugExport(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    ref.read(debugLoggingProvider.notifier).refresh();
+    final session = ref.read(debugLogProvider).session;
+    if (session == null) return;
+    final raw = await session.exportPlaintext();
+    if (raw.isEmpty) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('No debug log captured yet.')),
+      );
+      return;
+    }
+    final rels = await ref.read(secureStoreProvider).listRelationships();
+    final scrubbed = DebugLogExportScrubber.scrub(raw, rels);
+    final ctx = await gatherReportContext();
+    if (!context.mounted) return;
+    await showDebugLogExportSheet(
+      context,
+      scrubbedLog: scrubbed,
+      device: ctx.device,
+      osVersion: ctx.osVersion,
+      appVersion: ctx.appVersion,
+    );
+  }
+
+  String _formatExpiry(DateTime? at) {
+    if (at == null) return 'in 24h';
+    final l = at.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'at ${two(l.hour)}:${two(l.minute)} on '
+        '${l.year}-${two(l.month)}-${two(l.day)}';
   }
 }
 

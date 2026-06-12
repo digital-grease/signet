@@ -11,11 +11,15 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/logging/breadcrumb.dart';
 import 'core/logging/crash_detector.dart';
 import 'core/logging/crash_recorder.dart';
 import 'core/logging/crashlog_cipher.dart';
+import 'core/logging/debug_log.dart';
+import 'core/logging/debug_session.dart';
 import 'core/prefs/app_prefs.dart';
 import 'core/prefs/settings_controller.dart';
+import 'core/providers.dart';
 import 'core/storage/secure_store.dart';
 import 'dev/mock_contacts.dart';
 
@@ -44,8 +48,24 @@ Future<void> main() async {
     final supportDir = await getApplicationSupportDirectory();
     final crashesDir = Directory('${supportDir.path}/crashes');
     final detector = CrashDetector(cipher: cipher, crashesDir: crashesDir);
-    recorder = CrashRecorder(cipher: cipher, crashesDir: crashesDir);
+
+    // ---- Debug logging plumbing (Phase 8, opt-in) ----
+    // Distinct AES key from the crash sentinel so resetting one never wipes
+    // the other. restore() resumes an in-flight session across a relaunch.
+    final debugCipher =
+        CrashlogCipher(keyStorageKey: 'debuglog.aead_key.v1');
+    final debugDir = Directory('${supportDir.path}/debug');
+    final debugSession = DebugSession(cipher: debugCipher, debugDir: debugDir);
+    await debugSession.restore();
+    final debugLog = DebugLog(session: debugSession);
+
+    recorder = CrashRecorder(
+      cipher: cipher,
+      crashesDir: crashesDir,
+      breadcrumbDump: () => debugLog.breadcrumbDump(),
+    );
     crashContext = await _buildCrashContext();
+    debugLog.log(BreadcrumbEvent.appStart);
 
     // Two of the three error boundaries (the third is the surrounding
     // runZonedGuarded). All three funnel into recorder.record() so the
@@ -84,6 +104,7 @@ Future<void> main() async {
       ProviderScope(
         overrides: [
           appPrefsProvider.overrideWithValue(prefs),
+          debugLogProvider.overrideWithValue(debugLog),
         ],
         child: SignetApp(
           prefs: prefs,
