@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../pairing/pairing_controller.dart';
+import '../settings/debug_logging_controller.dart';
 
 /// Home — "operator" layout, multi-peer capable (Phase 10.4).
 ///
@@ -315,6 +316,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final relationshipsAsync = ref.watch(relationshipsProvider);
+    final debugActive = ref.watch(debugLoggingProvider).active;
 
     return Scaffold(
       appBar: AppBar(
@@ -383,6 +385,12 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              if (debugActive) ...<Widget>[
+                _DebugRecordingBanner(
+                  onTap: () => context.push('/settings'),
+                ),
+                const SizedBox(height: 12),
+              ],
               const Align(
                 alignment: Alignment.centerRight,
                 child: _StatusChip(
@@ -421,6 +429,54 @@ class HomeScreen extends ConsumerWidget {
                 label: const Text('PAIR'),
               ),
         orElse: () => null,
+      ),
+    );
+  }
+}
+
+/// Persistent "recording" indicator shown on Home while an opt-in debug
+/// session is active — so debug logging is never silently on. Tapping it
+/// jumps to Settings to export or stop.
+class _DebugRecordingBanner extends StatelessWidget {
+  const _DebugRecordingBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      button: true,
+      label: 'Debug logging is on. Double tap to manage in Settings.',
+      child: Material(
+        color: scheme.errorContainer,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.fiber_manual_record, size: 14, color: scheme.error),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'DEBUG LOGGING ON — recording app activity',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+                Icon(Icons.chevron_right,
+                    size: 18, color: scheme.onErrorContainer),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

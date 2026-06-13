@@ -1,0 +1,7 @@
+v0.3.6
+
+New: Opt-in Debug Logging (Settings). Off by default. If you hit a
+bug, turn it on, reproduce it, then Export to send us a diagnostic
+log. Secrets are removed and your contacts' names become anonymous
+tags like <peer-1> before anything leaves your phone. It auto-erases
+after 24 hours, and a banner shows whenever it's recording.

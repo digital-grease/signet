@@ -123,6 +123,15 @@ Stated for clarity, in case any of these are surprising:
   will offer to open a pre-filled GitHub issue with the trace; you
   see and can edit everything before you submit. If you decline,
   nothing leaves the device.
+- **No automatic debug logging.** Signet keeps no behavioral logs
+  unless you turn on Debug Logging in Settings yourself. When you do,
+  app-activity diagnostics (never your words, your secrets, or your
+  contacts' names) are recorded to a file encrypted at rest under a
+  key in your device's secure enclave. You choose if and when to
+  export it; before it leaves the device it is scrubbed of secrets,
+  and your contacts' names are replaced with anonymous tags like
+  `<peer-1>`. It auto-stops and erases after 24 hours, or when you tap
+  Stop. If you never turn it on, nothing is recorded.
 - **No remote kill switch.** Signet cannot disable itself on your
   device. We couldn't push a kill even if we wanted to — there's
   no server connection to push over.

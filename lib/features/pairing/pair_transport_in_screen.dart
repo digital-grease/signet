@@ -7,6 +7,8 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
+import '../../core/logging/breadcrumb.dart';
+import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets/secure_screen.dart';
@@ -140,6 +142,11 @@ class _PairTransportInScreenState
       setState(() => _unlockError = 'Give this contact a name.');
       return;
     }
+    final labelReason = LabelPolicy.rejectionReason(label);
+    if (labelReason != null) {
+      setState(() => _unlockError = labelReason);
+      return;
+    }
     setState(() => _committing = true);
     try {
       final role = PairRole.assign(
@@ -151,6 +158,9 @@ class _PairTransportInScreenState
             relationship,
             sharedSecret: unlocked.totpSecret,
           );
+      ref
+          .read(debugLogProvider)
+          .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
       ref.invalidate(relationshipsProvider);
       if (!mounted) return;
       context.go('/pair/complete/${relationship.id}');

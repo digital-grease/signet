@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/big_button.dart';
+import '../../core/models/label_policy.dart';
 import 'pairing_controller.dart';
 
 /// Step 1 of the pair flow: ask who this person is and persist the label
@@ -32,6 +33,11 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
     final label = _label.text.trim();
     if (label.isEmpty) {
       setState(() => _error = 'Please enter a name for this contact.');
+      return;
+    }
+    final reason = LabelPolicy.rejectionReason(label);
+    if (reason != null) {
+      setState(() => _error = reason);
       return;
     }
     ref.read(pairingControllerProvider.notifier).setLabel(label);

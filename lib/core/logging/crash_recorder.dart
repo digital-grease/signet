@@ -95,8 +95,10 @@ class CrashRecorder {
     required this.crashesDir,
     DateTime Function()? now,
     Duration cooldown = const Duration(hours: 24),
+    String Function()? breadcrumbDump,
   })  : _now = now ?? (() => DateTime.now().toUtc()),
-        _cooldown = cooldown;
+        _cooldown = cooldown,
+        _breadcrumbDump = breadcrumbDump;
 
   final CrashlogCipher cipher;
 
@@ -106,6 +108,12 @@ class CrashRecorder {
 
   final DateTime Function() _now;
   final Duration _cooldown;
+
+  /// Optional source of the in-memory breadcrumb dump (Phase 8). When wired,
+  /// the lead-up to the crash is appended beneath the trace, then the whole
+  /// thing is scrubbed together — so breadcrumb ids/labels get the same
+  /// `LogScrubber` treatment as the trace.
+  final String Function()? _breadcrumbDump;
 
   /// Filename for the (single) pending-crash sentinel.
   static const String sentinelFileName = 'last.bin';
@@ -147,6 +155,17 @@ class CrashRecorder {
     final rawTrace = StringBuffer()
       ..writeln(error.toString())
       ..writeln(stack?.toString() ?? '<no stack>');
+    final crumbs = _breadcrumbDump?.call();
+    if (crumbs != null && crumbs.isNotEmpty) {
+      rawTrace
+        ..writeln()
+        ..writeln('=== Breadcrumbs (most recent last) ===')
+        ..writeln(crumbs);
+    }
+    // Scrub trace + breadcrumbs together: the crash path has no
+    // pseudonymization step, so any breadcrumb ref id is redacted to
+    // `[redacted:N]` by LogScrubber (acceptable — crash context doesn't need
+    // peer correlation).
     final scrubbed = LogScrubber.scrub(rawTrace.toString());
 
     final report = CrashReport(

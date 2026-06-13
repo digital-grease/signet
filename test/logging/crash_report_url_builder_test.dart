@@ -211,4 +211,47 @@ void main() {
       expect(result, isA<CrashReportUrlEmbedded>());
     });
   });
+
+  group('CrashReportUrlBuilder.buildDebugLog — Phase 8 debug path', () {
+    test('targets debug_report.yml with a debug_log body field', () {
+      final result = CrashReportUrlBuilder.buildDebugLog(
+        device: 'Pixel 8',
+        osVersion: '14',
+        appVersion: '0.3.6 (30006)',
+        log: '+0ms app.start\n+12ms verify.result.fail ref=<peer-1>',
+      );
+      final params = Uri.parse(result.url).queryParameters;
+      expect(params['template'], equals('debug_report.yml'));
+      expect(params['debug_log'], contains('verify.result.fail'));
+      expect(params.containsKey('stack_trace'), isFalse);
+      expect(params['device'], equals('Pixel 8'));
+      expect(params['app_version'], equals('0.3.6 (30006)'));
+    });
+
+    test('long log truncates with full log preserved for clipboard', () {
+      final result = CrashReportUrlBuilder.buildDebugLog(
+        device: 'Pixel 8',
+        osVersion: '14',
+        appVersion: '0.3.6',
+        log: 'L' * 10000,
+      );
+      expect(result, isA<CrashReportUrlTruncated>());
+      expect((result as CrashReportUrlTruncated).fullTrace.length, 10000);
+      expect(result.url.length,
+          lessThanOrEqualTo(CrashReportUrlBuilder.defaultMaxUrlLength));
+    });
+
+    test('crash path still defaults to crash_report.yml + stack_trace', () {
+      final result = CrashReportUrlBuilder.build(
+        device: 'Pixel 8',
+        osVersion: '14',
+        appVersion: '0.3.6',
+        trace: 'short',
+      );
+      final params = Uri.parse(result.url).queryParameters;
+      expect(params['template'], equals('crash_report.yml'));
+      expect(params['stack_trace'], equals('short'));
+      expect(params.containsKey('debug_log'), isFalse);
+    });
+  });
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/totp_words.dart';
+import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
@@ -175,6 +176,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         _relationship = relationship;
         _secret = secret;
       });
+      ref
+          .read(debugLogProvider)
+          .log(BreadcrumbEvent.verifyOpen, relationship: relationship);
       await _tick();
       _ticker = Timer.periodic(
         const Duration(seconds: 1),
@@ -242,6 +246,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     final secret = _secret;
     final relationship = _relationship;
     if (secret == null || relationship == null) return;
+    ref
+        .read(debugLogProvider)
+        .log(BreadcrumbEvent.verifyStart, relationship: relationship);
     final nowUnix = widget.unixTimeSecondsProvider();
     // Verify against the COUNTERPARTY's role — the words the other device
     // would emit. Using our own role here would accept our own displayed
@@ -253,6 +260,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       senderRole: relationship.role.other,
     );
     if (!mounted) return;
+    ref.read(debugLogProvider).log(
+          ok
+              ? BreadcrumbEvent.verifyResultPass
+              : BreadcrumbEvent.verifyResultFail,
+          relationship: relationship,
+        );
     final wordsStatus =
         ok ? _VerifyStatus.verified : _VerifyStatus.notVerified;
     setState(() {

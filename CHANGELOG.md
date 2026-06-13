@@ -5,6 +5,48 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.3.6] — 2026-06-12
+
+Opt-in debug logging: capture and export a scrubbed activity log to
+help us fix non-crash bugs, with your contacts' names replaced by
+anonymous tags before anything leaves your phone.
+
+### Added
+- **Opt-in debug logging.** Off by default. Turn it on in
+  Settings → Debug Logging, reproduce a bug, then Export to file a
+  pre-filled GitHub Issue, share, or copy. Activity is recorded to an
+  AES-256-GCM file (key in the Android Keystore / iOS Keychain),
+  auto-erases after 24 hours or when you tap Stop, and a Home banner
+  shows whenever it's on. The log never contains your secrets or your
+  contacts' names — it's scrubbed on-device before export, with
+  contacts replaced by anonymous tags like `<peer-1>` so a maintainer
+  can follow one contact through a log without learning who it is.
+  Design + threat model in `docs/THREAT_MODEL.md` §3.7 and
+  `.devloop/spikes/debug-log-export.md`.
+- Crash reports now carry a short breadcrumb trail of the lead-up
+  events, scrubbed alongside the trace.
+
+### Changed
+- A contact name that looks like Signet data (a `signet:tp1:` package
+  or a long hex string) is rejected at pairing time, so a label can
+  never be mistaken for a secret.
+- `PRIVACY.md` gains a "No automatic debug logging" clause;
+  `docs/THREAT_MODEL.md` adds §3.7 and audit-scope item #10.
+
+## [0.3.5] — 2026-05-25
+
+About-screen version fix + privacy-policy clarification.
+
+### Fixed
+- About screen now shows the actual installed version, instead of a
+  hardcoded `v0.2.0-alpha` string that never got bumped through
+  several releases.
+
+### Changed
+- Privacy policy updated to accurately describe the in-app
+  crash-report flow added in v0.3.4 — crash data still stays on your
+  phone until you tap "Send".
+
 ## [0.3.4] — 2026-05-22
 
 In-app crash reporter (one-tap file a pre-filled GitHub Issue with a
