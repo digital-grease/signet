@@ -85,7 +85,7 @@ dependencies:
   # default Xcode doesn't yet ship. v11.x supplies the same fields
   # we consume (manufacturer/model/version) and builds clean on the
   # runner. Bump back to ^12 once macos-latest defaults to Xcode 16+.
-  device_info_plus: ^11.0.0
+  device_info_plus: ^13.0.0
 
 dev_dependencies:
   flutter_test:
