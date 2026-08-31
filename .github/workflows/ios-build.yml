@@ -42,7 +42,7 @@ jobs:
           cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
 
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cocoapods/repos
           key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
