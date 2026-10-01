@@ -11,6 +11,7 @@ import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/features/verify/verify_screen.dart';
 import 'package:signet/features/verify/word_input.dart';
+import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/widgets/words_display.dart';
 
 import '../support/fake_secure_store.dart';
@@ -20,7 +21,7 @@ Widget wrap({required Widget child, required FakeSecureStore store}) {
     overrides: [
       secureStoreProvider.overrideWithValue(store),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: child),
   );
 }
 
@@ -50,7 +51,7 @@ Widget wrapWithRouter({
   );
   return ProviderScope(
     overrides: [secureStoreProvider.overrideWithValue(store)],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(localizationsDelegates: AppLocalizations.localizationsDelegates, routerConfig: router),
   );
 }
 

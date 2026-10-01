@@ -10,6 +10,7 @@ import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/words_display.dart';
 import 'word_input.dart';
@@ -333,7 +334,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('VERIFY'),
+          title: Text(AppLocalizations.of(context).verifyTitle),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.go('/'),
@@ -349,7 +350,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
   Widget _buildBody(BuildContext context) {
     if (_loadError != null) {
       return _VerifyError(
-        message: 'Could not read your paired contact.',
+        message: AppLocalizations.of(context).verifyLoadError,
         detail: _loadError.toString(),
         onBack: () => context.go('/'),
       );
@@ -371,9 +372,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Align(
+          Align(
             alignment: Alignment.centerRight,
-            child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+            child: _StatusChip(
+              label: AppLocalizations.of(context).commonOfflineFreeChip,
+              tone: _Tone.ok,
+            ),
           ),
           const SizedBox(height: 16),
           _VideoModeToggle(
@@ -381,10 +385,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             onChanged: _toggleVideoMode,
           ),
           const SizedBox(height: 16),
-          const _SectionHeader('CHALLENGE'),
+          _SectionHeader(
+            AppLocalizations.of(context).verifySectionChallenge,
+          ),
           const SizedBox(height: 6),
           Text(
-            'Ask ${relationship.label} for their 4 words.',
+            AppLocalizations.of(context)
+                .verifyAskForWordsHeading(relationship.label),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
@@ -393,7 +400,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            'Type what you hear. Tap a suggestion to fill a slot.',
+            AppLocalizations.of(context).verifyTypeInstruction,
             style: TextStyle(
               fontSize: 13,
               color: scheme.onSurfaceVariant,
@@ -414,7 +421,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             ),
             const SizedBox(height: 20),
           ],
-          const _SectionHeader('INPUT'),
+          _SectionHeader(
+            AppLocalizations.of(context).verifySectionInput,
+          ),
           const SizedBox(height: 8),
           WordInput(
             onSubmit: _handleSubmit,
@@ -443,7 +452,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           Divider(color: scheme.outlineVariant),
           const SizedBox(height: 12),
           Text(
-            'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX',
+            AppLocalizations.of(context).commonAirplaneFooter,
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 10,
@@ -465,6 +474,7 @@ class _ResultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOk = result.isOverallVerified;
 
@@ -480,9 +490,10 @@ class _ResultBanner extends StatelessWidget {
         ? (isDark ? SignetTokens.okFg : SignetTokens.okFgL)
         : (isDark ? SignetTokens.failFg : SignetTokens.failFgL);
     final accent = isOk ? SignetTokens.ok : SignetTokens.fail;
-    final statusCode = isOk ? 'STATUS // 200 OK' : 'STATUS // 403 MISMATCH';
-    final headline = isOk ? 'VERIFIED' : 'NOT VERIFIED — BE SUSPICIOUS';
-    final subline = _sublineFor(result, isOk);
+    final statusCode = isOk ? l10n.verifyStatusOk : l10n.verifyStatusFail;
+    final headline =
+        isOk ? l10n.verifyBannerVerified : l10n.verifyBannerNotVerified;
+    final subline = _sublineFor(result, isOk, l10n);
 
     return Semantics(
       liveRegion: true,
@@ -535,7 +546,7 @@ class _ResultBanner extends StatelessWidget {
                       foregroundColor: accent,
                       side: BorderSide(color: accent, width: 1),
                     ),
-                    child: const Text('WHAT SHOULD I DO?'),
+                    child: Text(l10n.verifyWhatShouldIDoButton),
                   );
                 }),
               ],
@@ -546,26 +557,29 @@ class _ResultBanner extends StatelessWidget {
     );
   }
 
-  static String _sublineFor(_VerifyResult result, bool isOk) {
+  static String _sublineFor(
+    _VerifyResult result,
+    bool isOk,
+    AppLocalizations l10n,
+  ) {
     if (isOk) {
       if (result.actionRequired) {
-        return 'Words matched AND you saw the expected physical action. '
-            'You can trust this call.';
+        return l10n.verifySublineVerifiedWithAction;
       }
-      return 'The words match. You can trust this call.';
+      return l10n.verifySublineVerified;
     }
     if (result.wordsStatus == _VerifyStatus.notVerified) {
-      return 'The words did not match. Someone may be impersonating them.';
+      return l10n.verifySublineWordsMismatch;
     }
     // Words verified but action missed — only reachable in video mode.
-    return 'Words matched but the physical action did not. Be suspicious '
-        'and treat this as a failed verify.';
+    return l10n.verifySublineActionMismatch;
   }
 
   static Future<void> _showEducation(
     BuildContext context,
     String label,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     await showModalBottomSheet<void>(
       context: context,
@@ -582,7 +596,7 @@ class _ResultBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 Text(
-                  'IF VERIFY FAILS //',
+                  l10n.verifyFailHeader,
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 11,
@@ -593,7 +607,7 @@ class _ResultBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Something is wrong with this call.',
+                  l10n.verifyFailHeading,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
@@ -601,38 +615,26 @@ class _ResultBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const _EduStep(
+                _EduStep(
                   number: '01',
-                  text: 'Hang up. Do not explain why. Do not argue. Do '
-                      "not agree to anything they're asking for.",
+                  text: l10n.verifyFailStep1,
                 ),
                 _EduStep(
                   number: '02',
-                  text: 'Call $label back on a number you have used '
-                      'before — saved in your contacts, written down, '
-                      'something you know. Do not use a number the '
-                      'caller gave you.',
+                  text: l10n.verifyFailStep2(label),
                 ),
                 _EduStep(
                   number: '03',
-                  text: 'If $label does not answer, call a family '
-                      'member or someone close who can physically '
-                      'check on them. A real $label will never be '
-                      'upset that you checked.',
+                  text: l10n.verifyFailStep3(label),
                 ),
                 _EduStep(
                   number: '04',
-                  text: 'If you are unsure whether Signet itself is '
-                      'broken: go to the home screen, tap '
-                      '"SHOW BINDING PHRASE", and compare with '
-                      '$label on a channel you trust. If the '
-                      'phrases match, Signet is working correctly '
-                      'and the red banner means the call was fake.',
+                  text: l10n.verifyFailStep4(label),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => Navigator.of(sheetCtx).pop(),
-                  child: const Text('GOT IT'),
+                  child: Text(l10n.commonGotIt),
                 ),
               ],
             ),
@@ -695,6 +697,7 @@ class _VideoModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     // MergeSemantics folds the native Switch node into the outer
     // toggled/label container so TalkBack / VoiceOver announces the row
@@ -703,8 +706,8 @@ class _VideoModeToggle extends StatelessWidget {
     // between them to find the tap target.
     return MergeSemantics(
       child: Semantics(
-        label: 'Video call mode',
-        hint: 'Turn on to also check a physical action on video.',
+        label: l10n.verifyVideoModeSemanticsLabel,
+        hint: l10n.verifyVideoModeSemanticsHint,
         toggled: value,
         child: Material(
           color: scheme.surfaceContainerHighest,
@@ -726,7 +729,7 @@ class _VideoModeToggle extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'VIDEO CALL //',
+                          l10n.verifyVideoModeHeader,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
@@ -740,8 +743,8 @@ class _VideoModeToggle extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           value
-                              ? 'Request a physical action too. Defeats deepfakes.'
-                              : 'Turn on to also check a physical action.',
+                              ? l10n.verifyVideoModeOnText
+                              : l10n.verifyVideoModeOffText,
                           style: TextStyle(
                             fontSize: 13,
                             color: scheme.onSurface,
@@ -775,6 +778,7 @@ class _ExpectedActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     // liveRegion: true so TalkBack / VoiceOver re-announces the expected
     // action when it changes on window rollover. Without it, a blind user
@@ -783,7 +787,10 @@ class _ExpectedActionRow extends StatelessWidget {
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Watch for: $label should ${action.humanReadable}.',
+      label: l10n.verifyExpectedActionSemantics(
+        label,
+        action.humanReadable,
+      ),
       child: ExcludeSemantics(
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
@@ -795,7 +802,7 @@ class _ExpectedActionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'WATCH FOR //',
+                l10n.verifyWatchForHeader,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 10,
@@ -806,7 +813,7 @@ class _ExpectedActionRow extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '$label should: ${action.humanReadable}.',
+                l10n.verifyExpectedActionText(label, action.humanReadable),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -839,6 +846,7 @@ class _ActionJudgmentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     // liveRegion: true so the "Words ✅. Did you see …" prompt is
     // announced the moment it replaces the words-input once the
@@ -857,7 +865,7 @@ class _ActionJudgmentPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              'ACTION //',
+              l10n.verifyActionHeader,
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 10,
@@ -868,7 +876,7 @@ class _ActionJudgmentPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Words ✅. Did you see $label: ${action.humanReadable}?',
+              l10n.verifyActionJudgmentPrompt(label, action.humanReadable),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -886,14 +894,14 @@ class _ActionJudgmentPanel extends StatelessWidget {
                       foregroundColor: scheme.error,
                       side: BorderSide(color: scheme.error),
                     ),
-                    child: const Text('DID NOT SEE'),
+                    child: Text(l10n.verifyActionNotSeenButton),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
                     onPressed: onSaw,
-                    child: const Text('SAW IT'),
+                    child: Text(l10n.verifyActionSeenButton),
                   ),
                 ),
               ],
@@ -928,6 +936,7 @@ class _OwnWordsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
       color: scheme.surfaceContainerHighest,
@@ -949,7 +958,7 @@ class _OwnWordsSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'Show my 4 words',
+                          l10n.verifyShowMyWords,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -958,7 +967,7 @@ class _OwnWordsSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'If $label wants to verify you, read these.',
+                          l10n.verifyShowMyWordsSubtitle(label),
                           style: TextStyle(
                             fontSize: 12,
                             color: scheme.onSurfaceVariant,
@@ -968,7 +977,7 @@ class _OwnWordsSection extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'FLAG_SECURE',
+                    l10n.verifyFlagSecureBadge,
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10,
@@ -997,7 +1006,9 @@ class _OwnWordsSection extends StatelessWidget {
                         if (videoModeAction != null) ...<Widget>[
                           const SizedBox(height: 10),
                           Text(
-                            '...while ${_gerundFor(videoModeAction!)}.',
+                            l10n.verifyOwnActionWhile(
+                              _gerundFor(videoModeAction!, l10n),
+                            ),
                             style: TextStyle(
                               fontSize: 14,
                               fontStyle: FontStyle.italic,
@@ -1020,24 +1031,24 @@ class _OwnWordsSection extends StatelessWidget {
   /// new action lands, add its gerund here and the test in
   /// `liveness_challenge_test.dart` will catch the omission via its
   /// "exactly 8 curated actions" assertion.
-  static String _gerundFor(LivenessAction action) {
+  static String _gerundFor(LivenessAction action, AppLocalizations l10n) {
     switch (action) {
       case LivenessAction.lookUp:
-        return 'looking up at the ceiling';
+        return l10n.verifyGerundLookUp;
       case LivenessAction.lookDown:
-        return 'looking down at the floor';
+        return l10n.verifyGerundLookDown;
       case LivenessAction.lookLeft:
-        return 'looking over your left shoulder';
+        return l10n.verifyGerundLookLeft;
       case LivenessAction.lookRight:
-        return 'looking over your right shoulder';
+        return l10n.verifyGerundLookRight;
       case LivenessAction.touchNose:
-        return 'touching the tip of your nose';
+        return l10n.verifyGerundTouchNose;
       case LivenessAction.touchForehead:
-        return 'touching your forehead';
+        return l10n.verifyGerundTouchForehead;
       case LivenessAction.touchLeftEar:
-        return 'touching your left ear';
+        return l10n.verifyGerundTouchLeftEar;
       case LivenessAction.touchRightEar:
-        return 'touching your right ear';
+        return l10n.verifyGerundTouchRightEar;
     }
   }
 }
@@ -1076,7 +1087,10 @@ class _VerifyError extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onBack, child: const Text('Back to home')),
+          FilledButton(
+            onPressed: onBack,
+            child: Text(AppLocalizations.of(context).verifyBackHomeButton),
+          ),
         ],
       ),
     );
@@ -1130,7 +1144,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

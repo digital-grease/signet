@@ -1,14 +1,21 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/core/crypto/challenge_response_grid.dart';
 import 'package:signet/features/inspect/cr_grid_pdf.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 void main() {
+  // PDF text is resolved from the arb catalog, not a widget tree, so the
+  // tests pin the English template strings.
+  final l10n = lookupAppLocalizations(const Locale('en'));
+
   test('CrGridPdf.build produces a non-empty PDF with a %PDF- header',
       () async {
     final grid = await ChallengeResponseGrid.derive(
       List<int>.generate(32, (i) => i + 1),
     );
     final bytes = await CrGridPdf.build(
+      l10n: l10n,
       peerLabel: 'Mom',
       grid: grid,
       generatedAt: DateTime.utc(2026, 4, 19),
@@ -24,11 +31,13 @@ void main() {
       List<int>.generate(32, (i) => i + 2),
     );
     final a = await CrGridPdf.build(
+      l10n: l10n,
       peerLabel: 'Alice',
       grid: grid,
       generatedAt: DateTime.utc(2026, 4, 19, 12, 0),
     );
     final b = await CrGridPdf.build(
+      l10n: l10n,
       peerLabel: 'Alice',
       grid: grid,
       generatedAt: DateTime.utc(2026, 4, 19, 12, 0),
@@ -49,6 +58,7 @@ void main() {
     );
     await expectLater(
       CrGridPdf.build(
+        l10n: l10n,
         peerLabel: 'Someone with a long-ish label that pushes layout',
         grid: grid,
         generatedAt: DateTime.utc(2026, 4, 19),

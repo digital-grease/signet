@@ -8,6 +8,7 @@ import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Bulk backup export — one bundle, one PAKE, every paired relationship.
@@ -59,6 +60,7 @@ class _BulkBackupExportScreenState
   Future<void> _handleGenerate() async {
     final rels = _relationships;
     if (rels == null || rels.isEmpty || _busy) return;
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _busy = true;
       _error = null;
@@ -78,7 +80,7 @@ class _BulkBackupExportScreenState
         ));
       }
       if (records.isEmpty) {
-        throw StateError('No relationships had retrievable secrets.');
+        throw StateError(l10n.bulkBackupExportNoSecretsError);
       }
       final pakeWords = TransportPackage.mintPakeWords();
       final wire = await TransportPackage.encodeBlk(
@@ -109,7 +111,9 @@ class _BulkBackupExportScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            _generated == null ? 'BACK UP EVERYTHING' : 'BULK BACKUP READY',
+            _generated == null
+                ? AppLocalizations.of(context).bulkBackupExportSetupTitle
+                : AppLocalizations.of(context).bulkBackupExportReadyTitle,
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
@@ -130,7 +134,10 @@ class _BulkBackupExportScreenState
     if (_error != null && _generated == null) {
       return Padding(
         padding: const EdgeInsets.all(24),
-        child: Text('Could not prepare backup: $_error'),
+        child: Text(
+          AppLocalizations.of(context)
+              .bulkBackupExportPrepareError(_error.toString()),
+        ),
       );
     }
     final rels = _relationships;
@@ -162,13 +169,14 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Nothing to back up yet.',
+            l10n.bulkBackupExportEmptyTitle,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -177,8 +185,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Pair with someone first, then come back here to create a '
-            'bulk backup.',
+            l10n.bulkBackupExportEmptyBody,
             style: TextStyle(
               fontSize: 13,
               color: scheme.onSurfaceVariant,
@@ -207,12 +214,12 @@ class _ReadyToGenerate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'Back up ${relationships.length} '
-          '${relationships.length == 1 ? 'relationship' : 'relationships'}',
+          l10n.bulkBackupExportReadyHeading(relationships.length),
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -221,9 +228,7 @@ class _ReadyToGenerate extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Every paired contact below goes into one encrypted file with '
-          'one 8-word PAKE. You store the file and the words separately, '
-          'then use them to bring every pairing across to a new phone.',
+          l10n.bulkBackupExportReadyBody,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -273,7 +278,8 @@ class _ReadyToGenerate extends StatelessWidget {
         const SizedBox(height: 20),
         FilledButton(
           onPressed: busy ? null : onGenerate,
-          child: Text(busy ? 'GENERATING…' : 'GENERATE BULK BACKUP'),
+          child: Text(
+              busy ? l10n.commonGenerating : l10n.bulkBackupExportGenerateButton),
         ),
       ],
     );
@@ -287,13 +293,12 @@ class _BulkBackupContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          '${generated.recordCount} '
-          '${generated.recordCount == 1 ? 'relationship' : 'relationships'} '
-          'backed up',
+          l10n.bulkBackupExportDoneHeading(generated.recordCount),
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -305,20 +310,14 @@ class _BulkBackupContent extends StatelessWidget {
           color: scheme.error,
           bg: scheme.errorContainer,
           fg: scheme.onErrorContainer,
-          headline: 'STORE THESE SEPARATELY //',
-          body:
-              'The PAKE secret and the backup package must live on '
-              'different physical artifacts. If someone finds both, they '
-              'can restore every pairing on their own phone. Paper in two '
-              'places (home + safety deposit box) is a reasonable start. '
-              'A password manager that syncs to a cloud is NOT.',
+          headline: l10n.commonStoreSeparatelyHeader,
+          body: l10n.bulkBackupExportStoreSeparatelyBody,
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('PAKE SECRET'),
+        _SectionHeader(l10n.commonPakeSecretHeader),
         const SizedBox(height: 6),
         Text(
-          'Write these 8 words somewhere safe. You will type them into '
-          'the new phone to unlock everything at once.',
+          l10n.bulkBackupExportWordsInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -376,23 +375,23 @@ class _BulkBackupContent extends StatelessWidget {
                   ClipboardData(text: generated.pakeWords.join(' ')),
                 );
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('PAKE words copied to clipboard'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content:
+                        Text(l10n.bulkBackupExportPakeCopiedSnackbar),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy PAKE'),
+              label: Text(l10n.bulkBackupExportCopyPakeButton),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        const _SectionHeader('BACKUP PACKAGE'),
+        _SectionHeader(l10n.commonBackupPackageHeader),
         const SizedBox(height: 6),
         Text(
-          'The whole set of pairings, encrypted with the 8 words above. '
-          'Share this via any channel — the words keep it sealed.',
+          l10n.bulkBackupExportPackageInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -416,20 +415,21 @@ class _BulkBackupContent extends StatelessWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 await Clipboard.setData(ClipboardData(text: generated.wire));
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Package copied to clipboard'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: Text(l10n.commonPackageCopiedSnackbar),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy package'),
+              label: Text(l10n.commonCopyPackage),
             ),
             TextButton.icon(
               onPressed: () async {
                 final bundle = BackupBundle.format(
-                  peerLabel:
-                      '${generated.recordCount} relationships (bulk)',
+                  peerLabel: l10n.bulkBackupExportShareLabel(
+                    generated.recordCount,
+                  ),
                   wire: generated.wire,
                   pakeWords: generated.pakeWords,
                   generatedAt: DateTime.now(),
@@ -437,13 +437,14 @@ class _BulkBackupContent extends StatelessWidget {
                 await SharePlus.instance.share(
                   ShareParams(
                     text: bundle,
-                    subject:
-                        'Signet bulk backup - ${generated.recordCount} peers',
+                    subject: l10n.bulkBackupExportShareSubject(
+                      generated.recordCount,
+                    ),
                   ),
                 );
               },
               icon: const Icon(Icons.ios_share),
-              label: const Text('Share package'),
+              label: Text(l10n.commonSharePackage),
             ),
           ],
         ),
@@ -452,17 +453,13 @@ class _BulkBackupContent extends StatelessWidget {
           color: scheme.secondary,
           bg: scheme.surfaceContainerHighest,
           fg: scheme.onSurface,
-          headline: 'REMEMBER //',
-          body:
-              'If this file AND the 8 words are ever found by someone '
-              'else, UNPAIR every relationship in it and re-pair in '
-              'person. The backup contains the same shared secrets your '
-              'current pairings use.',
+          headline: l10n.commonRememberHeader,
+          body: l10n.bulkBackupExportRememberBody,
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.go('/'),
-          child: const Text("I'VE SAVED IT"),
+          child: Text(l10n.commonIveSavedIt),
         ),
       ],
     );
@@ -523,7 +520,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

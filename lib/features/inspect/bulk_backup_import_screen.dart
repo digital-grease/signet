@@ -6,6 +6,7 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Per-record decision on how a bulk-restored relationship lands on this
@@ -202,7 +203,9 @@ class _BulkBackupImportScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            _summary == null ? 'BULK RESTORE' : 'RESTORED',
+            _summary == null
+                ? AppLocalizations.of(context).bulkBackupImportTitle
+                : AppLocalizations.of(context).bulkBackupImportDoneTitle,
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
@@ -223,7 +226,10 @@ class _BulkBackupImportScreenState
     if (_error != null) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: Text('Error: $_error'),
+        child: Text(
+          AppLocalizations.of(context)
+              .bulkBackupImportGenericError(_error.toString()),
+        ),
       );
     }
     final summary = _summary;
@@ -286,6 +292,7 @@ class _PreviewPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final includedCount = dispositions.values
         .where((d) => d != _Disposition.skip)
         .length;
@@ -293,8 +300,7 @@ class _PreviewPane extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'Restore ${records.length} '
-          '${records.length == 1 ? 'relationship' : 'relationships'}',
+          l10n.bulkBackupImportPreviewHeading(records.length),
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -304,10 +310,8 @@ class _PreviewPane extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           conflictIndexes.isEmpty
-              ? 'Tick the rows you want to restore. Every pairing below '
-                  'will come back with its original label and pair date.'
-              : 'Some of these labels are already paired on this phone. '
-                  'Choose what to do for each — default is skip.',
+              ? l10n.bulkBackupImportNoConflictBody
+              : l10n.bulkBackupImportConflictBody,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -328,7 +332,7 @@ class _PreviewPane extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'Restoring $committed of ${records.length}…',
+              l10n.bulkBackupImportProgressText(committed, records.length),
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 12,
@@ -340,16 +344,16 @@ class _PreviewPane extends StatelessWidget {
           onPressed: busy || includedCount == 0 ? null : onCommit,
           child: Text(
             busy
-                ? 'RESTORING…'
+                ? l10n.bulkBackupImportRestoringButton
                 : includedCount == 0
-                    ? 'NOTHING SELECTED'
-                    : 'RESTORE $includedCount',
+                    ? l10n.bulkBackupImportNothingSelectedButton
+                    : l10n.bulkBackupImportRestoreButton(includedCount),
           ),
         ),
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: busy ? null : () => context.go('/'),
-          child: const Text('CANCEL'),
+          child: Text(l10n.commonCancelCaps),
         ),
       ],
     );
@@ -374,6 +378,7 @@ class _RecordRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -401,7 +406,7 @@ class _RecordRow extends StatelessWidget {
                       border: Border.all(color: scheme.error),
                     ),
                     child: Text(
-                      'ALREADY PAIRED',
+                      l10n.bulkBackupImportAlreadyPairedChip,
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 9,
@@ -417,7 +422,9 @@ class _RecordRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      record.label.isEmpty ? '(no label)' : record.label,
+                      record.label.isEmpty
+                          ? l10n.bulkBackupImportNoLabel
+                          : record.label,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -426,8 +433,10 @@ class _RecordRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'ROLE ${record.role.wireName.toUpperCase()} · '
-                      'PAIRED ${_formatDate(record.pairedAt)}',
+                      l10n.bulkBackupImportRecordMeta(
+                        record.role.wireName.toUpperCase(),
+                        _formatDate(record.pairedAt),
+                      ),
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 10,
@@ -445,19 +454,19 @@ class _RecordRow extends StatelessWidget {
             _ConflictRadio(
               value: _Disposition.skip,
               group: disposition,
-              label: 'Skip — leave existing pairing alone',
+              label: l10n.bulkBackupImportSkipOption,
               onChanged: onChange,
             ),
             _ConflictRadio(
               value: _Disposition.rename,
               group: disposition,
-              label: 'Rename restored copy to "${record.label} (restored)"',
+              label: l10n.bulkBackupImportRenameOption(record.label),
               onChanged: onChange,
             ),
             _ConflictRadio(
               value: _Disposition.overwrite,
               group: disposition,
-              label: 'Overwrite existing pairing',
+              label: l10n.bulkBackupImportOverwriteOption,
               onChanged: onChange,
             ),
           ],
@@ -544,11 +553,12 @@ class _SuccessPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'Restore complete.',
+          l10n.bulkBackupImportCompleteHeading,
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -556,20 +566,25 @@ class _SuccessPane extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _SummaryRow(label: 'RESTORED //', value: summary.created),
+        _SummaryRow(
+            label: l10n.bulkBackupImportSummaryRestored, value: summary.created),
         if (summary.renamed > 0)
-          _SummaryRow(label: 'RENAMED //', value: summary.renamed),
+          _SummaryRow(
+              label: l10n.bulkBackupImportSummaryRenamed,
+              value: summary.renamed),
         if (summary.overwrote > 0)
-          _SummaryRow(label: 'OVERWROTE //', value: summary.overwrote),
+          _SummaryRow(
+              label: l10n.bulkBackupImportSummaryOverwrote,
+              value: summary.overwrote),
         if (summary.skipped > 0)
-          _SummaryRow(label: 'SKIPPED //', value: summary.skipped),
+          _SummaryRow(
+              label: l10n.bulkBackupImportSummarySkipped,
+              value: summary.skipped),
         const SizedBox(height: 20),
         Text(
           summary.created + summary.renamed + summary.overwrote == 0
-              ? 'Nothing was changed on this phone.'
-              : 'Each restored pairing uses the same shared secret as the '
-                  "old phone; their other side won't notice the restore "
-                  'unless they rekey.',
+              ? l10n.bulkBackupImportNothingChangedBody
+              : l10n.bulkBackupImportDoneBody,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -579,7 +594,7 @@ class _SuccessPane extends StatelessWidget {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.go('/'),
-          child: const Text('DONE'),
+          child: Text(l10n.commonDone),
         ),
       ],
     );

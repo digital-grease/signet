@@ -9,6 +9,7 @@ import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Paper-mnemonic export for lost-phone recovery. Mints a fresh 8-word
@@ -56,7 +57,10 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
           await store.getSharedSecretById(widget.relationshipId);
       if (!mounted) return;
       if (relationship == null || secret == null) {
-        setState(() => _error = StateError('Relationship not found.'));
+        setState(
+          () => _error = StateError(
+              AppLocalizations.of(context).commonRelationshipNotFound),
+        );
         return;
       }
       final pakeWords = TransportPackage.mintPakeWords();
@@ -87,7 +91,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('BACK UP TO PAPER'),
+          title: Text(AppLocalizations.of(context).backupExportTitle),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => context.go('/'),
@@ -101,11 +105,12 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_error != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text('Could not generate backup: $_error'),
+          child: Text(l10n.backupExportGenerateError(_error.toString())),
         ),
       );
     }
@@ -127,11 +132,12 @@ class _BackupContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'Back up ${generated.relationship.label}',
+          l10n.backupExportHeading(generated.relationship.label),
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -140,9 +146,7 @@ class _BackupContent extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Writing this down lets you restore this pairing on a new phone '
-          "if you lose this one. ${generated.relationship.label}'s phone "
-          "won't know anything changed.",
+          l10n.backupExportIntro(generated.relationship.label),
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -154,20 +158,14 @@ class _BackupContent extends StatelessWidget {
           color: scheme.error,
           bg: scheme.errorContainer,
           fg: scheme.onErrorContainer,
-          headline: 'STORE THESE SEPARATELY //',
-          body:
-              'The PAKE secret and the backup package must live on '
-              'different physical artifacts. If someone finds both, they '
-              'can restore this pairing on their own phone. Paper in two '
-              'places (home + safety deposit box) is a reasonable start. '
-              'A password manager that syncs to a cloud is NOT.',
+          headline: l10n.commonStoreSeparatelyHeader,
+          body: l10n.backupExportStoreSeparatelyBody,
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('PAKE SECRET'),
+        _SectionHeader(l10n.commonPakeSecretHeader),
         const SizedBox(height: 6),
         Text(
-          'Write these 8 words somewhere safe. You will type them into '
-          'the new phone to unlock the package.',
+          l10n.backupExportWordsInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -216,12 +214,10 @@ class _BackupContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('BACKUP PACKAGE'),
+        _SectionHeader(l10n.commonBackupPackageHeader),
         const SizedBox(height: 6),
         Text(
-          'Scan this QR on the new phone, or copy-paste the text below. '
-          'This is a different artifact from the PAKE secret above — do '
-          'not store them together.',
+          l10n.backupExportPackageInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -260,14 +256,15 @@ class _BackupContent extends StatelessWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 await Clipboard.setData(ClipboardData(text: generated.wire));
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Package copied to clipboard'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content:
+                        Text(l10n.commonPackageCopiedSnackbar),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy package'),
+              label: Text(l10n.commonCopyPackage),
             ),
             TextButton.icon(
               onPressed: () async {
@@ -284,13 +281,14 @@ class _BackupContent extends StatelessWidget {
                 await SharePlus.instance.share(
                   ShareParams(
                     text: bundle,
-                    subject:
-                        'Signet backup - ${generated.relationship.label}',
+                    subject: l10n.backupExportShareSubject(
+                      generated.relationship.label,
+                    ),
                   ),
                 );
               },
               icon: const Icon(Icons.ios_share),
-              label: const Text('Share package'),
+              label: Text(l10n.commonSharePackage),
             ),
           ],
         ),
@@ -299,17 +297,13 @@ class _BackupContent extends StatelessWidget {
           color: scheme.secondary,
           bg: scheme.surfaceContainerHighest,
           fg: scheme.onSurface,
-          headline: 'REMEMBER //',
-          body:
-              'If this paper is ever found by someone else, UNPAIR '
-              '${generated.relationship.label} immediately and re-pair '
-              'in person. The backup contains the same shared secret '
-              'your current pairing uses.',
+          headline: l10n.commonRememberHeader,
+          body: l10n.backupExportRememberBody(generated.relationship.label),
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.go('/'),
-          child: const Text("I'VE SAVED IT"),
+          child: Text(l10n.commonIveSavedIt),
         ),
       ],
     );
@@ -382,7 +376,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

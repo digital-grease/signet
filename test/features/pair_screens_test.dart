@@ -10,6 +10,7 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/features/pairing/pair_confirm_screen.dart';
 import 'package:signet/features/pairing/pair_start_screen.dart';
 import 'package:signet/features/pairing/pairing_controller.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
 
@@ -61,7 +62,7 @@ Widget _wrap({
     overrides: [
       secureStoreProvider.overrideWithValue(store ?? FakeSecureStore()),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(localizationsDelegates: AppLocalizations.localizationsDelegates, routerConfig: router),
   );
 }
 
@@ -114,6 +115,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             routerConfig: _routerFor(
               initialLocation: '/pair/confirm',
               screen: (_) => const PairConfirmScreen(),
@@ -146,6 +148,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             routerConfig: _routerFor(
               initialLocation: '/pair/confirm',
               screen: (_) => const PairConfirmScreen(),
@@ -215,6 +218,7 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
               routerConfig: _routerFor(
                 initialLocation: '/pair/confirm',
                 screen: (_) => const PairConfirmScreen(),

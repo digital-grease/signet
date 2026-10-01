@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/logging/crash_recorder.dart';
 import '../../core/logging/crash_report_url_builder.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Modal dialog shown on next launch after a crash is detected via
 /// [CrashDetector]. Three actions:
@@ -54,11 +55,12 @@ class CrashReportDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Semantics(
         liveRegion: true,
         child: Text(
-          'Signet had trouble',
+          l10n.crashReportTitle,
           style: TextStyle(
             color: theme.colorScheme.error,
             fontFamily: 'monospace',
@@ -70,27 +72,22 @@ class CrashReportDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text(
-              'The app crashed during your last session. Sending the '
-              'report helps us fix what happened.',
+            Text(
+              l10n.crashReportIntroBody,
             ),
             const SizedBox(height: 12),
             Text(
-              'The report contains:',
+              l10n.crashReportContainsHeading,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
-            const _Bullet('Your device + OS + app version'),
-            const _Bullet(
-              'A stack trace, with any cryptographic material (paired '
-              'secrets, verify codes, backup payloads) replaced with '
-              '[redacted:N] markers before it leaves your phone.',
-            ),
+            _Bullet(l10n.crashReportBulletDevice),
+            _Bullet(l10n.crashReportBulletStack),
             const SizedBox(height: 12),
             Text(
-              'Choose how to send it:',
+              l10n.crashReportChooseHeading,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -101,15 +98,15 @@ class CrashReportDialog extends StatelessWidget {
       actions: <Widget>[
         TextButton(
           onPressed: () => _onDismiss(context),
-          child: const Text('DISMISS'),
+          child: Text(l10n.crashReportDismissButton),
         ),
         TextButton(
           onPressed: () => _onCopyLog(context),
-          child: const Text('COPY LOG'),
+          child: Text(l10n.crashReportCopyLogButton),
         ),
         FilledButton(
           onPressed: () => _onFileIssue(context),
-          child: const Text('FILE ISSUE'),
+          child: Text(l10n.crashReportFileIssueButton),
         ),
       ],
     );
@@ -121,17 +118,19 @@ class CrashReportDialog extends StatelessWidget {
   }
 
   Future<void> _onCopyLog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     await Clipboard.setData(ClipboardData(text: report.scrubbedTrace));
     if (!context.mounted) return;
     Navigator.of(context).pop();
     messenger?.showSnackBar(
-      const SnackBar(content: Text('Crash log copied to clipboard.')),
+      SnackBar(content: Text(l10n.crashReportCopiedSnackbar)),
     );
     onClose();
   }
 
   Future<void> _onFileIssue(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     final result = CrashReportUrlBuilder.build(
       device: report.device,
@@ -153,21 +152,15 @@ class CrashReportDialog extends StatelessWidget {
     Navigator.of(context).pop();
     if (!launched) {
       messenger?.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not open the browser. The crash log has been '
-            'copied to your clipboard so you can paste it manually.',
-          ),
+        SnackBar(
+          content: Text(l10n.crashReportOpenFailedSnackbar),
         ),
       );
       await Clipboard.setData(ClipboardData(text: report.scrubbedTrace));
     } else if (result is CrashReportUrlTruncated) {
       messenger?.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Trace was long — the full log is on your clipboard. '
-            'Paste it below the truncation marker on GitHub.',
-          ),
+        SnackBar(
+          content: Text(l10n.crashReportTruncatedSnackbar),
         ),
       );
     }

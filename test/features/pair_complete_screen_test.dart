@@ -7,6 +7,7 @@ import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_complete_screen.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
 
@@ -40,6 +41,7 @@ Widget _wrap({required FakeSecureStore store}) {
       secureStoreProvider.overrideWithValue(store),
     ],
     child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: signetTheme(dark: false),
       darkTheme: signetTheme(dark: true),
       routerConfig: router,

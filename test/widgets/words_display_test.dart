@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/widgets/words_display.dart';
 
 void main() {
@@ -10,6 +11,7 @@ void main() {
     VoidCallback? onTap,
   }) {
     return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Scaffold(
         body: WordsDisplay(
           words: words,

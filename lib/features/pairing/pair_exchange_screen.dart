@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../shared/widgets/secure_screen.dart';
 import 'pairing_codec.dart';
@@ -63,10 +64,13 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
       }
     });
 
-    final verb = pair.isRekey ? 'Rekey' : 'Pair';
+    final l10n = AppLocalizations.of(context);
+    final contact = pair.label ?? l10n.pairExchangeFallbackContact;
     return Scaffold(
       appBar: AppBar(
-        title: Text('$verb with ${pair.label ?? 'contact'}'),
+        title: Text(pair.isRekey
+            ? l10n.pairExchangeTitleRekey(contact)
+            : l10n.pairExchangeTitlePair(contact)),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -142,6 +146,7 @@ class _OverviewPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -149,8 +154,7 @@ class _OverviewPane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Hold your phones together. '
-            'Each of you needs to do both of these.',
+            l10n.pairExchangeIntro,
             style: textTheme.bodyLarge?.copyWith(
               color: colors.onSurfaceVariant,
             ),
@@ -158,16 +162,16 @@ class _OverviewPane extends StatelessWidget {
           const SizedBox(height: 24),
           _StepCard(
             index: 1,
-            title: 'Show my QR',
-            subtitle: 'Let the other person scan your code.',
+            title: l10n.pairExchangeStep1Title,
+            subtitle: l10n.pairExchangeStep1Subtitle,
             done: state.didShowQr,
             onTap: state.ourKeyPair == null ? null : onShow,
           ),
           const SizedBox(height: 16),
           _StepCard(
             index: 2,
-            title: 'Scan their QR',
-            subtitle: 'Point your camera at their code.',
+            title: l10n.pairExchangeStep2Title,
+            subtitle: l10n.pairExchangeStep2Subtitle,
             done: state.hasScannedTheirKey,
             onTap: onScan,
           ),
@@ -175,8 +179,8 @@ class _OverviewPane extends StatelessWidget {
             const SizedBox(height: 16),
             _StepCard(
               index: 3,
-              title: 'Paste string (dev)',
-              subtitle: 'Two-emulator testing only. Bypasses the camera.',
+              title: l10n.pairExchangeStep3Title,
+              subtitle: l10n.pairExchangeStep3Subtitle,
               done: state.exchangeComplete,
               onTap: state.ourKeyPair == null ? null : onPaste,
             ),
@@ -200,8 +204,8 @@ class _OverviewPane extends StatelessWidget {
           Center(
             child: Text(
               state.exchangeComplete
-                  ? 'Deriving shared secret…'
-                  : 'Waiting for both steps…',
+                  ? l10n.pairExchangeDerivingStatus
+                  : l10n.pairExchangeWaitingStatus,
               style: textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -300,6 +304,7 @@ class _ShowingPane extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final payload = PairingCodec.encodePublicKey(ours.publicKey);
+    final l10n = AppLocalizations.of(context);
 
     // FLAG_SECURE while the pair-time QR is on screen. The pubkey itself is
     // not secret, but blocking screen recording here is cheap defense-in-
@@ -311,7 +316,7 @@ class _ShowingPane extends StatelessWidget {
         child: Column(
           children: <Widget>[
             Text(
-              'Let them scan this.',
+              l10n.pairExchangeShowHeading,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
@@ -339,12 +344,15 @@ class _ShowingPane extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             BigButton(
-              label: "They scanned — I'm done",
+              label: l10n.pairExchangeShowDoneButton,
               icon: Icons.check,
               onPressed: onDone,
             ),
             const SizedBox(height: 8),
-            TextButton(onPressed: onDone, child: const Text('Back')),
+            TextButton(
+              onPressed: onDone,
+              child: Text(l10n.commonBack),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -442,7 +450,7 @@ class _ScanningPaneState extends State<_ScanningPane> {
                 ),
               FilledButton.tonal(
                 onPressed: widget.onCancel,
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).commonCancel),
               ),
             ],
           ),
@@ -450,18 +458,6 @@ class _ScanningPaneState extends State<_ScanningPane> {
       ],
     );
   }
-}
-
-/// The OS-native path to the per-app camera permission toggle.
-/// Android wraps it under Apps → the-app → Permissions; iOS exposes
-/// each app at the top level of Settings. We check at widget-build
-/// time so the same widget tree works on both platforms without a
-/// plugin.
-String _settingsPath() {
-  if (Platform.isIOS) {
-    return 'Settings → Signet → Camera';
-  }
-  return 'Apps → Signet → Permissions → Camera';
 }
 
 class _PermissionDeniedPane extends StatelessWidget {
@@ -473,6 +469,13 @@ class _PermissionDeniedPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
+    // The OS-native path to the per-app camera permission toggle.
+    // Android wraps it under Apps → the-app → Permissions; iOS exposes
+    // each app at the top level of Settings.
+    final settingsPath = Platform.isIOS
+        ? l10n.pairCameraSettingsPathIos
+        : l10n.pairCameraSettingsPathAndroid;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
@@ -485,14 +488,13 @@ class _PermissionDeniedPane extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Camera permission is turned off.',
+            l10n.pairExchangeCameraPermissionTitle,
             style: textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Text(
-            'Signet needs the camera only to scan pairing QR codes. '
-            'Turn it on in your phone settings: ${_settingsPath()}.',
+            l10n.pairExchangeCameraPermissionBody(settingsPath),
             textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(
               color: colors.onSurfaceVariant,
@@ -500,7 +502,7 @@ class _PermissionDeniedPane extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           BigButton(
-            label: 'Back',
+            label: l10n.commonBack,
             icon: Icons.arrow_back,
             onPressed: onCancel,
           ),
@@ -540,7 +542,8 @@ class _PastingPaneState extends State<_PastingPane> {
     if (_busy) return;
     final text = _controller.text.trim();
     if (text.isEmpty) {
-      setState(() => _error = 'Paste the other device’s pairing string.');
+      setState(() =>
+          _error = AppLocalizations.of(context).pairExchangePasteEmptyError);
       return;
     }
     setState(() {
@@ -566,6 +569,7 @@ class _PastingPaneState extends State<_PastingPane> {
     }
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final ourPayload = PairingCodec.encodePublicKey(ours.publicKey);
 
     return SingleChildScrollView(
@@ -574,21 +578,20 @@ class _PastingPaneState extends State<_PastingPane> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Dev: paste-exchange',
+            l10n.pairExchangeDevHeading,
             style: textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Copy the "Your string" value into the other emulator’s paste box, '
-            'then paste theirs below.',
+            l10n.pairExchangeDevInstructions,
             textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(
               color: colors.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 20),
-          Text('Your string', style: textTheme.labelLarge),
+          Text(l10n.pairExchangeDevYourString, style: textTheme.labelLarge),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.all(12),
@@ -605,21 +608,22 @@ class _PastingPaneState extends State<_PastingPane> {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: () async {
+                final copied = l10n.pairExchangeDevCopiedSnackbar;
                 await Clipboard.setData(ClipboardData(text: ourPayload));
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: Text(copied),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy'),
+              label: Text(l10n.pairExchangeDevCopyButton),
             ),
           ),
           const SizedBox(height: 16),
-          Text('Their string', style: textTheme.labelLarge),
+          Text(l10n.pairExchangeDevTheirString, style: textTheme.labelLarge),
           const SizedBox(height: 6),
           TextField(
             controller: _controller,
@@ -635,14 +639,16 @@ class _PastingPaneState extends State<_PastingPane> {
           ),
           const SizedBox(height: 20),
           BigButton(
-            label: _busy ? 'Submitting…' : 'Submit',
+            label: _busy
+                ? l10n.pairExchangeDevSubmittingButton
+                : l10n.pairExchangeDevSubmitButton,
             icon: Icons.check,
             onPressed: _busy ? null : _handleSubmit,
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _busy ? null : widget.onCancel,
-            child: const Text('Back'),
+            child: Text(l10n.commonBack),
           ),
         ],
       ),

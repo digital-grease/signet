@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../pairing/pairing_controller.dart';
 import '../settings/debug_logging_controller.dart';
 
@@ -44,13 +45,16 @@ class HomeScreen extends ConsumerWidget {
         return StatefulBuilder(
           builder: (stfContext, setState) {
             return AlertDialog(
-              title: const Text('Rename peer'),
+              title: Text(
+                AppLocalizations.of(stfContext).homeRenameDialogTitle,
+              ),
               content: TextField(
                 controller: controller,
                 autofocus: true,
                 maxLength: 32,
                 decoration: InputDecoration(
-                  labelText: 'Peer name',
+                  labelText:
+                      AppLocalizations.of(stfContext).homeRenameFieldLabel,
                   errorText: errorText,
                 ),
                 onSubmitted: (_) => Navigator.of(dialogContext)
@@ -59,18 +63,19 @@ class HomeScreen extends ConsumerWidget {
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(null),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(stfContext).commonCancel),
                 ),
                 FilledButton(
                   onPressed: () {
                     final value = controller.text.trim();
                     if (value.isEmpty) {
-                      setState(() => errorText = 'Name cannot be empty.');
+                      setState(() => errorText =
+                          AppLocalizations.of(stfContext).homeRenameEmptyError);
                       return;
                     }
                     Navigator.of(dialogContext).pop(value);
                   },
-                  child: const Text('Save'),
+                  child: Text(AppLocalizations.of(stfContext).homeSaveButton),
                 ),
               ],
             );
@@ -96,15 +101,17 @@ class HomeScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Unpair from ${relationship.label}?'),
-        content: const Text(
-          'This deletes the shared secret on this device. '
-          'To verify again you would need to pair from scratch.',
+        title: Text(
+          AppLocalizations.of(dialogContext)
+              .homeUnpairDialogTitle(relationship.label),
+        ),
+        content: Text(
+          AppLocalizations.of(dialogContext).homeUnpairDialogBody,
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(dialogContext).commonCancel),
           ),
           FilledButton.tonal(
             style: FilledButton.styleFrom(
@@ -114,7 +121,9 @@ class HomeScreen extends ConsumerWidget {
                   Theme.of(dialogContext).colorScheme.errorContainer,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Unpair'),
+            child: Text(
+              AppLocalizations.of(dialogContext).homeUnpairConfirmButton,
+            ),
           ),
         ],
       ),
@@ -131,12 +140,14 @@ class HomeScreen extends ConsumerWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Unpaired from ${relationship.label}.'),
+        content: Text(
+          AppLocalizations.of(context).homeUnpairSnackbar(relationship.label),
+        ),
         duration: const Duration(seconds: 5),
         action: secretSnapshot == null
             ? null
             : SnackBarAction(
-                label: 'UNDO',
+                label: AppLocalizations.of(context).homeUndoAction,
                 onPressed: () async {
                   await store.saveRelationshipV2(
                     relationship,
@@ -163,28 +174,42 @@ class HomeScreen extends ConsumerWidget {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.qr_code_2),
-                title: const Text('Pair in person'),
-                subtitle: const Text('Both phones together, scan each other'),
+                title:
+                    Text(AppLocalizations.of(sheetCtx).homePairMenuInPerson),
+                subtitle: Text(
+                  AppLocalizations.of(sheetCtx).homePairMenuInPersonSubtitle,
+                ),
                 onTap: () => Navigator.of(sheetCtx).pop('in-person'),
               ),
               ListTile(
                 leading: const Icon(Icons.alternate_email),
-                title: const Text('Send a package'),
-                subtitle:
-                    const Text('Pair someone far away over a trusted channel'),
+                title:
+                    Text(AppLocalizations.of(sheetCtx).homePairMenuSendPackage),
+                subtitle: Text(
+                  AppLocalizations.of(sheetCtx)
+                      .homePairMenuSendPackageSubtitle,
+                ),
                 onTap: () => Navigator.of(sheetCtx).pop('send-package'),
               ),
               ListTile(
                 leading: const Icon(Icons.download),
-                title: const Text('I have a package'),
-                subtitle: const Text('Import a package from someone else'),
+                title:
+                    Text(AppLocalizations.of(sheetCtx).homePairMenuHavePackage),
+                subtitle: Text(
+                  AppLocalizations.of(sheetCtx)
+                      .homePairMenuHavePackageSubtitle,
+                ),
                 onTap: () => Navigator.of(sheetCtx).pop('have-package'),
               ),
               ListTile(
                 leading: const Icon(Icons.history_edu),
-                title: const Text('Restore from backup'),
-                subtitle:
-                    const Text('Recover a paired contact from paper'),
+                title: Text(
+                  AppLocalizations.of(sheetCtx).homePairMenuRestoreBackup,
+                ),
+                subtitle: Text(
+                  AppLocalizations.of(sheetCtx)
+                      .homePairMenuRestoreBackupSubtitle,
+                ),
                 onTap: () => Navigator.of(sheetCtx).pop('restore-backup'),
               ),
             ],
@@ -225,7 +250,10 @@ class HomeScreen extends ConsumerWidget {
               children: <Widget>[
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
-                  title: Text('Rename ${relationship.label}'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx)
+                        .homeRowMenuRename(relationship.label),
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('rename'),
                 ),
                 ListTile(
@@ -233,47 +261,65 @@ class HomeScreen extends ConsumerWidget {
                       ? Icons.vibration
                       : Icons.notifications_paused),
                   title: Text(relationship.silentHaptics
-                      ? 'Turn haptics on'
-                      : 'Turn haptics off'),
+                      ? AppLocalizations.of(sheetCtx).homeRowMenuHapticsOn
+                      : AppLocalizations.of(sheetCtx).homeRowMenuHapticsOff),
                   onTap: () => Navigator.of(sheetCtx).pop('haptics'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.fingerprint_outlined),
-                  title: const Text('Show binding phrase'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuShowBinding,
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('binding'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.videocam_outlined),
-                  title: const Text('Verify (video call)'),
-                  subtitle: const Text(
-                      'Adds a physical-action check — deepfake-resistant'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuVerifyVideo,
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(sheetCtx)
+                        .homeRowMenuVerifyVideoSubtitle,
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('liveness'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.grid_on_outlined),
-                  title: const Text('Challenge-response grid'),
-                  subtitle: const Text(
-                      'Fallback for when the other side has no phone'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuCrGrid,
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuCrGridSubtitle,
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('cr-grid'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.autorenew),
-                  title: Text('Rekey ${relationship.label}'),
-                  subtitle:
-                      const Text('Rotate the shared secret in person'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx)
+                        .homeRowMenuRekey(relationship.label),
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuRekeySubtitle,
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('rekey'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.description_outlined),
-                  title: const Text('Back up to paper'),
-                  subtitle: const Text(
-                      'Restore on a new phone if you lose this one'),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuBackupPaper,
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(sheetCtx)
+                        .homeRowMenuBackupPaperSubtitle,
+                  ),
                   onTap: () => Navigator.of(sheetCtx).pop('export'),
                 ),
                 ListTile(
                   leading: Icon(Icons.link_off, color: scheme.error),
                   title: Text(
-                    'Unpair from ${relationship.label}',
+                    AppLocalizations.of(sheetCtx)
+                        .homeRowMenuUnpair(relationship.label),
                     style: TextStyle(color: scheme.error),
                   ),
                   onTap: () => Navigator.of(sheetCtx).pop('unpair'),
@@ -320,10 +366,10 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SIGNET'),
+        title: Text(AppLocalizations.of(context).commonAppTitle),
         actions: <Widget>[
           PopupMenuButton<String>(
-            tooltip: 'Help',
+            tooltip: AppLocalizations.of(context).homeHelpTooltip,
             icon: const Icon(Icons.help_outline),
             onSelected: (value) {
               switch (value) {
@@ -338,19 +384,19 @@ class HomeScreen extends ConsumerWidget {
                   ));
               }
             },
-            itemBuilder: (context) => const <PopupMenuEntry<String>>[
+            itemBuilder: (context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(
                 value: 'faq',
-                child: Text('FAQ'),
+                child: Text(AppLocalizations.of(context).homeMenuFaq),
               ),
               PopupMenuItem<String>(
                 value: 'contact',
-                child: Text('Contact us'),
+                child: Text(AppLocalizations.of(context).homeMenuContactUs),
               ),
             ],
           ),
           PopupMenuButton<String>(
-            tooltip: 'More',
+            tooltip: AppLocalizations.of(context).homeMoreTooltip,
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               switch (value) {
@@ -362,18 +408,18 @@ class HomeScreen extends ConsumerWidget {
                   context.push('/about');
               }
             },
-            itemBuilder: (context) => const <PopupMenuEntry<String>>[
+            itemBuilder: (context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(
                 value: 'settings',
-                child: Text('Settings'),
+                child: Text(AppLocalizations.of(context).homeMenuSettings),
               ),
               PopupMenuItem<String>(
                 value: 'intro',
-                child: Text('Show intro again'),
+                child: Text(AppLocalizations.of(context).homeMenuShowIntro),
               ),
               PopupMenuItem<String>(
                 value: 'about',
-                child: Text('About'),
+                child: Text(AppLocalizations.of(context).homeMenuAbout),
               ),
             ],
           ),
@@ -391,10 +437,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              const Align(
+              Align(
                 alignment: Alignment.centerRight,
                 child: _StatusChip(
-                  label: 'OFFLINE-FREE',
+                  label: AppLocalizations.of(context).commonOfflineFreeChip,
                   tone: _Tone.ok,
                 ),
               ),
@@ -404,7 +450,8 @@ class HomeScreen extends ConsumerWidget {
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, _) => _ErrorState(
-                    message: 'Could not read your paired contacts.\n$error',
+                    message: AppLocalizations.of(context)
+                        .homeErrorLoadFailed(error.toString()),
                     onRetry: () => ref.invalidate(relationshipsProvider),
                   ),
                   data: (relationships) => relationships.isEmpty
@@ -426,7 +473,7 @@ class HomeScreen extends ConsumerWidget {
             : FloatingActionButton.extended(
                 onPressed: () => _openPairMenu(context),
                 icon: const Icon(Icons.add),
-                label: const Text('PAIR'),
+                label: Text(AppLocalizations.of(context).homeFabPair),
               ),
         orElse: () => null,
       ),
@@ -448,7 +495,7 @@ class _DebugRecordingBanner extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       button: true,
-      label: 'Debug logging is on. Double tap to manage in Settings.',
+      label: AppLocalizations.of(context).homeDebugBannerSemantics,
       child: Material(
         color: scheme.errorContainer,
         child: InkWell(
@@ -461,7 +508,7 @@ class _DebugRecordingBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'DEBUG LOGGING ON — recording app activity',
+                    AppLocalizations.of(context).homeDebugBannerText,
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
@@ -510,7 +557,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         Text(
-          'Nothing paired yet.',
+          AppLocalizations.of(context).homeEmptyTitle,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 22,
@@ -520,8 +567,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Pair in person with someone you trust. '
-          "You'll both be able to verify each other later over any call.",
+          AppLocalizations.of(context).homeEmptyBody,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13,
@@ -532,22 +578,25 @@ class _EmptyState extends StatelessWidget {
         const Spacer(),
         FilledButton(
           onPressed: () => context.go('/pair/start'),
-          child: const Text('PAIR CONTACT'),
+          child: Text(AppLocalizations.of(context).homeEmptyPairContactButton),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () => context.go('/pair/transport-out'),
-          child: const Text('SEND A PACKAGE'),
+          child:
+              Text(AppLocalizations.of(context).homeEmptySendPackageButton),
         ),
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: () => context.go('/pair/transport-in'),
-          child: const Text('I HAVE A PACKAGE'),
+          child:
+              Text(AppLocalizations.of(context).homeEmptyHavePackageButton),
         ),
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: () => context.go('/inspect/import'),
-          child: const Text('RESTORE FROM BACKUP'),
+          child:
+              Text(AppLocalizations.of(context).homeEmptyRestoreBackupButton),
         ),
       ],
     );
@@ -570,7 +619,9 @@ class _PairedList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('RELATIONSHIPS'),
+        _SectionHeader(
+          AppLocalizations.of(context).homeSectionRelationships,
+        ),
         const SizedBox(height: 8),
         Expanded(
           child: ListView.separated(
@@ -644,8 +695,11 @@ class _RelationshipRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'role:${relationship.role.wireName.toUpperCase()} · '
-                      '$_fingerprintPrefix · $_boundAt',
+                      AppLocalizations.of(context).homeRowMetadata(
+                        relationship.role.wireName.toUpperCase(),
+                        _fingerprintPrefix,
+                        _boundAt,
+                      ),
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 11,
@@ -657,7 +711,7 @@ class _RelationshipRow extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          'HAPTICS // OFF',
+                          AppLocalizations.of(context).homeHapticsOffChip,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
@@ -709,7 +763,7 @@ class _ErrorState extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: onRetry,
-            child: const Text('TRY AGAIN'),
+            child: Text(AppLocalizations.of(context).homeTryAgainButton),
           ),
         ],
       ),
@@ -764,7 +818,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

@@ -9,6 +9,7 @@ import '../../core/logging/report_context.dart';
 import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
+import '../../l10n/app_localizations.dart';
 import 'debug_logging_controller.dart';
 import 'log_export_sheet.dart';
 
@@ -42,8 +43,9 @@ class SettingsScreen extends ConsumerWidget {
     );
     final debugState = ref.watch(debugLoggingProvider);
     final debugAvailable = ref.read(debugLoggingProvider.notifier).available;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('SETTINGS')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -51,10 +53,8 @@ class SettingsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               _Section(
-                title: 'APPEARANCE',
-                body:
-                    'Override the system theme. "System" follows your '
-                    'device; "Dark" and "Light" pin Signet regardless.',
+                title: l10n.settingsAppearanceSection,
+                body: l10n.settingsAppearanceBody,
                 child: _ThemeModePicker(
                   current: themeMode,
                   onChanged: (mode) =>
@@ -63,18 +63,13 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'BULK BACKUP',
+                title: l10n.settingsBulkBackupSection,
                 body: relationshipCount == 0
-                    ? 'No relationships paired yet. Pair with someone first, '
-                        'then you can back up every pairing at once.'
-                    : 'Back up all $relationshipCount '
-                        '${relationshipCount == 1 ? 'relationship' : 'relationships'} '
-                        'into one encrypted file with one 8-word PAKE. Use '
-                        'this when switching phones — the new phone unlocks '
-                        'every pairing in one step.',
+                    ? l10n.settingsBulkBackupEmptyBody
+                    : l10n.settingsBulkBackupBody(relationshipCount),
                 actionLabel: relationshipCount == 0
                     ? null
-                    : 'BACK UP ALL $relationshipCount',
+                    : l10n.settingsBulkBackupAction(relationshipCount),
                 onAction: relationshipCount == 0
                     ? null
                     : () => _confirmAndStartBulkExport(
@@ -85,20 +80,14 @@ class SettingsScreen extends ConsumerWidget {
               if (debugAvailable) ...<Widget>[
                 const SizedBox(height: 12),
                 _Section(
-                  title: 'DEBUG LOGGING',
+                  title: l10n.settingsDebugSection,
                   body: debugState.active
-                      ? 'Recording app activity to an encrypted file on this '
-                          'device. It auto-erases '
-                          '${_formatExpiry(debugState.expiresAt)} (or tap '
-                          'Stop). Export it to send a bug report — secrets are '
-                          'removed and contacts become tags like <peer-1> '
-                          'before it leaves your phone.'
-                      : 'Off — nothing is recorded. If you hit a bug, turn '
-                          'this on, reproduce it, then export the log to send '
-                          'us. It never includes your secrets or your '
-                          "contacts' names.",
-                  actionLabel:
-                      debugState.active ? null : 'ENABLE DEBUG LOGGING',
+                      ? l10n.settingsDebugActiveBody(
+                          _formatExpiry(context, debugState.expiresAt))
+                      : l10n.settingsDebugInactiveBody,
+                  actionLabel: debugState.active
+                      ? null
+                      : l10n.settingsDebugEnableAction,
                   onAction: debugState.active
                       ? null
                       : () =>
@@ -109,14 +98,14 @@ class SettingsScreen extends ConsumerWidget {
                           children: <Widget>[
                             OutlinedButton(
                               onPressed: () => _startDebugExport(context, ref),
-                              child: const Text('EXPORT DEBUG LOGS'),
+                              child: Text(l10n.settingsDebugExportButton),
                             ),
                             const SizedBox(height: 8),
                             OutlinedButton(
                               onPressed: () => ref
                                   .read(debugLoggingProvider.notifier)
                                   .stop(),
-                              child: const Text('STOP & WIPE'),
+                              child: Text(l10n.settingsDebugStopWipeButton),
                             ),
                           ],
                         )
@@ -125,21 +114,16 @@ class SettingsScreen extends ConsumerWidget {
               ],
               const SizedBox(height: 12),
               _Section(
-                title: 'GUIDED TOUR',
-                body:
-                    'Watch the first-run walkthrough again. Useful after a '
-                    'backup restore or if you want to re-read the pairing '
-                    'instructions.',
-                actionLabel: 'REPLAY INTRO',
+                title: l10n.settingsTourSection,
+                body: l10n.settingsTourBody,
+                actionLabel: l10n.settingsTourReplayAction,
                 onAction: () => context.go('/onboarding'),
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'ABOUT',
-                body:
-                    'App version, license, source code, privacy policy, '
-                    'and support links.',
-                actionLabel: 'OPEN ABOUT',
+                title: l10n.settingsAboutSection,
+                body: l10n.settingsAboutBody,
+                actionLabel: l10n.settingsAboutOpenAction,
                 onAction: () => context.push('/about'),
               ),
             ],
@@ -159,25 +143,20 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     int count,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('BACK UP EVERYTHING?'),
-        content: Text(
-          'This exports the shared secret for all $count '
-          '${count == 1 ? 'relationship' : 'relationships'} '
-          'into one file. Losing the 8-word PAKE means losing all $count '
-          'backups. The PAKE will be shown once — write it down before '
-          'closing the screen.',
-        ),
+        title: Text(l10n.settingsBulkConfirmTitle),
+        content: Text(l10n.settingsBulkConfirmBody(count)),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('CANCEL'),
+            child: Text(l10n.commonCancelCaps),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('CONTINUE'),
+            child: Text(l10n.settingsBulkConfirmContinue),
           ),
         ],
       ),
@@ -190,6 +169,7 @@ class SettingsScreen extends ConsumerWidget {
   /// Decrypt the session log, run the export scrubber, then open the share
   /// sheet. Gathers device context best-effort for the GitHub-issue pre-fill.
   Future<void> _startDebugExport(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     ref.read(debugLoggingProvider.notifier).refresh();
     final session = ref.read(debugLogProvider).session;
@@ -197,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
     final raw = await session.exportPlaintext();
     if (raw.isEmpty) {
       messenger?.showSnackBar(
-        const SnackBar(content: Text('No debug log captured yet.')),
+        SnackBar(content: Text(l10n.settingsDebugNoLogSnackbar)),
       );
       return;
     }
@@ -214,12 +194,15 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  String _formatExpiry(DateTime? at) {
-    if (at == null) return 'in 24h';
+  String _formatExpiry(BuildContext context, DateTime? at) {
+    final l10n = AppLocalizations.of(context);
+    if (at == null) return l10n.settingsDebugExpiryIn24h;
     final l = at.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
-    return 'at ${two(l.hour)}:${two(l.minute)} on '
-        '${l.year}-${two(l.month)}-${two(l.day)}';
+    return l10n.settingsDebugExpiryAt(
+      '${two(l.hour)}:${two(l.minute)}',
+      '${l.year}-${two(l.month)}-${two(l.day)}',
+    );
   }
 }
 
@@ -234,26 +217,27 @@ class _ThemeModePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _ThemeModeTile(
-          label: 'SYSTEM',
-          sublabel: 'Follow device theme',
+          label: l10n.settingsThemeSystemLabel,
+          sublabel: l10n.settingsThemeSystemSubtitle,
           value: ThemeMode.system,
           group: current,
           onChanged: onChanged,
         ),
         _ThemeModeTile(
-          label: 'DARK',
-          sublabel: 'Operator default',
+          label: l10n.settingsThemeDarkLabel,
+          sublabel: l10n.settingsThemeDarkSubtitle,
           value: ThemeMode.dark,
           group: current,
           onChanged: onChanged,
         ),
         _ThemeModeTile(
-          label: 'LIGHT',
-          sublabel: 'High-contrast daylight',
+          label: l10n.settingsThemeLightLabel,
+          sublabel: l10n.settingsThemeLightSubtitle,
           value: ThemeMode.light,
           group: current,
           onChanged: onChanged,

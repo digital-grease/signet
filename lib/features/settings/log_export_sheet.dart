@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/logging/crash_report_url_builder.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Bottom sheet offering the three export destinations for a scrubbed debug
 /// log: a pre-filled GitHub issue, the OS share sheet, or the clipboard.
@@ -47,6 +48,7 @@ class _LogExportSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -54,9 +56,9 @@ class _LogExportSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            const Text(
-              'EXPORT DEBUG LOG',
-              style: TextStyle(
+            Text(
+              l10n.logExportTitle,
+              style: const TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 13,
                 letterSpacing: 2.8,
@@ -65,28 +67,25 @@ class _LogExportSheet extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Secrets are removed and your contacts are shown as tags like '
-              '<peer-1>. The log still describes app behavior, so review it '
-              'before sharing. If you file a GitHub issue, don\'t type a '
-              'contact\'s name in the description box — that box is not scrubbed.',
+              l10n.logExportScrubNotice,
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               icon: const Icon(Icons.bug_report_outlined),
-              label: const Text('FILE A GITHUB ISSUE'),
+              label: Text(l10n.logExportFileIssueButton),
               onPressed: () => _fileIssue(context),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.ios_share),
-              label: const Text('SHARE…'),
+              label: Text(l10n.logExportShareButton),
               onPressed: () => _share(context),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.copy_all_outlined),
-              label: const Text('COPY TO CLIPBOARD'),
+              label: Text(l10n.logExportCopyButton),
               onPressed: () => _copy(context),
             ),
           ],
@@ -96,6 +95,7 @@ class _LogExportSheet extends StatelessWidget {
   }
 
   Future<void> _fileIssue(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     final navigator = Navigator.of(context);
     final result = CrashReportUrlBuilder.buildDebugLog(
@@ -121,8 +121,8 @@ class _LogExportSheet extends StatelessWidget {
     if (!launched) {
       await Clipboard.setData(ClipboardData(text: scrubbedLog));
       messenger?.showSnackBar(
-        const SnackBar(
-          content: Text('Couldn\'t open the browser — log copied instead.'),
+        SnackBar(
+          content: Text(l10n.logExportOpenFailedSnackbar),
         ),
       );
     }
@@ -130,19 +130,21 @@ class _LogExportSheet extends StatelessWidget {
   }
 
   Future<void> _share(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     await SharePlus.instance.share(
-      ShareParams(text: scrubbedLog, subject: 'Signet debug log'),
+      ShareParams(text: scrubbedLog, subject: l10n.logExportShareSubject),
     );
     navigator.pop();
   }
 
   Future<void> _copy(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     final navigator = Navigator.of(context);
     await Clipboard.setData(ClipboardData(text: scrubbedLog));
     messenger?.showSnackBar(
-      const SnackBar(content: Text('Debug log copied to clipboard.')),
+      SnackBar(content: Text(l10n.logExportCopiedSnackbar)),
     );
     navigator.pop();
   }
