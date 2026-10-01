@@ -30,6 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Material/Cupertino/Widgets locale data for gen-l10n. English is the
+  # template language; zh is the first contributed translation.
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -104,6 +109,11 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  # Generates AppLocalizations from the .arb files in lib/l10n/ (see
+  # l10n.yaml). Output is committed under lib/l10n/ so imports stay plain
+  # package-relative paths.
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
