@@ -70,17 +70,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Flutter is only needed for the java-kotlin build below. Pin
-      # version inline (matching .github/workflows/release.yml line 76)
-      # so F-Droid's extractor and this workflow agree.
+      # Same JDK as CI and release (current LTS) for the java-kotlin build.
+      - name: Set up JDK 25
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      # Flutter is only needed for the java-kotlin build below. Pin the
+      # version inline, matching the `flutter-version:` literal in
+      # .github/workflows/release.yml that F-Droid's extractor reads.
       - name: Set up Flutter
         if: matrix.language == 'java-kotlin'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.6'
+          flutter-version: '3.47.5'
           channel: stable
           cache: true
-          cache-key: flutter-3.41.6-${{ runner.os }}
+          cache-key: flutter-3.47.5-${{ runner.os }}
 
       - name: flutter pub get
         if: matrix.language == 'java-kotlin'

@@ -11,11 +11,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  # Android toolchain target — matches the JavaVersion in
-  # android/app/build.gradle.kts.
-  JAVA_VERSION: 17
+  # JDK that runs the Gradle build: the current LTS, which is also what
+  # Android Studio bundles. The bytecode target (JavaVersion.VERSION_17 in
+  # android/app/build.gradle.kts) is separate and stays at 17.
+  JAVA_VERSION: 25
 
 # Least-privilege default. Closes a CodeQL
 # `actions/missing-workflow-permissions` finding.

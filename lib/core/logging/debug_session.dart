@@ -30,13 +30,10 @@ class DebugSession {
     required this.cipher,
     required this.debugDir,
     DateTime Function()? now,
-    Duration maxAge = const Duration(hours: 24),
-    int maxBytes = 2 * 1024 * 1024,
-    Duration ioTimeout = defaultIoTimeout,
-  })  : _now = now ?? (() => DateTime.now().toUtc()),
-        _maxAge = maxAge,
-        _maxBytes = maxBytes,
-        _ioTimeout = ioTimeout;
+    this._maxAge = const Duration(hours: 24),
+    this._maxBytes = 2 * 1024 * 1024,
+    this._ioTimeout = defaultIoTimeout,
+  }) : _now = now ?? (() => DateTime.now().toUtc());
 
   final CrashlogCipher cipher;
 

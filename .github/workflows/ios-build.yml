@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
 
 # Least-privilege default. Closes a CodeQL

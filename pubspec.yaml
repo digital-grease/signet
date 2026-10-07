@@ -19,7 +19,12 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 0.3.6+30006
 
 environment:
-  sdk: ^3.11.4
+  sdk: ^3.12.0
+  # camera_android_camerax >= 0.7.3 (the camera-core 1.6.2 fix for JDK 22+
+  # builds, plan Task 7.6) needs Flutter >= 3.44. Keep this floor so a lock
+  # regenerated on an older SDK fails loudly instead of resolving the
+  # broken 0.7.2.
+  flutter: ">=3.44.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,9 +39,9 @@ dependencies:
   # template language; zh is the first contributed translation.
   flutter_localizations:
     sdk: flutter
-  # Pinned to the version flutter_localizations pins in the Flutter SDK
-  # (0.20.2 on 3.41.6). Bump together with the Flutter pin.
-  intl: ^0.20.2
+  # Must satisfy the constraint flutter_localizations sets in the pinned
+  # Flutter SDK (^0.20.3 on 3.47.5). Bump together with the Flutter pin.
+  intl: ^0.20.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -54,7 +59,7 @@ dependencies:
   # Direct dep on `camera` so we can name `CameraException` in the
   # permission-denial fallback. flutter_zxing pulls camera in transitively
   # but its `export` clause omits CameraException specifically.
-  camera: ^0.12.0
+  camera: ^0.12.1
   qr_flutter: ^4.1.0
   bip39: ^1.0.6
   # Non-sensitive app prefs (onboarding-completed flag etc.). Secrets

@@ -17,7 +17,7 @@ concurrency:
 env:
   # Pin Flutter to the version we develop against. Bump explicitly when
   # upgrading locally so "works on my machine" matches "works in CI".
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
 
 # Least-privilege default. Jobs that need broader scope must override

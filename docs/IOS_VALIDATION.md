@@ -12,7 +12,7 @@ snapshots). That's what this checklist is for.
 ## Preconditions
 
 - macOS host with Xcode (latest stable) installed.
-- Flutter `3.41.6` stable — matches `env.FLUTTER_VERSION` in the CI
+- Flutter `3.47.5` stable — matches `env.FLUTTER_VERSION` in the CI
   workflows.
 - An iOS 15+ simulator booted, or a physical device registered with
   your Apple Developer account (free-tier dev cert is fine for

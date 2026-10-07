@@ -35,11 +35,11 @@
 FROM debian:bookworm-20240926-slim
 
 # --- Pin base toolchain ---
-ARG FLUTTER_VERSION=3.41.6
+ARG FLUTTER_VERSION=3.47.5
 ARG FLUTTER_CHANNEL=stable
 # Exact revision for the pinned version — matches what subosito/flutter-action
 # resolves in CI. Update in lockstep with FLUTTER_VERSION.
-ARG FLUTTER_REVISION=db50e20168fd9d9a1c20d86be43ac4bb6ad0b2c2
+ARG FLUTTER_REVISION=6a19cca56475dbfba1478ee68d7bd0c2ef891da1
 
 ARG ANDROID_SDK_TOOLS_VERSION=11076708  # commandlinetools-linux-11076708_latest.zip
 ARG ANDROID_PLATFORM=android-34

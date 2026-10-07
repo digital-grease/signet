@@ -32,10 +32,9 @@ class CrashlogCipher {
   CrashlogCipher({
     FlutterSecureStorage? storage,
     Random? random,
-    String keyStorageKey = 'crashlog.aead_key.v1',
+    this._keyStorageKey = 'crashlog.aead_key.v1',
   })  : _storage = storage ?? _defaultStorage,
-        _random = random ?? Random.secure(),
-        _keyStorageKey = keyStorageKey;
+        _random = random ?? Random.secure();
 
   // Match SecureStore's AndroidOptions so all signet keys share the same
   // preferences namespace and reset policy. Keystore-backed; not biometric.

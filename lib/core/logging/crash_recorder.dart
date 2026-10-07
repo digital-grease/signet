@@ -95,11 +95,9 @@ class CrashRecorder {
     required this.cipher,
     required this.crashesDir,
     DateTime Function()? now,
-    Duration cooldown = const Duration(hours: 24),
-    String Function()? breadcrumbDump,
-  })  : _now = now ?? (() => DateTime.now().toUtc()),
-        _cooldown = cooldown,
-        _breadcrumbDump = breadcrumbDump;
+    this._cooldown = const Duration(hours: 24),
+    this._breadcrumbDump,
+  }) : _now = now ?? (() => DateTime.now().toUtc());
 
   final CrashlogCipher cipher;
 

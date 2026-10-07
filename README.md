@@ -99,7 +99,8 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 
 ### Requirements
 
-- Flutter 3.41.6 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
+- Flutter 3.47.5 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
+- JDK 17 or newer to run Gradle. Android Studio's bundled JDK works; CI and release builds use JDK 25. (JDK 26 does not build yet with the current Android Gradle Plugin.)
 - Android toolchain: SDK Platform 34+, Command-line Tools, and licenses accepted
 - An Android 9+ device or emulator (the minimum SDK is API 28 — StrongBox availability)
 

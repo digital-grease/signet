@@ -1,0 +1,66 @@
+name: JDK Canary
+
+# Builds the release APK with the newest GA JDK so javac/jlink changes
+# surface here before they break a developer's local build (plan Task 7.6).
+# Weekly and on demand only: it is expected to be red on JDK 26 until the
+# AGP 9 upgrade (plan Task 7.5 D3), because AGP 8.11's jlink step rejects
+# JDK 26's java.base build signature. Running it on a schedule keeps that
+# known failure off every push and tag.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: 3.47.5
+  FLUTTER_CHANNEL: stable
+  # Bump when a new JDK reaches GA.
+  CANARY_JAVA_VERSION: 26
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-newest-jdk:
+    name: Release APK on newest JDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.CANARY_JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.CANARY_JAVA_VERSION }}
+
+      - name: Restore Gradle cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Report versions
+        run: |
+          java -version
+          flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release

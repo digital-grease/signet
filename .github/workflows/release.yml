@@ -45,9 +45,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  JAVA_VERSION: 17
+  # JDK that runs the Gradle build (current LTS, as bundled by Android
+  # Studio). The bytecode target stays at 17 in android/app/build.gradle.kts.
+  JAVA_VERSION: 25
 
 # Least-privilege default. The publish job overrides to `contents: write`
 # because it pushes assets to the GitHub Release via
@@ -86,7 +88,7 @@ jobs:
           #   sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml
           # MUST stay in sync with FLUTTER_VERSION above and with the
           # second flutter-action step below.
-          flutter-version: '3.41.6'
+          flutter-version: '3.47.5'
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
           cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
