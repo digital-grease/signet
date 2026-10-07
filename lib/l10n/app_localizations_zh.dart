@@ -91,6 +91,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pairConfirmSaveIncompleteError =>
+      'Signet 未能完成保存此配对。请关闭 Signet 后重新打开。如果联系人出现在列表中，说明已保存；如果没有，请一起重新配对。';
+
+  @override
+  String get pairConfirmRekeySaveIncompleteError =>
+      '轮换密钥未完成。在依靠 Signet 验证此联系人之前，请在两部手机上重新进行轮换密钥。';
+
+  @override
   String get commonGiveContactName => '请为这个联系人起个名字。';
 
   @override

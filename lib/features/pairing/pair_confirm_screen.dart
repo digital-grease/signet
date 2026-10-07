@@ -89,12 +89,20 @@ class PairConfirmScreen extends ConsumerWidget {
         );
         context.go('/pair/complete/${relationship.id}');
       }
-    } catch (error) {
+    } catch (_) {
+      // Event only: the error text could carry key or label material.
+      ref.read(debugLogProvider).log(BreadcrumbEvent.pairingCommitFailed);
       if (!context.mounted) return;
+      // The save is journaled (SecureStore.saveRelationshipV2): if it got
+      // that far, it completes on the next launch. Tell the user how to
+      // check instead of showing a raw error that implies "pair again".
+      // A rekey needs different advice: the contact is listed either way.
+      final l10n = AppLocalizations.of(context);
       await _goBackWithError(
         context,
-        AppLocalizations.of(context)
-            .commonSaveFailedError(error.toString()),
+        pair.isRekey
+            ? l10n.pairConfirmRekeySaveIncompleteError
+            : l10n.pairConfirmSaveIncompleteError,
       );
     }
   }

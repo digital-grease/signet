@@ -77,7 +77,13 @@
   "@commonUnlockFailedError": {"description": "Inline error when PAKE words are wrong / package undecryptable during unlock (backup import, transport in). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
 
   "commonSaveFailedError": "Could not save: {error}",
-  "@commonSaveFailedError": {"description": "Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+  "@commonSaveFailedError": {"description": "Inline error / SnackBar when persisting a relationship fails (transport in/out, backup import). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairConfirmSaveIncompleteError": "Signet couldn't finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.",
+  "@pairConfirmSaveIncompleteError": {"description": "Shown when committing a pair or rekey hits a storage error. The save is journaled and may complete on next launch, so the user is told how to check rather than to re-pair immediately."},
+
+  "pairConfirmRekeySaveIncompleteError": "The rekey didn't finish. Do the rekey again on both phones before you rely on Signet to verify this contact.",
+  "@pairConfirmRekeySaveIncompleteError": {"description": "Shown when committing a rekey hits a storage error. The contact stays listed either way, so the user is told to repeat the rekey (safe to repeat)."},
 
   "commonGiveContactName": "Give this contact a name.",
   "@commonGiveContactName": {"description": "Validation error shown when the contact-name field is empty on transport in/out."},

@@ -91,6 +91,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pairConfirmSaveIncompleteError =>
+      'Signet couldn\'t finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.';
+
+  @override
+  String get pairConfirmRekeySaveIncompleteError =>
+      'The rekey didn\'t finish. Do the rekey again on both phones before you rely on Signet to verify this contact.';
+
+  @override
   String get commonGiveContactName => 'Give this contact a name.';
 
   @override

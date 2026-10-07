@@ -138,6 +138,11 @@ class SecureStore {
   static const String _keyRelationshipPrefix = 'signet.v2.rel.';
   static const String _keySecretPrefix = 'signet.v2.secret.';
 
+  /// Roll-forward journal for [saveRelationshipV2]. A JSON list of pending
+  /// writes `{"id", "rel", "secret"}`. One key (rather than one per id) so
+  /// recovery never needs to enumerate storage.
+  static const String _keyJournal = 'signet.v2.journal';
+
   String _relationshipKey(String id) => '$_keyRelationshipPrefix$id';
   String _secretKey(String id) => '$_keySecretPrefix$id';
 
@@ -157,8 +162,23 @@ class SecureStore {
   /// - v1 data absent OR malformed → write empty v2 index. Malformed v1
   ///   blob is treated as corrupt (wiped) — preserves Phase 8's self-heal
   ///   behavior.
+  ///
+  /// After migration, any save interrupted by a crash or a storage error is
+  /// rolled forward from the journal (see [saveRelationshipV2]).
+  ///
+  /// A failure is not cached: the guard is cleared so the next call retries
+  /// (a transient Keystore error must not wedge every v2 call until the app
+  /// restarts). Migration and replay are idempotent.
   Future<void> _ensureMigrated() {
-    return _migrationGuard ??= _runMigration();
+    return _migrationGuard ??= () async {
+      try {
+        await _runMigration();
+        await _replayJournal();
+      } catch (_) {
+        _migrationGuard = null;
+        rethrow;
+      }
+    }();
   }
 
   Future<void> _runMigration() async {
@@ -226,18 +246,25 @@ class SecureStore {
   /// List the ids of every paired relationship. Order matches write order.
   Future<List<String>> listRelationshipIds() async {
     await _ensureMigrated();
-    return _readIndex();
+    final ids = <String>[...await _readIndex()];
+    for (final e in await _readJournal()) {
+      if (e.op == _JournalEntry.opPut && !ids.contains(e.id)) ids.add(e.id);
+      if (e.op == _JournalEntry.opDelete) ids.remove(e.id);
+    }
+    return ids;
   }
 
   /// List every paired relationship. Entries whose metadata blob fails to
   /// parse are skipped (not wiped — migration at boundary decides wipe
   /// policy for legacy shapes).
   Future<List<Relationship>> listRelationships() async {
-    await _ensureMigrated();
-    final ids = await _readIndex();
+    final ids = await listRelationshipIds();
     final out = <Relationship>[];
     for (final id in ids) {
-      final raw = await _storage.read(key: _relationshipKey(id));
+      final pending = await _pendingFor(id);
+      final raw = pending?.op == _JournalEntry.opPut
+          ? pending!.relJson
+          : await _storage.read(key: _relationshipKey(id));
       if (raw == null) continue;
       try {
         out.add(Relationship.fromJson(raw));
@@ -254,7 +281,11 @@ class SecureStore {
   /// the index, or if its blob fails to parse.
   Future<Relationship?> getRelationshipById(String id) async {
     await _ensureMigrated();
-    final raw = await _storage.read(key: _relationshipKey(id));
+    final pending = await _pendingFor(id);
+    if (pending?.op == _JournalEntry.opDelete) return null;
+    final raw = pending?.op == _JournalEntry.opPut
+        ? pending!.relJson
+        : await _storage.read(key: _relationshipKey(id));
     if (raw == null) return null;
     try {
       return Relationship.fromJson(raw);
@@ -268,7 +299,11 @@ class SecureStore {
   /// Fetch the shared secret for [id]. Returns null when nothing is stored.
   Future<Uint8List?> getSharedSecretById(String id) async {
     await _ensureMigrated();
-    final encoded = await _storage.read(key: _secretKey(id));
+    final pending = await _pendingFor(id);
+    if (pending?.op == _JournalEntry.opDelete) return null;
+    final encoded = pending?.op == _JournalEntry.opPut
+        ? pending!.secretB64
+        : await _storage.read(key: _secretKey(id));
     if (encoded == null) return null;
     return Uint8List.fromList(base64Decode(encoded));
   }
@@ -277,12 +312,21 @@ class SecureStore {
   /// If the id is already in the index, the prior entry is overwritten
   /// (used by rekey in 10.6). Otherwise the id is appended to the index.
   ///
-  /// Writes are ordered so that a partial failure leaves either "no
-  /// relationship at this id" (index stale but pointing at nothing) or
-  /// "relationship fully present." The order: clear prior data at this
-  /// id → write secret → write metadata → write index. On crash between
-  /// writes, the next `listRelationships` call silently skips the half-
-  /// written id (no metadata → not returned).
+  /// Crash-safe: the new secret and metadata are first recorded in a
+  /// roll-forward journal, then written over the primary keys (never
+  /// deleted first), then the id is added to the index, and only then is
+  /// the journal entry removed. If the process dies or a write fails at any
+  /// point, the relationship is either fully old or, once the journal is
+  /// replayed, fully new: never missing.
+  ///
+  /// If both the write and its immediate retry fail, the error is rethrown
+  /// and the entry stays journaled. The migration guard is reset so the
+  /// next store access retries the replay, and until it lands every read
+  /// overlays the journaled entry: no caller ever sees the new secret with
+  /// the old metadata, or a relationship that is half deleted.
+  ///
+  /// This is the rekey path too, so an interrupted rekey can no longer
+  /// make a paired contact disappear.
   Future<void> saveRelationshipV2(
     Relationship relationship, {
     required List<int> sharedSecret,
@@ -295,46 +339,216 @@ class SecureStore {
         'Shared secret must not be empty.',
       );
     }
-    final id = relationship.id;
-    await _storage.delete(key: _relationshipKey(id));
-    await _storage.delete(key: _secretKey(id));
-    await _storage.write(
-      key: _secretKey(id),
-      value: base64Encode(sharedSecret),
-    );
-    await _storage.write(
-      key: _relationshipKey(id),
-      value: relationship.toJson(),
-    );
-    final ids = await _readIndex();
-    if (!ids.contains(id)) {
-      await _writeIndex(<String>[...ids, id]);
+    await _journalAndApply(_JournalEntry.put(
+      id: relationship.id,
+      relJson: relationship.toJson(),
+      secretB64: base64Encode(sharedSecret),
+    ));
+  }
+
+  /// Record [entry] (replacing any pending entry for its id), apply it, and
+  /// on a second failure leave it journaled for the next store access.
+  Future<void> _journalAndApply(_JournalEntry entry) async {
+    final journal = await _readJournal();
+    await _writeJournal(<_JournalEntry>[
+      ...journal.where((e) => e.id != entry.id),
+      entry,
+    ]);
+    try {
+      await _applyJournalEntry(entry);
+    } catch (_) {
+      try {
+        // One immediate retry from the journal.
+        await _applyJournalEntry(entry);
+      } catch (_) {
+        // Still journaled. Make the next v2 call replay before it reads
+        // anything, so no caller sees a half-applied entry.
+        _migrationGuard = null;
+        rethrow;
+      }
+    }
+  }
+
+  /// Apply [entry] and clear it from the journal. Idempotent in every
+  /// partial state. Entries of an unknown kind (written by a newer build)
+  /// are left in place untouched.
+  Future<void> _applyJournalEntry(_JournalEntry entry) async {
+    switch (entry.op) {
+      case _JournalEntry.opPut:
+        await _storage.write(
+            key: _secretKey(entry.id), value: entry.secretB64!);
+        await _storage.write(
+            key: _relationshipKey(entry.id), value: entry.relJson!);
+        final ids = await _readIndex();
+        if (!ids.contains(entry.id)) {
+          await _writeIndex(<String>[...ids, entry.id]);
+        }
+      case _JournalEntry.opDelete:
+        // Secret first: if we die here, nothing secret is left behind.
+        await _storage.delete(key: _secretKey(entry.id));
+        await _storage.delete(key: _relationshipKey(entry.id));
+        final ids = await _readIndex();
+        if (ids.contains(entry.id)) {
+          await _writeIndex(
+              ids.where((each) => each != entry.id).toList(growable: false));
+        }
+      default:
+        return;
+    }
+    final journal = await _readJournal();
+    // Remove exactly this entry; a newer entry for the same id stays.
+    await _writeJournal(journal.where((e) => !e.sameAs(entry)).toList());
+  }
+
+  /// Roll pending entries forward. A failing entry is kept for the next
+  /// attempt and does not block the others or any store call: reads
+  /// overlay the journal ([_pendingFor]), so callers still see a
+  /// consistent view, and an unpair can always proceed.
+  Future<void> _replayJournal() async {
+    for (final entry in await _readJournal()) {
+      try {
+        await _applyJournalEntry(entry);
+      } catch (_) {
+        // Left journaled; retried on the next store access.
+      }
+    }
+  }
+
+  /// The pending journal entry for [id], if any. Reads overlay it so a
+  /// half-applied save or delete is never observed.
+  Future<_JournalEntry?> _pendingFor(String id) async {
+    _JournalEntry? found;
+    for (final e in await _readJournal()) {
+      if (e.id == id && (e.op == _JournalEntry.opPut || e.op == _JournalEntry.opDelete)) {
+        found = e;
+      }
+    }
+    return found;
+  }
+
+  Future<List<_JournalEntry>> _readJournal() async {
+    final String? raw;
+    try {
+      raw = await _storage.read(key: _keyJournal);
+    } catch (_) {
+      // Undecryptable (e.g. resetOnError:false after a Keystore change):
+      // its contents are lost either way. Treat as empty so one bad value
+      // can never block every relationship, unpair included; the next
+      // journal write replaces it.
+      return const <_JournalEntry>[];
+    }
+    if (raw == null) return const <_JournalEntry>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const <_JournalEntry>[];
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(_JournalEntry.fromJson)
+          .whereType<_JournalEntry>()
+          .toList(growable: false);
+    } on FormatException {
+      return const <_JournalEntry>[];
+    }
+  }
+
+  Future<void> _writeJournal(List<_JournalEntry> entries) async {
+    if (entries.isEmpty) {
+      await _storage.delete(key: _keyJournal);
+    } else {
+      await _storage.write(
+        key: _keyJournal,
+        value: jsonEncode(entries.map((e) => e.raw).toList()),
+      );
     }
   }
 
   /// Rewrite the metadata blob for [relationship.id]. Used for non-secret
   /// mutations like `silentHaptics` toggles and label edits. No-op if
   /// [relationship.id] is not already in the index (we don't materialize
-  /// stranger relationships).
+  /// stranger relationships). If a save for this id is still journaled,
+  /// the journaled metadata is updated too, so a later replay does not
+  /// revert the edit.
   Future<void> updateRelationshipMetadataV2(Relationship relationship) async {
-    await _ensureMigrated();
-    final ids = await _readIndex();
+    final ids = await listRelationshipIds();
     if (!ids.contains(relationship.id)) return;
+    final journal = await _readJournal();
+    if (journal.any((e) => e.id == relationship.id && e.op == _JournalEntry.opPut)) {
+      await _writeJournal(journal
+          .map((e) => e.id == relationship.id && e.op == _JournalEntry.opPut
+              ? _JournalEntry.put(
+                  id: e.id,
+                  relJson: relationship.toJson(),
+                  secretB64: e.secretB64!,
+                )
+              : e)
+          .toList());
+    }
     await _storage.write(
       key: _relationshipKey(relationship.id),
       value: relationship.toJson(),
     );
   }
 
-  /// Delete the relationship with [id]: its metadata, its secret, and its
-  /// entry in the index.
+  /// Delete the relationship with [id]: its secret, its metadata, and its
+  /// entry in the index. Journaled as a tombstone that replaces any pending
+  /// save for [id] in one write, so a crash at any point either leaves the
+  /// relationship untouched or finishes deleting it on the next store
+  /// access ("unpairing leaves no trace"), and a failed earlier save can
+  /// never be rolled forward afterwards.
   Future<void> deleteRelationshipById(String id) async {
     await _ensureMigrated();
-    await _storage.delete(key: _relationshipKey(id));
-    await _storage.delete(key: _secretKey(id));
-    final ids = await _readIndex();
-    if (ids.contains(id)) {
-      await _writeIndex(ids.where((each) => each != id).toList(growable: false));
-    }
+    await _journalAndApply(_JournalEntry.delete(id: id));
   }
+}
+
+/// One pending operation in the [SecureStore] roll-forward journal.
+///
+/// Stored as its raw JSON map so entries of a kind this build does not
+/// know (written by a newer build) survive a journal rewrite untouched.
+class _JournalEntry {
+  _JournalEntry._(this.raw);
+
+  factory _JournalEntry.put({
+    required String id,
+    required String relJson,
+    required String secretB64,
+  }) =>
+      _JournalEntry._(<String, dynamic>{
+        'op': opPut,
+        'id': id,
+        'rel': relJson,
+        'secret': secretB64,
+      });
+
+  factory _JournalEntry.delete({required String id}) =>
+      _JournalEntry._(<String, dynamic>{'op': opDelete, 'id': id});
+
+  /// Null when the map has no string id (cannot be attributed or applied).
+  static _JournalEntry? fromJson(Map<String, dynamic> map) =>
+      map['id'] is String ? _JournalEntry._(map) : null;
+
+  static const String opPut = 'put';
+  static const String opDelete = 'delete';
+
+  final Map<String, dynamic> raw;
+
+  String get id => raw['id'] as String;
+
+  /// Entries written before ops existed (same session's earlier build)
+  /// carry no `op` but have a payload: treat them as puts.
+  String? get op {
+    final op = raw['op'];
+    if (op is String) return op;
+    return (raw['rel'] is String && raw['secret'] is String) ? opPut : null;
+  }
+
+  String? get relJson => raw['rel'] as String?;
+  String? get secretB64 => raw['secret'] as String?;
+
+  bool sameAs(_JournalEntry other) =>
+      jsonEncode(raw) == jsonEncode(other.raw);
+
+  // Never print secret material (toString reaches logs and crash traces).
+  @override
+  String toString() => '_JournalEntry(op: $op, id: $id, secret: [redacted])';
 }

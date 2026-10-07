@@ -248,11 +248,23 @@ abstract class AppLocalizations {
   /// **'Could not unlock: {error}'**
   String commonUnlockFailedError(String error);
 
-  /// Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.
+  /// (Not used by pair confirm, which has its own copy.) Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.
   ///
   /// In en, this message translates to:
   /// **'Could not save: {error}'**
   String commonSaveFailedError(String error);
+
+  /// Shown when committing a pair or rekey hits a storage error. The save is journaled and may complete on next launch, so the user is told how to check rather than to re-pair immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet couldn\'t finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.'**
+  String get pairConfirmSaveIncompleteError;
+
+  /// Shown when committing a rekey hits a storage error. The contact stays listed either way, so the user is told to repeat the rekey (safe to repeat).
+  ///
+  /// In en, this message translates to:
+  /// **'The rekey didn\'t finish. Do the rekey again on both phones before you rely on Signet to verify this contact.'**
+  String get pairConfirmRekeySaveIncompleteError;
 
   /// Validation error shown when the contact-name field is empty on transport in/out.
   ///
