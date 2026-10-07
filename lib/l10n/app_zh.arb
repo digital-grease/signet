@@ -829,6 +829,22 @@
 
   "verifyGerundTouchRightEar": "摸右耳",
 
+  "verifyActionLookUp": "抬头看天花板",
+
+  "verifyActionLookDown": "低头看地板",
+
+  "verifyActionLookLeft": "向左回头看",
+
+  "verifyActionLookRight": "向右回头看",
+
+  "verifyActionTouchNose": "摸鼻尖",
+
+  "verifyActionTouchForehead": "摸额头",
+
+  "verifyActionTouchLeftEar": "摸左耳",
+
+  "verifyActionTouchRightEar": "摸右耳",
+
   "verifyLoadError": "无法读取你的配对联系人。",
 
   "verifyBackHomeButton": "返回主页",

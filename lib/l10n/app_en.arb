@@ -1243,6 +1243,30 @@
   "verifyGerundTouchRightEar": "touching your right ear",
   "@verifyGerundTouchRightEar": {"description": "Gerund of the touch-right-ear liveness action."},
 
+  "verifyActionLookUp": "Look up at the ceiling",
+  "@verifyActionLookUp": {"description": "Imperative form of the look-up liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookDown": "Look down at the floor",
+  "@verifyActionLookDown": {"description": "Imperative form of the look-down liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookLeft": "Look over your left shoulder",
+  "@verifyActionLookLeft": {"description": "Imperative form of the look-left liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookRight": "Look over your right shoulder",
+  "@verifyActionLookRight": {"description": "Imperative form of the look-right liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchNose": "Touch the tip of your nose",
+  "@verifyActionTouchNose": {"description": "Imperative form of the touch-nose liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchForehead": "Touch your forehead",
+  "@verifyActionTouchForehead": {"description": "Imperative form of the touch-forehead liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchLeftEar": "Touch your left ear",
+  "@verifyActionTouchLeftEar": {"description": "Imperative form of the touch-left-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchRightEar": "Touch your right ear",
+  "@verifyActionTouchRightEar": {"description": "Imperative form of the touch-right-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
   "verifyLoadError": "Could not read your paired contact.",
   "@verifyLoadError": {"description": "Title of the verify error state."},
 

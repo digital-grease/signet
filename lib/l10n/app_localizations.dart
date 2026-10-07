@@ -2582,6 +2582,54 @@ abstract class AppLocalizations {
   /// **'touching your right ear'**
   String get verifyGerundTouchRightEar;
 
+  /// Imperative form of the look-up liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Look up at the ceiling'**
+  String get verifyActionLookUp;
+
+  /// Imperative form of the look-down liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Look down at the floor'**
+  String get verifyActionLookDown;
+
+  /// Imperative form of the look-left liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Look over your left shoulder'**
+  String get verifyActionLookLeft;
+
+  /// Imperative form of the look-right liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Look over your right shoulder'**
+  String get verifyActionLookRight;
+
+  /// Imperative form of the touch-nose liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch the tip of your nose'**
+  String get verifyActionTouchNose;
+
+  /// Imperative form of the touch-forehead liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch your forehead'**
+  String get verifyActionTouchForehead;
+
+  /// Imperative form of the touch-left-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch your left ear'**
+  String get verifyActionTouchLeftEar;
+
+  /// Imperative form of the touch-right-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch your right ear'**
+  String get verifyActionTouchRightEar;
+
   /// Title of the verify error state.
   ///
   /// In en, this message translates to:

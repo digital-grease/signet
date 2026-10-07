@@ -7,6 +7,7 @@ import 'core/prefs/app_prefs.dart';
 import 'core/prefs/settings_controller.dart';
 import 'core/theme/signet_theme.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/locale_resolution.dart';
 import 'features/about/about_screen.dart';
 import 'features/crash_report/crash_report_dialog.dart';
 import 'features/help/faq_screen.dart';
@@ -208,6 +209,7 @@ class _SignetAppState extends ConsumerState<SignetApp> {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: resolveSignetLocale,
       themeMode: themeMode,
       theme: signetTheme(dark: false),
       darkTheme: signetTheme(dark: true),

@@ -1519,6 +1519,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verifyGerundTouchRightEar => 'touching your right ear';
 
   @override
+  String get verifyActionLookUp => 'Look up at the ceiling';
+
+  @override
+  String get verifyActionLookDown => 'Look down at the floor';
+
+  @override
+  String get verifyActionLookLeft => 'Look over your left shoulder';
+
+  @override
+  String get verifyActionLookRight => 'Look over your right shoulder';
+
+  @override
+  String get verifyActionTouchNose => 'Touch the tip of your nose';
+
+  @override
+  String get verifyActionTouchForehead => 'Touch your forehead';
+
+  @override
+  String get verifyActionTouchLeftEar => 'Touch your left ear';
+
+  @override
+  String get verifyActionTouchRightEar => 'Touch your right ear';
+
+  @override
   String get verifyLoadError => 'Could not read your paired contact.';
 
   @override

@@ -70,10 +70,8 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     final grid = _grid;
     final relationship = _relationship;
     if (grid == null || relationship == null) return;
-    final l10n = AppLocalizations.of(context);
     await Printing.layoutPdf(
       onLayout: (format) => CrGridPdf.build(
-        l10n: l10n,
         peerLabel: relationship.label,
         grid: grid,
         generatedAt: DateTime.now(),

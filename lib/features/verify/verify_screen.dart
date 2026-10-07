@@ -789,7 +789,7 @@ class _ExpectedActionRow extends StatelessWidget {
       liveRegion: true,
       label: l10n.verifyExpectedActionSemantics(
         label,
-        action.humanReadable,
+        livenessActionText(action, l10n),
       ),
       child: ExcludeSemantics(
         child: Container(
@@ -813,7 +813,7 @@ class _ExpectedActionRow extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                l10n.verifyExpectedActionText(label, action.humanReadable),
+                l10n.verifyExpectedActionText(label, livenessActionText(action, l10n)),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -876,7 +876,7 @@ class _ActionJudgmentPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              l10n.verifyActionJudgmentPrompt(label, action.humanReadable),
+              l10n.verifyActionJudgmentPrompt(label, livenessActionText(action, l10n)),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1007,7 +1007,7 @@ class _OwnWordsSection extends StatelessWidget {
                           const SizedBox(height: 10),
                           Text(
                             l10n.verifyOwnActionWhile(
-                              _gerundFor(videoModeAction!, l10n),
+                              livenessGerundText(videoModeAction!, l10n),
                             ),
                             style: TextStyle(
                               fontSize: 14,
@@ -1023,33 +1023,6 @@ class _OwnWordsSection extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// "Touch the tip of your nose" → "touching the tip of your nose" —
-  /// stitches into "...while touching the tip of your nose." cleanly.
-  /// Keep this list in lockstep with `LivenessAction.humanReadable`; if a
-  /// new action lands, add its gerund here and the test in
-  /// `liveness_challenge_test.dart` will catch the omission via its
-  /// "exactly 8 curated actions" assertion.
-  static String _gerundFor(LivenessAction action, AppLocalizations l10n) {
-    switch (action) {
-      case LivenessAction.lookUp:
-        return l10n.verifyGerundLookUp;
-      case LivenessAction.lookDown:
-        return l10n.verifyGerundLookDown;
-      case LivenessAction.lookLeft:
-        return l10n.verifyGerundLookLeft;
-      case LivenessAction.lookRight:
-        return l10n.verifyGerundLookRight;
-      case LivenessAction.touchNose:
-        return l10n.verifyGerundTouchNose;
-      case LivenessAction.touchForehead:
-        return l10n.verifyGerundTouchForehead;
-      case LivenessAction.touchLeftEar:
-        return l10n.verifyGerundTouchLeftEar;
-      case LivenessAction.touchRightEar:
-        return l10n.verifyGerundTouchRightEar;
-    }
   }
 }
 
@@ -1153,5 +1126,58 @@ class _SectionHeader extends StatelessWidget {
         fontWeight: FontWeight.w600,
       ),
     );
+  }
+}
+
+/// Localized imperative text for [action], shown to the verifier as the
+/// gesture to watch for. English matches `LivenessAction.humanReadable`
+/// exactly; the enum's own string stays English-only for logs and tests.
+@visibleForTesting
+String livenessActionText(LivenessAction action, AppLocalizations l10n) {
+  switch (action) {
+    case LivenessAction.lookUp:
+      return l10n.verifyActionLookUp;
+    case LivenessAction.lookDown:
+      return l10n.verifyActionLookDown;
+    case LivenessAction.lookLeft:
+      return l10n.verifyActionLookLeft;
+    case LivenessAction.lookRight:
+      return l10n.verifyActionLookRight;
+    case LivenessAction.touchNose:
+      return l10n.verifyActionTouchNose;
+    case LivenessAction.touchForehead:
+      return l10n.verifyActionTouchForehead;
+    case LivenessAction.touchLeftEar:
+      return l10n.verifyActionTouchLeftEar;
+    case LivenessAction.touchRightEar:
+      return l10n.verifyActionTouchRightEar;
+  }
+}
+
+/// "Touch the tip of your nose" → "touching the tip of your nose" —
+/// stitches into "...while touching the tip of your nose." cleanly.
+/// Keep this list in lockstep with `LivenessAction.humanReadable`; if a
+/// new action lands, add its gerund here and the test in
+/// `liveness_challenge_test.dart` will catch the omission via its
+/// "exactly 8 curated actions" assertion.
+@visibleForTesting
+String livenessGerundText(LivenessAction action, AppLocalizations l10n) {
+  switch (action) {
+    case LivenessAction.lookUp:
+      return l10n.verifyGerundLookUp;
+    case LivenessAction.lookDown:
+      return l10n.verifyGerundLookDown;
+    case LivenessAction.lookLeft:
+      return l10n.verifyGerundLookLeft;
+    case LivenessAction.lookRight:
+      return l10n.verifyGerundLookRight;
+    case LivenessAction.touchNose:
+      return l10n.verifyGerundTouchNose;
+    case LivenessAction.touchForehead:
+      return l10n.verifyGerundTouchForehead;
+    case LivenessAction.touchLeftEar:
+      return l10n.verifyGerundTouchLeftEar;
+    case LivenessAction.touchRightEar:
+      return l10n.verifyGerundTouchRightEar;
   }
 }

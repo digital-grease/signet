@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' show Locale;
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -19,18 +20,26 @@ import '../../l10n/app_localizations.dart';
 class CrGridPdf {
   const CrGridPdf._();
 
+  /// String catalog used for the printed card. See [build].
+  static final AppLocalizations printCatalog =
+      lookupAppLocalizations(const Locale('en'));
+
   /// Build the PDF bytes. Synchronous because neither the layout DSL nor
   /// the grid derivation are I/O-bound. Caller hands the result to
   /// `Printing.layoutPdf(onLayout: (_) => bytes)` to open the platform
   /// print dialog, or writes to a file. PDF text is user-visible printed
-  /// content, so the caller resolves localized strings via [l10n] (the
-  /// builder itself runs outside the widget tree).
+  /// content. The card is always printed from the English catalog,
+  /// whatever the device locale: the pdf package's default Helvetica has
+  /// no CJK glyphs, so a localized card would print blank headers and a
+  /// blank safety warning. English also keeps the paper artifact readable
+  /// by anyone who helps the holder later. Switch to the device locale
+  /// only together with an embedded font that covers it.
   static Future<Uint8List> build({
-    required AppLocalizations l10n,
     required String peerLabel,
     required ChallengeResponseGrid grid,
     required DateTime generatedAt,
   }) async {
+    final l10n = printCatalog;
     final doc = pw.Document(title: l10n.crPdfDocTitle(peerLabel));
     doc.addPage(
       pw.Page(

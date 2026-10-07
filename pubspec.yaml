@@ -34,7 +34,9 @@ dependencies:
   # template language; zh is the first contributed translation.
   flutter_localizations:
     sdk: flutter
-  intl: any
+  # Pinned to the version flutter_localizations pins in the Flutter SDK
+  # (0.20.2 on 3.41.6). Bump together with the Flutter pin.
+  intl: ^0.20.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

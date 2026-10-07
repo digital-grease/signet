@@ -1460,6 +1460,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyGerundTouchRightEar => '摸右耳';
 
   @override
+  String get verifyActionLookUp => '抬头看天花板';
+
+  @override
+  String get verifyActionLookDown => '低头看地板';
+
+  @override
+  String get verifyActionLookLeft => '向左回头看';
+
+  @override
+  String get verifyActionLookRight => '向右回头看';
+
+  @override
+  String get verifyActionTouchNose => '摸鼻尖';
+
+  @override
+  String get verifyActionTouchForehead => '摸额头';
+
+  @override
+  String get verifyActionTouchLeftEar => '摸左耳';
+
+  @override
+  String get verifyActionTouchRightEar => '摸右耳';
+
+  @override
   String get verifyLoadError => '无法读取你的配对联系人。';
 
   @override
