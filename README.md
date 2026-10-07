@@ -15,11 +15,62 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.3.4 beta · Android · v0.3.0 in Google Play Closed Testing · F-Droid inclusion [merged](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/37990); v0.3.4 will auto-publish on the next F-Droid scrape.** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
+**v0.3.6 beta · Android · available on [F-Droid](https://f-droid.org/packages/dev.digitalgrease.signet/) and [GitHub Releases](https://github.com/digital-grease/signet/releases/latest).** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
 
-v0.3.4 adds the in-app crash reporter (one-tap pre-filled GitHub issue with a scrubbed stack trace) and fixes the in-person pairing deadlock reported as issue [#1](https://github.com/digital-grease/signet/issues/1).
+v0.3.6 adds opt-in debug logging (off by default, scrubbed on-device before export). See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. TestFlight is staged separately.
+
+## Install
+
+Signet runs on **Android 9 or newer**. Pick **one** of the options below and stick with it (see [Switching install sources](#switching-install-sources) for why).
+
+### Option 1: F-Droid (recommended for most people)
+
+[F-Droid](https://f-droid.org/) is a free app store for open-source Android apps. It builds Signet from the public source code and installs updates for you. If you don't have it yet, follow [F-Droid's own install guide](https://f-droid.org/docs/Get_F-Droid/).
+
+Once F-Droid is installed, either:
+
+- search for **Signet** in the F-Droid app, or
+- open [f-droid.org/packages/dev.digitalgrease.signet](https://f-droid.org/packages/dev.digitalgrease.signet/) on your phone,
+
+then tap **Install**.
+
+Updates show up in F-Droid's **Updates** tab. New releases usually reach F-Droid a few days after they appear on GitHub, because F-Droid rebuilds and checks each one first.
+
+### Option 2: Obtainium (fastest updates, straight from GitHub)
+
+[Obtainium](https://github.com/ImranR98/Obtainium) installs apps directly from their GitHub release page and keeps them updated. Choose this if you want new versions the day they are released.
+
+If you don't have it yet, follow [Obtainium's own install instructions](https://github.com/ImranR98/Obtainium#installation). Once it's installed:
+
+1. Open Obtainium and tap **Add App**.
+2. In the **App Source URL** box, paste: `https://github.com/digital-grease/signet`
+3. Tap **Add**, then **Install**. If Android asks, allow Obtainium to install apps.
+
+Obtainium checks for new releases in the background and notifies you when one is ready.
+
+### Option 3: Download the APK directly
+
+1. On your phone, open the [latest release](https://github.com/digital-grease/signet/releases/latest).
+2. Under **Assets**, tap `signet-vX.Y.Z.apk` to download it. (Ignore the `.aab`, `.zip`, and `.sha256` files.)
+3. Open the downloaded file and tap **Install**. If Android asks, allow your browser to install apps.
+
+You will **not** get automatic updates this way; check back for new releases, or use Obtainium instead. To confirm the download wasn't tampered with, compare its SHA-256 hash against the matching `.sha256` file on the release page.
+
+### Google Play
+
+Signet is in Google Play closed testing, which is invite-only for now. A public Play Store listing is planned for v1.0.
+
+### Switching install sources
+
+F-Droid signs the apps it builds with **its own key**, while the GitHub release APK (used by Obtainium and direct download) is signed with **the developer's key**. Android will not install one over the other. To switch, you have to uninstall first, and **uninstalling deletes your pairings**.
+
+If you need to switch, first make a backup: **Settings → Back up all relationships**. Write down the 8 words it shows, keep the backup file somewhere off the phone, then uninstall, install from the new source, and use **Restore from backup** on the home screen. Otherwise you will need to pair again in person with each contact.
+
+### iPhone
+
+Not available yet. iOS builds exist but are untested; TestFlight is planned.
 
 ## How it works
 
