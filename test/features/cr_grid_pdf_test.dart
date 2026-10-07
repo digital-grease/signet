@@ -3,6 +3,12 @@ import 'package:signet/core/crypto/challenge_response_grid.dart';
 import 'package:signet/features/inspect/cr_grid_pdf.dart';
 
 void main() {
+  test('the printed card always uses the English catalog', () {
+    // The default PDF font has no CJK glyphs; a localized card would print
+    // blank text. See CrGridPdf.build.
+    expect(CrGridPdf.printCatalog.localeName, 'en');
+  });
+
   test('CrGridPdf.build produces a non-empty PDF with a %PDF- header',
       () async {
     final grid = await ChallengeResponseGrid.derive(

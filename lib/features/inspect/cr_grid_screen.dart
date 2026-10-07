@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../core/crypto/challenge_response_grid.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import 'cr_grid_pdf.dart';
 
@@ -49,7 +50,8 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
           await store.getSharedSecretById(widget.relationshipId);
       if (!mounted) return;
       if (relationship == null || secret == null) {
-        setState(() => _loadError = StateError('Relationship not found.'));
+        setState(() => _loadError = StateError(
+            AppLocalizations.of(context).commonRelationshipNotFound));
         return;
       }
       final grid = await ChallengeResponseGrid.derive(secret);
@@ -84,14 +86,14 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('CHALLENGE-RESPONSE'),
+          title: Text(AppLocalizations.of(context).crGridTitle),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.go('/'),
           ),
           actions: <Widget>[
             IconButton(
-              tooltip: 'Print grid',
+              tooltip: AppLocalizations.of(context).crGridPrintTooltip,
               icon: const Icon(Icons.print_outlined),
               onPressed: canPrint ? _printGrid : null,
             ),
@@ -107,7 +109,10 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text('Could not load grid: $_loadError'),
+          child: Text(
+            AppLocalizations.of(context)
+                .crGridLoadError(_loadError.toString()),
+          ),
         ),
       );
     }
@@ -118,13 +123,14 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     }
 
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Grid for ${relationship.label}',
+            l10n.crGridHeading(relationship.label),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
@@ -133,11 +139,11 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "When ${relationship.label} can't use their phone but can speak, "
-            'use this grid as a fallback. You ask for a cell (e.g. '
-            '"${grid.rowLabels.first} × ${grid.colLabels.first}"); they '
-            'read the answer from the paper copy you both shared. Compare '
-            'silently on your side.',
+            l10n.crGridFallbackExplanation(
+              relationship.label,
+              grid.rowLabels.first,
+              grid.colLabels.first,
+            ),
             style: TextStyle(
               fontSize: 13,
               color: scheme.onSurfaceVariant,
@@ -153,9 +159,7 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
                   Border(left: BorderSide(color: scheme.secondary, width: 4)),
             ),
             child: Text(
-              'This is a FALLBACK. If you can run a rotating-word verify, '
-              'do that first — its defenses are stronger. Use this only '
-              'when the responder has no phone.',
+              l10n.crGridFallbackNotice,
               style: TextStyle(
                 fontSize: 12,
                 color: scheme.onSurface,
@@ -164,14 +168,14 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const _SectionHeader('GRID // 8×8'),
+          _SectionHeader(l10n.crGridSectionHeader),
           const SizedBox(height: 10),
           _GridTable(grid: grid),
           const SizedBox(height: 20),
           Divider(color: scheme.outlineVariant),
           const SizedBox(height: 12),
           Text(
-            'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX',
+            l10n.commonAirplaneFooter,
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 10,
@@ -321,12 +325,13 @@ class _CellTile extends StatelessWidget {
 
   Future<void> _showAnswer(BuildContext context) async {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (dialogCtx) {
         return AlertDialog(
           title: Text(
-            '$rowLabel × $colLabel',
+            l10n.crGridCellDialogTitle(rowLabel, colLabel),
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 14,
@@ -358,7 +363,7 @@ class _CellTile extends StatelessWidget {
           actions: <Widget>[
             FilledButton(
               onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('CLOSE'),
+              child: Text(l10n.crGridCloseButton),
             ),
           ],
         );
@@ -374,7 +379,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signet/core/prefs/app_prefs.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/onboarding/onboarding_screen.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 Future<Widget> _wrap({required AppPrefs prefs, VoidCallback? onDone}) async {
   final router = GoRouter(
@@ -26,6 +27,7 @@ Future<Widget> _wrap({required AppPrefs prefs, VoidCallback? onDone}) async {
     ],
   );
   return MaterialApp.router(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
     theme: signetTheme(dark: false),
     darkTheme: signetTheme(dark: true),
     routerConfig: router,

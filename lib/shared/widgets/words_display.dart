@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Massive, high-contrast display of the current 4-word rotating TOTP code,
 /// with a linear countdown bar for the remaining seconds in the window.
 ///
@@ -31,10 +33,10 @@ class WordsDisplay extends StatelessWidget {
         : (secondsRemaining / windowSeconds).clamp(0.0, 1.0);
 
     final semanticsWords = words.join(' ');
+    final l10n = AppLocalizations.of(context);
 
     return Semantics(
-      label: 'Verification phrase: $semanticsWords, '
-          '$secondsRemaining seconds remaining',
+      label: l10n.wordsDisplaySemantics(semanticsWords, secondsRemaining),
       button: onTap != null,
       excludeSemantics: true,
       child: InkWell(
@@ -74,7 +76,7 @@ class WordsDisplay extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '$secondsRemaining s',
+                l10n.wordsDisplayCountdown(secondsRemaining),
                 style: textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),

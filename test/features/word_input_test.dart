@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/features/verify/word_input.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 void main() {
   Widget buildHost({
@@ -9,6 +10,7 @@ void main() {
     bool enabled = true,
   }) {
     return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(16),
@@ -183,6 +185,7 @@ void main() {
   testWidgets('after resetKey bump, widget can submit again', (tester) async {
     final submissions = <List<String>>[];
     Widget build(int key) => MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: WordInput(
               onSubmit: (w) async {
@@ -219,6 +222,7 @@ void main() {
       int wordCount = 4,
     }) {
       return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -280,6 +284,7 @@ void main() {
     testWidgets('resetKey bump re-applies an updated prefill', (tester) async {
       final submissions = <List<String>>[];
       Widget build(int key, List<String> pre) => MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: Scaffold(
               body: WordInput(
                 onSubmit: (w) async => submissions.add(w),

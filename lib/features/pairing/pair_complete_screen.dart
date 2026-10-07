@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Shown immediately after a successful pair commit. The paired peer
 /// just walked through a 30-second QR dance with you, and is standing
@@ -24,6 +25,7 @@ class PairCompleteScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final relationshipsAsync = ref.watch(relationshipsProvider);
     final label = relationshipsAsync.whenOrNull(
           data: (list) {
@@ -33,10 +35,10 @@ class PairCompleteScreen extends ConsumerWidget {
             return null;
           },
         ) ??
-        'your peer';
+        l10n.pairCompleteFallbackPeer;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PAIRED'),
+        title: Text(l10n.pairCompleteTitle),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -46,7 +48,7 @@ class PairCompleteScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                'PAIR COMMITTED //',
+                l10n.pairCompleteCommittedHeader,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 10,
@@ -57,7 +59,7 @@ class PairCompleteScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                "You're both still here.\nTry a verify now.",
+                l10n.pairCompleteHeading,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
@@ -67,11 +69,7 @@ class PairCompleteScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'This is the easiest moment to practice. Ask $label to '
-                'open Signet, tap your name, and read the 4 words on '
-                'their Show-my-words screen. Type what you hear into '
-                'your verify input. Once the green banner lands, '
-                "you'll know it works for real.",
+                l10n.pairCompletePracticeBody(label),
                 style: TextStyle(
                   fontSize: 14,
                   color: scheme.onSurfaceVariant,
@@ -93,9 +91,7 @@ class PairCompleteScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Skip this and you can still verify any time from '
-                        'Home. But the cheapest practice run you will '
-                        'ever get is right now.',
+                        l10n.pairCompleteTipBody,
                         style: TextStyle(
                           fontSize: 12,
                           color: scheme.onSurface,
@@ -109,12 +105,14 @@ class PairCompleteScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () => context.go('/verify/$relationshipId'),
-                child: Text('VERIFY ${label.toUpperCase()} NOW'),
+                child: Text(
+                  l10n.pairCompleteVerifyNowButton(label.toUpperCase()),
+                ),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.go('/'),
-                child: const Text('SKIP — DO IT LATER'),
+                child: Text(l10n.pairCompleteSkipButton),
               ),
             ],
           ),

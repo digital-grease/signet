@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../core/models/label_policy.dart';
 import 'pairing_controller.dart';
@@ -32,7 +33,10 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
   void _continue() {
     final label = _label.text.trim();
     if (label.isEmpty) {
-      setState(() => _error = 'Please enter a name for this contact.');
+      setState(
+        () => _error =
+            AppLocalizations.of(context).pairStartEmptyNameError,
+      );
       return;
     }
     final reason = LabelPolicy.rejectionReason(label);
@@ -54,10 +58,11 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pair a contact'),
+        title: Text(l10n.pairStartTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.go('/'),
@@ -70,13 +75,12 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                "What's this person's name?",
+                l10n.pairStartHeading,
                 style: textTheme.headlineSmall,
               ),
               const SizedBox(height: 12),
               Text(
-                'Only stored on your phone. Use whatever you will recognise '
-                'at a glance — "Mom", "Jake", "Finance Team".',
+                l10n.pairStartPrivacyNote,
                 style: textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
@@ -88,7 +92,7 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
                 textCapitalization: TextCapitalization.words,
                 style: textTheme.titleLarge,
                 decoration: InputDecoration(
-                  labelText: 'Name',
+                  labelText: l10n.pairStartNameLabel,
                   border: const OutlineInputBorder(),
                   errorText: _error.isEmpty ? null : _error,
                 ),
@@ -99,7 +103,7 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
               ),
               const Spacer(),
               BigButton(
-                label: 'Continue',
+                label: l10n.pairStartContinueButton,
                 icon: Icons.arrow_forward,
                 onPressed: _continue,
               ),

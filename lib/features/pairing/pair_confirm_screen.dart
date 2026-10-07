@@ -6,6 +6,7 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/big_button.dart';
 import 'pairing_controller.dart';
 
@@ -26,7 +27,10 @@ class PairConfirmScreen extends ConsumerWidget {
         secret == null ||
         ourPublicKey == null ||
         theirPublicKey == null) {
-      await _goBackWithError(context, 'Pairing state is incomplete.');
+      await _goBackWithError(
+        context,
+        AppLocalizations.of(context).pairConfirmStateIncompleteError,
+      );
       return;
     }
     try {
@@ -48,7 +52,9 @@ class PairConfirmScreen extends ConsumerWidget {
         if (existing == null) {
           if (!context.mounted) return;
           await _goBackWithError(
-              context, 'Relationship to rekey is no longer paired.');
+              context,
+              AppLocalizations.of(context)
+                  .pairConfirmRekeyTargetMissingError);
           return;
         }
         relationship = existing.copyWith(
@@ -66,43 +72,47 @@ class PairConfirmScreen extends ConsumerWidget {
       ref.read(pairingControllerProvider.notifier).reset();
       ref.invalidate(relationshipsProvider);
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       if (rekeyTargetId != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Rekeyed pairing with $label.')),
+          SnackBar(
+            content: Text(l10n.pairConfirmRekeySnackbar(label)),
+          ),
         );
         // Rekey doesn't need the practice-verify nudge — the user already
         // knows the flow.
         context.go('/');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Paired with $label.')),
+          SnackBar(content: Text(l10n.pairConfirmPairedSnackbar(label))),
         );
         context.go('/pair/complete/${relationship.id}');
       }
     } catch (error) {
       if (!context.mounted) return;
-      await _goBackWithError(context, 'Could not save: $error');
+      await _goBackWithError(
+        context,
+        AppLocalizations.of(context)
+            .commonSaveFailedError(error.toString()),
+      );
     }
   }
 
   Future<void> _onMismatch(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Phrases don’t match?'),
-        content: const Text(
-          'If your phrase and theirs don’t match, something went wrong — '
-          'this could be a bad scan or someone trying to get in the middle. '
-          'Safer to throw this pairing away and start over.',
-        ),
+        title: Text(l10n.pairConfirmMismatchDialogTitle),
+        content: Text(l10n.pairConfirmMismatchDialogBody),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Start over'),
+            child: Text(l10n.pairConfirmStartOverButton),
           ),
         ],
       ),
@@ -124,6 +134,7 @@ class PairConfirmScreen extends ConsumerWidget {
     final phrase = pair.phrase;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     if (phrase == null) {
       // User got here without a derived phrase; bounce back home.
@@ -135,7 +146,9 @@ class PairConfirmScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(pair.isRekey ? 'Confirm rekey' : 'Confirm'),
+        title: Text(pair.isRekey
+            ? l10n.pairConfirmRekeyTitle
+            : l10n.pairConfirmTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => _onMismatch(context, ref),
@@ -149,14 +162,13 @@ class PairConfirmScreen extends ConsumerWidget {
             children: <Widget>[
               const SizedBox(height: 8),
               Text(
-                'Does this match their screen?',
+                l10n.pairConfirmHeading,
                 style: textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Read it out loud. All four words should be identical '
-                'on both devices.',
+                l10n.pairConfirmInstructions,
                 style: textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
@@ -191,14 +203,14 @@ class PairConfirmScreen extends ConsumerWidget {
               ),
               const Spacer(),
               BigButton(
-                label: 'It matches',
+                label: l10n.pairConfirmMatchButton,
                 icon: Icons.check_circle,
                 onPressed: () => _onMatch(context, ref),
               ),
               const SizedBox(height: 12),
               BigButton(
                 tone: BigButtonTone.destructive,
-                label: 'No match — start over',
+                label: l10n.pairConfirmMismatchButton,
                 onPressed: () => _onMismatch(context, ref),
               ),
               const SizedBox(height: 8),

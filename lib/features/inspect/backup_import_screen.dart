@@ -12,6 +12,7 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -72,12 +73,16 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } else if (file.path != null) {
         contents = await File(file.path!).readAsString();
       } else {
-        setState(() => _error = 'Could not read the selected file.');
+        setState(() => _error =
+            AppLocalizations.of(context).backupImportFileReadError);
         return;
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Could not read the file: $e');
+      setState(
+        () => _error = AppLocalizations.of(context)
+            .backupImportFileReadFailedError(e.toString()),
+      );
       return;
     }
     try {
@@ -97,7 +102,10 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       });
     } on FormatException catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'File is not a valid Signet backup: ${e.message}');
+      setState(
+        () => _error = AppLocalizations.of(context)
+            .backupImportInvalidFileError(e.message),
+      );
     }
   }
 
@@ -107,13 +115,14 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
 
   Future<void> _handleUnlock() async {
     if (_busy) return;
+    final l10n = AppLocalizations.of(context);
     final wire = _packageController.text.trim();
     if (wire.isEmpty) {
-      setState(() => _error = 'Paste your backup package.');
+      setState(() => _error = l10n.backupImportPasteEmptyError);
       return;
     }
     if (_pakeWords.length != 8) {
-      setState(() => _error = 'Enter the 8 PAKE words you stored separately.');
+      setState(() => _error = l10n.backupImportWordsIncompleteError);
       return;
     }
 
@@ -123,13 +132,11 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     // a user-facing error.
     final payloadType = TransportPackage.peekPayloadType(wire);
     if (payloadType == null) {
-      setState(() => _error = 'Not a valid Signet backup.');
+      setState(() => _error = l10n.backupImportNotBackupError);
       return;
     }
     if (payloadType == TransportPayloadType.ldp) {
-      setState(() => _error =
-          "That's a pairing invitation, not a backup. Use the pair flow "
-          'from Home.');
+      setState(() => _error = l10n.backupImportInvitationError);
       return;
     }
 
@@ -155,7 +162,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } on InvalidPakeException catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = 'Could not unlock: ${e.message}';
+          _error = AppLocalizations.of(context).commonUnlockFailedError(
+            e.message,
+          );
           _busy = false;
           _pakeResetKey++;
         });
@@ -168,7 +177,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = 'Could not unlock: $e';
+          _error = AppLocalizations.of(context)
+              .commonUnlockFailedError(e.toString());
           _busy = false;
         });
       }
@@ -189,7 +199,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } on InvalidPakeException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not unlock: ${e.message}';
+        _error =
+            AppLocalizations.of(context).commonUnlockFailedError(e.message);
         _busy = false;
         _pakeResetKey++;
       });
@@ -202,7 +213,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not unlock: $e';
+        _error = AppLocalizations.of(context)
+            .commonUnlockFailedError(e.toString());
         _busy = false;
       });
     }
@@ -232,7 +244,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not save: $e';
+        _error =
+            AppLocalizations.of(context).commonSaveFailedError(e.toString());
         _busy = false;
       });
     }
@@ -244,10 +257,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_decoded == null ? 'RESTORE BACKUP' : 'CONFIRM IMPORT'),
+          title: Text(_decoded == null
+              ? l10n.backupImportRestoreTitle
+              : l10n.backupImportConfirmTitle),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => context.go('/'),
@@ -265,14 +281,14 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
 
   Widget _buildUnlockPane() {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('BACKUP PACKAGE'),
+        _SectionHeader(l10n.commonBackupPackageHeader),
         const SizedBox(height: 6),
         Text(
-          'Paste the backup package from your paper. Starts with "signet:tp1:". '
-          'If you scanned a QR, paste the text that came out.',
+          l10n.backupImportPasteInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -296,8 +312,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
                 if (!mounted) return;
                 final text = data?.text;
                 if (text == null || text.trim().isEmpty) {
-                  setState(() => _error =
-                      'Clipboard is empty. Copy your backup package first.');
+                  setState(
+                    () => _error = l10n.backupImportClipboardEmptyError,
+                  );
                   return;
                 }
                 setState(() {
@@ -306,21 +323,20 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
                 });
               },
               icon: const Icon(Icons.content_paste),
-              label: const Text('Paste from clipboard'),
+              label: Text(l10n.commonPasteFromClipboard),
             ),
             TextButton.icon(
               onPressed: _handleLoadFromFile,
               icon: const Icon(Icons.folder_open),
-              label: const Text('Load from file'),
+              label: Text(l10n.backupImportLoadFromFileButton),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        const _SectionHeader('PAKE SECRET'),
+        _SectionHeader(l10n.commonPakeSecretHeader),
         const SizedBox(height: 6),
         Text(
-          'The 8 words from your paper or password manager — stored '
-          'separately from the package above.',
+          l10n.backupImportWordsInstruction,
           style: TextStyle(
             fontSize: 12,
             color: scheme.onSurfaceVariant,
@@ -354,7 +370,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         const SizedBox(height: 20),
         FilledButton(
           onPressed: _busy ? null : _handleUnlock,
-          child: Text(_busy ? 'UNLOCKING…' : 'UNLOCK BACKUP'),
+          child: Text(
+            _busy ? l10n.commonUnlocking : l10n.backupImportUnlockButton,
+          ),
         ),
       ],
     );
@@ -363,10 +381,11 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   Widget _buildCommitPane() {
     final decoded = _decoded!;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('RESTORED PEER'),
+        _SectionHeader(l10n.backupImportRestoredPeerHeader),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(16),
@@ -384,14 +403,19 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              _MonoKV(k: 'ROLE //', v: decoded.role.wireName.toUpperCase()),
               _MonoKV(
-                k: 'ORIGINALLY //',
+                k: l10n.backupImportRoleLabel,
+                v: decoded.role.wireName.toUpperCase(),
+              ),
+              _MonoKV(
+                k: l10n.backupImportOriginallyLabel,
                 v: _formatDate(decoded.pairedAt),
               ),
               _MonoKV(
-                k: 'HAPTICS //',
-                v: decoded.silentHaptics ? 'OFF' : 'ON',
+                k: l10n.backupImportHapticsLabel,
+                v: decoded.silentHaptics
+                    ? l10n.backupImportHapticsOff
+                    : l10n.backupImportHapticsOn,
               ),
             ],
           ),
@@ -407,7 +431,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'WHAT THIS DOES //',
+                l10n.backupImportWhatItDoesHeader,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
@@ -418,11 +442,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'This phone will start sharing a secret with ${decoded.label} '
-                "using the same key material as the old phone. ${decoded.label}'s "
-                "phone won't know anything changed. If they've already "
-                'rekeyed with someone else since your backup, verifies '
-                'will fail until you re-pair in person.',
+                l10n.backupImportWhatItDoesBody(decoded.label),
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onSurface,
@@ -439,12 +459,12 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         const SizedBox(height: 20),
         FilledButton(
           onPressed: _busy ? null : _handleCommit,
-          child: Text(_busy ? 'SAVING…' : 'COMMIT IMPORT'),
+          child: Text(_busy ? l10n.commonSaving : l10n.backupImportCommitButton),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: _busy ? null : () => context.go('/'),
-          child: const Text('CANCEL'),
+          child: Text(l10n.commonCancelCaps),
         ),
       ],
     );
@@ -494,7 +514,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

@@ -15,6 +15,7 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/features/home/home_screen.dart';
 import 'package:signet/features/settings/debug_logging_controller.dart';
 import 'package:signet/features/settings/settings_screen.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
 import '../support/in_memory_secure_storage.dart';
@@ -73,7 +74,7 @@ void main() {
             appPrefsProvider.overrideWithValue(prefs),
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
           ],
-          child: const MaterialApp(home: SettingsScreen()),
+          child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: SettingsScreen()),
         ),
       );
       await tester.pumpAndSettle();
@@ -98,7 +99,7 @@ void main() {
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(_wiredDebugLog(dir)),
           ],
-          child: const MaterialApp(home: SettingsScreen()),
+          child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: SettingsScreen()),
         ),
       );
       await tester.pumpAndSettle();
@@ -130,7 +131,7 @@ void main() {
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(debugLog),
           ],
-          child: const MaterialApp(home: SettingsScreen()),
+          child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: SettingsScreen()),
         ),
       );
       await tester.pumpAndSettle();
@@ -154,7 +155,7 @@ void main() {
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(_wiredDebugLog(dir)),
           ],
-          child: const MaterialApp(home: HomeScreen()),
+          child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: HomeScreen()),
         ),
       );
       await tester.pumpAndSettle();
@@ -174,7 +175,7 @@ void main() {
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(debugLog),
           ],
-          child: const MaterialApp(home: HomeScreen()),
+          child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: HomeScreen()),
         ),
       );
       await tester.pumpAndSettle();

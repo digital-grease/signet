@@ -1,9 +1,11 @@
 import 'dart:typed_data';
+import 'dart:ui' show Locale;
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/crypto/challenge_response_grid.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Renders a [ChallengeResponseGrid] as a one-page letter-size PDF
 /// document per the paper layout in
@@ -18,16 +20,27 @@ import '../../core/crypto/challenge_response_grid.dart';
 class CrGridPdf {
   const CrGridPdf._();
 
+  /// String catalog used for the printed card. See [build].
+  static final AppLocalizations printCatalog =
+      lookupAppLocalizations(const Locale('en'));
+
   /// Build the PDF bytes. Synchronous because neither the layout DSL nor
   /// the grid derivation are I/O-bound. Caller hands the result to
   /// `Printing.layoutPdf(onLayout: (_) => bytes)` to open the platform
-  /// print dialog, or writes to a file.
+  /// print dialog, or writes to a file. PDF text is user-visible printed
+  /// content. The card is always printed from the English catalog,
+  /// whatever the device locale: the pdf package's default Helvetica has
+  /// no CJK glyphs, so a localized card would print blank headers and a
+  /// blank safety warning. English also keeps the paper artifact readable
+  /// by anyone who helps the holder later. Switch to the device locale
+  /// only together with an embedded font that covers it.
   static Future<Uint8List> build({
     required String peerLabel,
     required ChallengeResponseGrid grid,
     required DateTime generatedAt,
   }) async {
-    final doc = pw.Document(title: 'Signet challenge-response · $peerLabel');
+    final l10n = printCatalog;
+    final doc = pw.Document(title: l10n.crPdfDocTitle(peerLabel));
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.letter,
@@ -36,15 +49,16 @@ class CrGridPdf {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: <pw.Widget>[
-              _headerBlock(peerLabel: peerLabel, generatedAt: generatedAt),
+              _headerBlock(
+                  l10n: l10n, peerLabel: peerLabel, generatedAt: generatedAt),
               pw.SizedBox(height: 12),
-              _warningBlock(),
+              _warningBlock(l10n: l10n),
               pw.SizedBox(height: 16),
-              _axisLegend(grid: grid),
+              _axisLegend(l10n: l10n, grid: grid),
               pw.SizedBox(height: 14),
               _bodyTable(grid: grid),
               pw.Spacer(),
-              _footer(),
+              _footer(l10n: l10n),
             ],
           );
         },
@@ -56,6 +70,7 @@ class CrGridPdf {
   // ------------------------------------------------------------------
 
   static pw.Widget _headerBlock({
+    required AppLocalizations l10n,
     required String peerLabel,
     required DateTime generatedAt,
   }) {
@@ -77,7 +92,7 @@ class CrGridPdf {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: <pw.Widget>[
               pw.Text(
-                'SIGNET CHALLENGE-RESPONSE CARD',
+                l10n.crPdfCardTitle,
                 style: pw.TextStyle(
                   fontSize: 12,
                   fontWeight: pw.FontWeight.bold,
@@ -103,7 +118,7 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _warningBlock() {
+  static pw.Widget _warningBlock({required AppLocalizations l10n}) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
@@ -113,7 +128,7 @@ class CrGridPdf {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: <pw.Widget>[
           pw.Text(
-            'TREAT THIS CARD LIKE A SAFE COMBINATION',
+            l10n.crPdfWarningTitle,
             style: pw.TextStyle(
               fontSize: 10,
               fontWeight: pw.FontWeight.bold,
@@ -122,11 +137,7 @@ class CrGridPdf {
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            'Anyone who finds this card can answer challenges for this '
-            'pairing. Challenge-response is a fallback - the rotating '
-            'word verify in the app is still the stronger check for '
-            'day-to-day calls. If you lose this card, unpair this '
-            'relationship in the app and re-pair in person.',
+            l10n.crPdfWarningBody,
             style: const pw.TextStyle(fontSize: 9, lineSpacing: 1.4),
           ),
         ],
@@ -134,16 +145,20 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _axisLegend({required ChallengeResponseGrid grid}) {
+  static pw.Widget _axisLegend({
+    required AppLocalizations l10n,
+    required ChallengeResponseGrid grid,
+  }) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: <pw.Widget>[
         pw.Expanded(
-          child: _axisPanel(title: 'ROWS', words: grid.rowLabels),
+          child: _axisPanel(title: l10n.crPdfRowsHeader, words: grid.rowLabels),
         ),
         pw.SizedBox(width: 12),
         pw.Expanded(
-          child: _axisPanel(title: 'COLUMNS', words: grid.colLabels),
+          child:
+              _axisPanel(title: l10n.crPdfColumnsHeader, words: grid.colLabels),
         ),
       ],
     );
@@ -162,7 +177,7 @@ class CrGridPdf {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: <pw.Widget>[
           pw.Text(
-            '$title //',
+            title,
             style: pw.TextStyle(
               fontSize: 9,
               letterSpacing: 1.5,
@@ -274,11 +289,11 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _footer() {
+  static pw.Widget _footer({required AppLocalizations l10n}) {
     return pw.Container(
       alignment: pw.Alignment.centerRight,
       child: pw.Text(
-        'Signet - challenge-response v1',
+        l10n.crPdfFooter,
         style: const pw.TextStyle(
           fontSize: 8,
           color: PdfColors.grey600,

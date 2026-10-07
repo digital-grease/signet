@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/prefs/app_prefs.dart';
+import '../../l10n/app_localizations.dart';
 
 /// First-run walkthrough. Three pages of operator-styled copy explaining
 /// (1) what Signet is for, (2) how pairing works, (3) how to verify a
@@ -23,40 +24,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _page = 0;
 
-  static const List<_Slide> _slides = <_Slide>[
-    _Slide(
-      sectionTag: 'BRIEFING // 01',
-      iconData: Icons.shield_outlined,
-      title: 'Verify who is on the line.',
-      body:
-          'Deepfake voice and video can sound like anyone — a family member, '
-          'a colleague, a source. When someone calls with urgency, asking '
-          'for money, for help, for access, Signet lets you ask for a '
-          'rotating 4-word phrase only their real phone can produce. '
-          'If the words match, you know.',
-    ),
-    _Slide(
-      sectionTag: 'BRIEFING // 02',
-      iconData: Icons.qr_code_2,
-      title: 'Pair once, in person.',
-      body:
-          'You pair two phones by scanning each other\'s QR codes while '
-          "you're together. The shared secret stays on both devices — "
-          'hardware-backed, offline, no cloud. Nothing to subpoena. '
-          'Nothing to phish. Nothing to sync to a server that doesn\'t '
-          'exist.',
-    ),
-    _Slide(
-      sectionTag: 'BRIEFING // 03',
-      iconData: Icons.record_voice_over_outlined,
-      title: 'Ask for the phrase.',
-      body:
-          'During the call, open Signet, tap the peer, ask them to read '
-          'their 4 words. Type what you hear. Green banner = verified, '
-          'trust the call. Red banner = do not trust it. Hang up and '
-          'call back on a number you already know.',
-    ),
-  ];
+  static List<_Slide> _slides(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return <_Slide>[
+      _Slide(
+        sectionTag: l10n.onboardingBriefingTag1,
+        iconData: Icons.shield_outlined,
+        title: l10n.onboardingSlide1Title,
+        body: l10n.onboardingSlide1Body,
+      ),
+      _Slide(
+        sectionTag: l10n.onboardingBriefingTag2,
+        iconData: Icons.qr_code_2,
+        title: l10n.onboardingSlide2Title,
+        body: l10n.onboardingSlide2Body,
+      ),
+      _Slide(
+        sectionTag: l10n.onboardingBriefingTag3,
+        iconData: Icons.record_voice_over_outlined,
+        title: l10n.onboardingSlide3Title,
+        body: l10n.onboardingSlide3Body,
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -73,15 +63,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLast = _page == _slides.length - 1;
+    final l10n = AppLocalizations.of(context);
+    final slides = _slides(context);
+    final isLast = _page == slides.length - 1;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SIGNET'),
+        title: Text(l10n.commonAppTitle),
         actions: <Widget>[
           TextButton(
             onPressed: _finish,
             child: Text(
-              isLast ? 'DONE' : 'SKIP',
+              isLast ? l10n.commonDone : l10n.onboardingSkipButton,
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 12,
@@ -99,12 +91,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _slides.length,
+                itemCount: slides.length,
                 onPageChanged: (i) => setState(() => _page = i),
-                itemBuilder: (_, i) => _SlideView(slide: _slides[i]),
+                itemBuilder: (_, i) => _SlideView(slide: slides[i]),
               ),
             ),
-            _ProgressDots(count: _slides.length, active: _page),
+            _ProgressDots(count: slides.length, active: _page),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -119,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     );
                   }
                 },
-                child: Text(isLast ? 'GOT IT' : 'CONTINUE'),
+                child: Text(isLast ? l10n.commonGotIt : l10n.onboardingContinueButton),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/signet_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 /// About / Support screen — app metadata, external links, a support button.
 ///
@@ -51,8 +52,9 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('ABOUT')),
+      appBar: AppBar(title: Text(l10n.aboutTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -60,61 +62,48 @@ class _AboutScreenState extends State<AboutScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               _Section(
-                title: 'SIGNET',
+                title: l10n.aboutSectionSignet,
                 body:
-                    'Cryptographic multi-factor authentication for human '
-                    'relationships. Defends against voice and video deepfake '
-                    'vishing via device-to-device rotating codes. '
-                    'Zero server, offline-first.\n\n'
-                    'Version: $_version',
-              ),
-              const SizedBox(height: 12),
-              const _Section(
-                title: 'LICENSE',
-                body:
-                    'AGPL-3.0-only. Signet is free software; you are free to '
-                    'use, modify, and redistribute it under the terms of the '
-                    'GNU Affero General Public License version 3.',
+                    '${l10n.aboutIntroBody}\n\n'
+                    '${l10n.aboutVersionLabel(_version)}',
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'SOURCE',
-                body: 'Source code, issue tracker, and release artifacts live '
-                    'on GitHub.',
-                actionLabel: 'OPEN REPOSITORY',
+                title: l10n.aboutSectionLicense,
+                body: l10n.aboutLicenseBody,
+              ),
+              const SizedBox(height: 12),
+              _Section(
+                title: l10n.aboutSectionSource,
+                body: l10n.aboutSourceBody,
+                actionLabel: l10n.aboutOpenRepositoryButton,
                 onAction: () => _open(_sourceUrl),
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'PRIVACY',
-                body:
-                    'Signet collects nothing. It sends nothing. There is no '
-                    'server, no account, no telemetry.',
-                actionLabel: 'PRIVACY POLICY',
+                title: l10n.aboutSectionPrivacy,
+                body: l10n.aboutPrivacyBody,
+                actionLabel: l10n.aboutPrivacyPolicyButton,
                 onAction: () => _open(_privacyUrl),
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'REPORT A BUG',
-                body: 'Found a problem? File an issue on GitHub. Include the '
-                    'device, OS version, and the steps that triggered it.',
-                actionLabel: 'OPEN ISSUES',
+                title: l10n.aboutSectionReportBug,
+                body: l10n.aboutReportBugBody,
+                actionLabel: l10n.aboutOpenIssuesButton,
                 onAction: () => _open(_issuesUrl),
               ),
               const SizedBox(height: 12),
               _Section(
-                title: 'SUPPORT THE PROJECT',
-                body:
-                    'If Signet is useful to you, consider buying me a coffee. '
-                    'Signet is solo-maintained, and there is no paid tier or '
-                    'upsell in the app. Support is optional and appreciated.',
-                actionLabel: 'BUY ME A COFFEE',
+                title: l10n.aboutSectionSupport,
+                body: l10n.aboutSupportBody,
+                actionLabel: l10n.aboutBuyMeCoffeeButton,
                 onAction: () => _open(_supportUrl),
                 actionTone: _ActionTone.highlight,
               ),
               const SizedBox(height: 24),
               Text(
-                '© digital-grease',
+                l10n.aboutCopyright,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'monospace',

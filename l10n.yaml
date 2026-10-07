@@ -1,0 +1,8 @@
+# Flutter gen-l10n configuration. app_en.arb is the template (source of
+# truth for keys); each additional locale is a translation of it. English
+# is also the fallback for any unsupported device locale.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localizations-file: app_localizations.dart
+output-dir: lib/l10n
+nullable-getter: false

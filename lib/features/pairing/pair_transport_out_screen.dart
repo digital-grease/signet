@@ -9,6 +9,7 @@ import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Sender side of Phase-10 long-distance pairing. Three linear phases:
@@ -61,7 +62,8 @@ class _PairTransportOutScreenState
     if (_busy) return;
     final label = _labelController.text.trim();
     if (label.isEmpty) {
-      setState(() => _errorText = 'Give this contact a name.');
+      setState(() =>
+          _errorText = AppLocalizations.of(context).commonGiveContactName);
       return;
     }
     setState(() {
@@ -90,7 +92,8 @@ class _PairTransportOutScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = 'Could not generate package: $e';
+        _errorText = AppLocalizations.of(context)
+            .pairTransportOutGenerateError(e.toString());
         _busy = false;
       });
     }
@@ -105,8 +108,8 @@ class _PairTransportOutScreenState
     if (gen == null || _busy) return;
     final wire = _responseController.text.trim();
     if (wire.isEmpty) {
-      setState(() =>
-          _errorText = 'Paste the response package from the receiver.');
+      setState(() => _errorText =
+          AppLocalizations.of(context).pairTransportOutPasteEmptyError);
       return;
     }
     setState(() {
@@ -141,7 +144,8 @@ class _PairTransportOutScreenState
     } on InvalidPakeException catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = 'Could not unlock response: ${e.message}';
+        _errorText = AppLocalizations.of(context)
+            .pairTransportOutUnlockFailedError(e.message);
         _busy = false;
       });
     } on InvalidPackageException catch (e) {
@@ -153,7 +157,8 @@ class _PairTransportOutScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = 'Could not unlock response: $e';
+        _errorText = AppLocalizations.of(context)
+            .pairTransportOutUnlockFailedError(e.toString());
         _busy = false;
       });
     }
@@ -184,7 +189,8 @@ class _PairTransportOutScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = 'Could not save: $e';
+        _errorText =
+            AppLocalizations.of(context).commonSaveFailedError(e.toString());
         _busy = false;
       });
     }
@@ -196,10 +202,11 @@ class _PairTransportOutScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final title = switch (_phase) {
-      _Phase.setup => 'NEW PACKAGE',
-      _Phase.shareAndWait => 'SHARE + WAIT',
-      _Phase.confirm => 'CONFIRM PAIRING',
+      _Phase.setup => l10n.pairTransportOutNewPackageTitle,
+      _Phase.shareAndWait => l10n.pairTransportOutShareWaitTitle,
+      _Phase.confirm => l10n.commonConfirmPairingTitle,
     };
     return SecureScreen(
       child: Scaffold(
@@ -226,15 +233,14 @@ class _PairTransportOutScreenState
 
   Widget _buildSetupPane() {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('NAME THIS CONTACT'),
+        _SectionHeader(l10n.commonNameThisContactHeader),
         const SizedBox(height: 6),
         Text(
-          'The label that will appear on your home screen after pairing. '
-          'The peer will see this as a hint when they import the package '
-          'but can rename it on their side.',
+          l10n.pairTransportOutNameDescription,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -246,7 +252,7 @@ class _PairTransportOutScreenState
           controller: _labelController,
           maxLength: 32,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'e.g. Alice'),
+          decoration: InputDecoration(hintText: l10n.commonNameHintExample),
         ),
         if (_errorText != null) ...<Widget>[
           const SizedBox(height: 8),
@@ -255,7 +261,9 @@ class _PairTransportOutScreenState
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _busy ? null : _handleGenerate,
-          child: Text(_busy ? 'GENERATING…' : 'GENERATE PACKAGE'),
+          child: Text(
+            _busy ? l10n.commonGenerating : l10n.pairTransportOutGenerateButton,
+          ),
         ),
       ],
     );
@@ -264,15 +272,14 @@ class _PairTransportOutScreenState
   Widget _buildShareAndWaitPane() {
     final gen = _generated!;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('OUTGOING PACKAGE'),
+        _SectionHeader(l10n.pairTransportOutOutgoingHeader),
         const SizedBox(height: 6),
         Text(
-          'Send this text to ${gen.label}. Encrypted email, Signal, paper '
-          'courier, printed QR — any channel is fine. Only useful to '
-          'someone who also has the 8 PAKE words below.',
+          l10n.pairTransportOutOutgoingInstruction(gen.label),
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -293,22 +300,23 @@ class _PairTransportOutScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
+              final copied = l10n.commonPackageCopiedSnackbar;
               await Clipboard.setData(
                 ClipboardData(text: gen.outgoingWire),
               );
               messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Package copied to clipboard'),
-                  duration: Duration(seconds: 1),
+                SnackBar(
+                  content: Text(copied),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             },
             icon: const Icon(Icons.copy),
-            label: const Text('Copy package'),
+            label: Text(l10n.commonCopyPackage),
           ),
         ),
         const SizedBox(height: 20),
-        const _SectionHeader('PAKE SECRET'),
+        _SectionHeader(l10n.commonPakeSecretHeader),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.all(12),
@@ -355,18 +363,19 @@ class _PairTransportOutScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
+              final copied = l10n.pairTransportOutWordsCopiedSnackbar;
               await Clipboard.setData(
                 ClipboardData(text: gen.pakeWords.join(' ')),
               );
               messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('PAKE words copied'),
-                  duration: Duration(seconds: 1),
+                SnackBar(
+                  content: Text(copied),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             },
             icon: const Icon(Icons.copy),
-            label: const Text('Copy words'),
+            label: Text(l10n.pairTransportOutCopyWordsButton),
           ),
         ),
         const SizedBox(height: 12),
@@ -387,10 +396,7 @@ class _PairTransportOutScreenState
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Send the 8 words on a DIFFERENT channel than the package. '
-                  'Never over a fresh voice call. Paper, a prior-meeting '
-                  'fact, or another already-paired Signet relationship are '
-                  'all safer than speaking them aloud.',
+                  l10n.pairTransportOutChannelWarning,
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurface,
@@ -402,10 +408,10 @@ class _PairTransportOutScreenState
           ),
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('RECEIVE RESPONSE'),
+        _SectionHeader(l10n.pairTransportOutReceiveHeader),
         const SizedBox(height: 6),
         Text(
-          '${gen.label} will send you a response package. Paste it here.',
+          l10n.pairTransportOutReceiveInstruction(gen.label),
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -429,7 +435,7 @@ class _PairTransportOutScreenState
               setState(() => _responseController.text = data!.text!);
             },
             icon: const Icon(Icons.content_paste),
-            label: const Text('Paste from clipboard'),
+            label: Text(l10n.commonPasteFromClipboard),
           ),
         ),
         if (_errorText != null) ...<Widget>[
@@ -450,7 +456,11 @@ class _PairTransportOutScreenState
         const SizedBox(height: 20),
         FilledButton(
           onPressed: _busy ? null : _handleUnlockResponse,
-          child: Text(_busy ? 'UNLOCKING…' : 'UNLOCK RESPONSE'),
+          child: Text(
+            _busy
+                ? l10n.commonUnlocking
+                : l10n.pairTransportOutUnlockResponseButton,
+          ),
         ),
       ],
     );
@@ -460,15 +470,14 @@ class _PairTransportOutScreenState
     final conf = _confirming!;
     final gen = _generated!;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('PAIR-TIME PHRASE'),
+        _SectionHeader(l10n.commonPairTimePhraseHeader),
         const SizedBox(height: 8),
         Text(
-          'Ask ${gen.label} to confirm these 4 words match their screen, '
-          'via the same trusted channel you used for the PAKE secret. If '
-          'they match, pairing is real.',
+          l10n.pairTransportOutPhraseInstruction(gen.label),
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -524,12 +533,12 @@ class _PairTransportOutScreenState
         const SizedBox(height: 20),
         FilledButton(
           onPressed: _busy ? null : _handleCommit,
-          child: Text(_busy ? 'SAVING…' : 'COMMIT PAIR'),
+          child: Text(_busy ? l10n.commonSaving : l10n.commonCommitPair),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: _busy ? null : () => context.go('/'),
-          child: const Text('CANCEL'),
+          child: Text(l10n.commonCancelCaps),
         ),
       ],
     );
@@ -569,7 +578,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,

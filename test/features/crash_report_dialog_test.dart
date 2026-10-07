@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/core/logging/crash_recorder.dart';
 import 'package:signet/features/crash_report/crash_report_dialog.dart';
+import 'package:signet/l10n/app_localizations.dart';
 
 CrashReport _mkReport() => CrashReport(
       recordedAt: DateTime.utc(2026, 5, 21, 12),
@@ -20,6 +21,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Builder(
           builder: (ctx) => Scaffold(
             body: Center(
@@ -50,6 +52,7 @@ void main() {
     var closed = false;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Builder(
           builder: (ctx) => Scaffold(
             body: Center(
@@ -88,6 +91,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Builder(
           builder: (ctx) => Scaffold(
             body: Center(

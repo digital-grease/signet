@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/crypto/bip39_english_wordlist.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 4-slot BIP-39 word input used on the Verify screen.
 ///
@@ -254,7 +255,7 @@ class _WordInputState extends State<WordInput> {
             onPressed:
                 _submitting || !widget.enabled ? null : _reset,
             icon: const Icon(Icons.clear),
-            label: const Text('Clear all'),
+            label: Text(AppLocalizations.of(context).wordInputClearAllButton),
           ),
         ),
         if (_submitting)
@@ -262,7 +263,7 @@ class _WordInputState extends State<WordInput> {
             padding: const EdgeInsets.only(top: 8),
             child: Center(
               child: Text(
-                'Checking…',
+                AppLocalizations.of(context).wordInputChecking,
                 style: textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -282,7 +283,8 @@ class _WordInputState extends State<WordInput> {
     final looksInvalid = value.length >= 2 && !isKnown &&
         !bip39EnglishWordlist.any((w) => w.startsWith(value));
     return Semantics(
-      label: 'Word ${index + 1} of ${widget.wordCount}',
+      label: AppLocalizations.of(context)
+          .wordInputSlotSemantics(index + 1, widget.wordCount),
       textField: true,
       child: TextField(
         controller: controller,
@@ -304,13 +306,15 @@ class _WordInputState extends State<WordInput> {
           prefixStyle: textTheme.titleMedium?.copyWith(
             color: colors.onSurfaceVariant,
           ),
-          hintText: 'word',
+          hintText: AppLocalizations.of(context).wordInputHint,
           border: const OutlineInputBorder(),
-          errorText: looksInvalid ? 'Not a valid word' : null,
+          errorText: looksInvalid
+              ? AppLocalizations.of(context).wordInputInvalidWordError
+              : null,
           suffixIcon: controller.text.isEmpty
               ? null
               : IconButton(
-                  tooltip: 'Clear',
+                  tooltip: AppLocalizations.of(context).wordInputClearTooltip,
                   icon: const Icon(Icons.close),
                   onPressed: () {
                     controller.clear();

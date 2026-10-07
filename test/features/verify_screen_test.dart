@@ -11,6 +11,7 @@ import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/features/verify/verify_screen.dart';
 import 'package:signet/features/verify/word_input.dart';
+import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/widgets/words_display.dart';
 
 import '../support/fake_secure_store.dart';
@@ -20,7 +21,7 @@ Widget wrap({required Widget child, required FakeSecureStore store}) {
     overrides: [
       secureStoreProvider.overrideWithValue(store),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: child),
   );
 }
 
@@ -50,7 +51,7 @@ Widget wrapWithRouter({
   );
   return ProviderScope(
     overrides: [secureStoreProvider.overrideWithValue(store)],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(localizationsDelegates: AppLocalizations.localizationsDelegates, routerConfig: router),
   );
 }
 
@@ -963,5 +964,98 @@ void main() {
             reason: 'one haptic on overall ✅');
       },
     );
+  });
+
+  group('VerifyScreen video mode in Chinese', () {
+    // The verifier must be able to read the gesture they are judging. The
+    // English LivenessAction.humanReadable must not leak into the zh UI.
+    const zhAction = <LivenessAction, String>{
+      LivenessAction.lookUp: '抬头看天花板',
+      LivenessAction.lookDown: '低头看地板',
+      LivenessAction.lookLeft: '向左回头看',
+      LivenessAction.lookRight: '向右回头看',
+      LivenessAction.touchNose: '摸鼻尖',
+      LivenessAction.touchForehead: '摸额头',
+      LivenessAction.touchLeftEar: '摸左耳',
+      LivenessAction.touchRightEar: '摸右耳',
+    };
+
+    Widget wrapZh({required Widget child, required FakeSecureStore store}) {
+      return ProviderScope(
+        overrides: [secureStoreProvider.overrideWithValue(store)],
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: child,
+        ),
+      );
+    }
+
+    test('livenessActionText maps every action correctly in en and zh', () {
+      final en = lookupAppLocalizations(const Locale('en'));
+      final zh = lookupAppLocalizations(const Locale('zh'));
+      expect(zhAction.keys.toSet(), LivenessAction.values.toSet());
+      for (final action in LivenessAction.values) {
+        // English is byte-identical to the enum text, so the English UI is
+        // unchanged; a swapped case (e.g. left/right) fails here.
+        expect(livenessActionText(action, en), action.humanReadable,
+            reason: action.name);
+        expect(livenessActionText(action, zh), zhAction[action],
+            reason: action.name);
+      }
+    });
+
+    test('livenessGerundText maps every action correctly in en and zh', () {
+      const enGerund = <LivenessAction, String>{
+        LivenessAction.lookUp: 'looking up at the ceiling',
+        LivenessAction.lookDown: 'looking down at the floor',
+        LivenessAction.lookLeft: 'looking over your left shoulder',
+        LivenessAction.lookRight: 'looking over your right shoulder',
+        LivenessAction.touchNose: 'touching the tip of your nose',
+        LivenessAction.touchForehead: 'touching your forehead',
+        LivenessAction.touchLeftEar: 'touching your left ear',
+        LivenessAction.touchRightEar: 'touching your right ear',
+      };
+      final en = lookupAppLocalizations(const Locale('en'));
+      final zh = lookupAppLocalizations(const Locale('zh'));
+      for (final action in LivenessAction.values) {
+        expect(livenessGerundText(action, en), enGerund[action],
+            reason: action.name);
+        // zh gerunds are the same verb phrases as the imperative forms.
+        expect(livenessGerundText(action, zh), zhAction[action],
+            reason: action.name);
+      }
+    });
+
+    testWidgets('WATCH FOR row and the judgment prompt show the zh action',
+        (tester) async {
+      await tester.pumpWidget(
+        wrapZh(
+          store: FakeSecureStore(seeded: _mom, secret: _secret),
+          child: _verifyScreen(initialVideoMode: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final action = await TotpWords.deriveLivenessAction(
+        secret: _secret,
+        unixTimeSeconds: _kFixedUnixTime,
+        senderRole: _mom.role.other,
+      );
+      expect(find.textContaining(zhAction[action]!), findsWidgets);
+      expect(find.textContaining(action.humanReadable), findsNothing);
+
+      await _enterWords(tester, await _currentWordsFromMom());
+      await tester.pumpAndSettle();
+
+      // Judgment panel prompt (words verified, awaiting SAW IT).
+      final zh = lookupAppLocalizations(const Locale('zh'));
+      expect(
+        find.text(zh.verifyActionJudgmentPrompt(_mom.label, zhAction[action]!)),
+        findsOneWidget,
+      );
+      expect(find.textContaining(action.humanReadable), findsNothing);
+    });
   });
 }

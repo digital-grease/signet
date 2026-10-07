@@ -1,0 +1,1299 @@
+{
+  "@@locale": "en",
+
+  "commonAppTitle": "SIGNET",
+  "@commonAppTitle": {"description": "App name shown as the AppBar title on Home and Onboarding. Keep as-is in all locales."},
+
+  "commonOfflineFreeChip": "OFFLINE-FREE",
+  "@commonOfflineFreeChip": {"description": "Status chip (dot + label) shown top-right on Home and Verify screens. Means the app works fully offline."},
+
+  "commonCancel": "Cancel",
+  "@commonCancel": {"description": "Title-case Cancel button in Material dialogs (Home rename/unpair dialogs, pair-confirm mismatch dialog) and the QR scanning pane."},
+
+  "commonCancelCaps": "CANCEL",
+  "@commonCancelCaps": {"description": "All-caps Cancel button used on operator-styled screens (backup import commit pane, bulk import, transport in/out confirm panes, Settings bulk-export confirm dialog)."},
+
+  "commonDone": "DONE",
+  "@commonDone": {"description": "All-caps DONE button: Onboarding top-right on last page, bulk-import success pane."},
+
+  "commonGotIt": "GOT IT",
+  "@commonGotIt": {"description": "All-caps GOT IT button: Onboarding last page and the verify-failure education bottom sheet."},
+
+  "commonBack": "Back",
+  "@commonBack": {"description": "Title-case Back button inside the pair-exchange screen panes (show QR, camera permission, dev paste)."},
+
+  "commonCopyPackage": "Copy package",
+  "@commonCopyPackage": {"description": "Text button with copy icon: copies the backup/transport package wire text. Used on backup export, bulk export, transport out."},
+
+  "commonPackageCopiedSnackbar": "Package copied to clipboard",
+  "@commonPackageCopiedSnackbar": {"description": "SnackBar after copying the package wire text."},
+
+  "commonSharePackage": "Share package",
+  "@commonSharePackage": {"description": "Text button with share icon on backup export and bulk backup export; opens the OS share sheet."},
+
+  "commonIveSavedIt": "I'VE SAVED IT",
+  "@commonIveSavedIt": {"description": "Filled button at the bottom of backup export / bulk export after the user has stored the paper backup."},
+
+  "commonStoreSeparatelyHeader": "STORE THESE SEPARATELY //",
+  "@commonStoreSeparatelyHeader": {"description": "Red warning block headline on backup export and bulk export. Keep the ' //' structure."},
+
+  "commonRememberHeader": "REMEMBER //",
+  "@commonRememberHeader": {"description": "Secondary warning block headline on backup export and bulk export. Keep the ' //' structure."},
+
+  "commonPakeSecretHeader": "PAKE SECRET //",
+  "@commonPakeSecretHeader": {"description": "Section header above the 8-word PAKE secret on export, import and transport screens. Keep the ' //' structure; PAKE stays untranslated."},
+
+  "commonBackupPackageHeader": "BACKUP PACKAGE //",
+  "@commonBackupPackageHeader": {"description": "Section header above the package wire text / QR on backup export and import screens. Keep the ' //' structure."},
+
+  "commonPairTimePhraseHeader": "PAIR-TIME PHRASE //",
+  "@commonPairTimePhraseHeader": {"description": "Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure."},
+
+  "commonNameThisContactHeader": "NAME THIS CONTACT //",
+  "@commonNameThisContactHeader": {"description": "Section header above the contact-name field on transport in/out screens. Keep the ' //' structure."},
+
+  "commonNameHintExample": "e.g. Alice",
+  "@commonNameHintExample": {"description": "TextField hintText for the contact name on transport in/out screens."},
+
+  "commonPasteFromClipboard": "Paste from clipboard",
+  "@commonPasteFromClipboard": {"description": "Text button with paste icon that reads the clipboard into the package input. Used on backup import and both transport screens."},
+
+  "commonUnlocking": "UNLOCKING…",
+  "@commonUnlocking": {"description": "Disabled state of the unlock button while decryption runs (backup import, transport in/out)."},
+
+  "commonSaving": "SAVING…",
+  "@commonSaving": {"description": "Disabled state of the commit button while saving (backup import, transport in/out)."},
+
+  "commonGenerating": "GENERATING…",
+  "@commonGenerating": {"description": "Disabled state of the generate button (transport out setup, bulk backup export)."},
+
+  "commonCommitPair": "COMMIT PAIR",
+  "@commonCommitPair": {"description": "Filled button that commits the long-distance pairing (transport in/out confirm pane)."},
+
+  "commonConfirmPairingTitle": "CONFIRM PAIRING",
+  "@commonConfirmPairingTitle": {"description": "AppBar title of the confirm pane on both transport in and transport out screens."},
+
+  "commonUnlockFailedError": "Could not unlock: {error}",
+  "@commonUnlockFailedError": {"description": "Inline error when PAKE words are wrong / package undecryptable during unlock (backup import, transport in). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+
+  "commonSaveFailedError": "Could not save: {error}",
+  "@commonSaveFailedError": {"description": "Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+
+  "commonGiveContactName": "Give this contact a name.",
+  "@commonGiveContactName": {"description": "Validation error shown when the contact-name field is empty on transport in/out."},
+
+  "commonRelationshipNotFound": "Relationship not found.",
+  "@commonRelationshipNotFound": {"description": "Error text shown (via an error wrapper) when the relationship id no longer resolves (backup export, challenge-response grid)."},
+
+  "commonAirplaneFooter": "AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX",
+  "@commonAirplaneFooter": {"description": "Monospace reassurance footer at the bottom of binding phrase, verify and cr-grid screens. Keep the ' //' structure and the · separators."},
+
+  "homeHelpTooltip": "Help",
+  "@homeHelpTooltip": {"description": "Tooltip of the help icon (question mark) in the Home AppBar."},
+
+  "homeMoreTooltip": "More",
+  "@homeMoreTooltip": {"description": "Tooltip of the three-dot overflow menu in the Home AppBar."},
+
+  "homeMenuFaq": "FAQ",
+  "@homeMenuFaq": {"description": "Help popup-menu item opening the FAQ screen."},
+
+  "homeMenuContactUs": "Contact us",
+  "@homeMenuContactUs": {"description": "Help popup-menu item opening the GitHub issues page in the browser."},
+
+  "homeMenuSettings": "Settings",
+  "@homeMenuSettings": {"description": "Overflow popup-menu item opening Settings."},
+
+  "homeMenuShowIntro": "Show intro again",
+  "@homeMenuShowIntro": {"description": "Overflow popup-menu item reopening the onboarding walkthrough."},
+
+  "homeMenuAbout": "About",
+  "@homeMenuAbout": {"description": "Overflow popup-menu item opening the About screen."},
+
+  "homeErrorLoadFailed": "Could not read your paired contacts.\n{error}",
+  "@homeErrorLoadFailed": {"description": "Body of the Home error state when the relationship list fails to load. Shows the underlying error.", "placeholders": {"error": {"type": "String"}}},
+
+  "homeTryAgainButton": "TRY AGAIN",
+  "@homeTryAgainButton": {"description": "Button on the Home error state that retries loading."},
+
+  "homeFabPair": "PAIR",
+  "@homeFabPair": {"description": "Extended FloatingActionButton label on Home (visible when contacts exist). Opens the pairing options sheet."},
+
+  "homeEmptyTitle": "Nothing paired yet.",
+  "@homeEmptyTitle": {"description": "Large headline of the Home empty state."},
+
+  "homeEmptyBody": "Pair in person with someone you trust. You'll both be able to verify each other later over any call.",
+  "@homeEmptyBody": {"description": "Explanatory body under the Home empty-state headline."},
+
+  "homeEmptyPairContactButton": "PAIR CONTACT",
+  "@homeEmptyPairContactButton": {"description": "Filled button on the empty state; starts the in-person pair flow."},
+
+  "homeEmptySendPackageButton": "SEND A PACKAGE",
+  "@homeEmptySendPackageButton": {"description": "Outlined button on the empty state; starts the long-distance sender flow."},
+
+  "homeEmptyHavePackageButton": "I HAVE A PACKAGE",
+  "@homeEmptyHavePackageButton": {"description": "Outlined button on the empty state; starts the long-distance receiver flow."},
+
+  "homeEmptyRestoreBackupButton": "RESTORE FROM BACKUP",
+  "@homeEmptyRestoreBackupButton": {"description": "Outlined button on the empty state; starts the backup restore flow."},
+
+  "homeRenameDialogTitle": "Rename peer",
+  "@homeRenameDialogTitle": {"description": "Title of the rename dialog opened from the long-press row menu."},
+
+  "homeRenameFieldLabel": "Peer name",
+  "@homeRenameFieldLabel": {"description": "labelText of the TextField in the rename dialog."},
+
+  "homeRenameEmptyError": "Name cannot be empty.",
+  "@homeRenameEmptyError": {"description": "errorText in the rename dialog when the trimmed name is empty."},
+
+  "homeSaveButton": "Save",
+  "@homeSaveButton": {"description": "Confirm button of the rename dialog."},
+
+  "homeUnpairDialogTitle": "Unpair from {label}?",
+  "@homeUnpairDialogTitle": {"description": "Title of the unpair confirmation dialog.", "placeholders": {"label": {"type": "String"}}},
+
+  "homeUnpairDialogBody": "This deletes the shared secret on this device. To verify again you would need to pair from scratch.",
+  "@homeUnpairDialogBody": {"description": "Body of the unpair confirmation dialog."},
+
+  "homeUnpairConfirmButton": "Unpair",
+  "@homeUnpairConfirmButton": {"description": "Destructive confirm button of the unpair dialog."},
+
+  "homeUnpairSnackbar": "Unpaired from {label}.",
+  "@homeUnpairSnackbar": {"description": "SnackBar after unpairing; carries an UNDO action.", "placeholders": {"label": {"type": "String"}}},
+
+  "homeUndoAction": "UNDO",
+  "@homeUndoAction": {"description": "SnackBar action label restoring the just-unpaired relationship."},
+
+  "homePairMenuInPerson": "Pair in person",
+  "@homePairMenuInPerson": {"description": "Pairing bottom-sheet option; both phones together."},
+
+  "homePairMenuInPersonSubtitle": "Both phones together, scan each other",
+  "@homePairMenuInPersonSubtitle": {"description": "Subtitle of the in-person pairing sheet option."},
+
+  "homePairMenuSendPackage": "Send a package",
+  "@homePairMenuSendPackage": {"description": "Pairing bottom-sheet option; long-distance sender side."},
+
+  "homePairMenuSendPackageSubtitle": "Pair someone far away over a trusted channel",
+  "@homePairMenuSendPackageSubtitle": {"description": "Subtitle of the send-package sheet option."},
+
+  "homePairMenuHavePackage": "I have a package",
+  "@homePairMenuHavePackage": {"description": "Pairing bottom-sheet option; long-distance receiver side."},
+
+  "homePairMenuHavePackageSubtitle": "Import a package from someone else",
+  "@homePairMenuHavePackageSubtitle": {"description": "Subtitle of the have-package sheet option."},
+
+  "homePairMenuRestoreBackup": "Restore from backup",
+  "@homePairMenuRestoreBackup": {"description": "Pairing bottom-sheet option; opens backup restore."},
+
+  "homePairMenuRestoreBackupSubtitle": "Recover a paired contact from paper",
+  "@homePairMenuRestoreBackupSubtitle": {"description": "Subtitle of the restore-from-backup sheet option."},
+
+  "homeRowMenuRename": "Rename {label}",
+  "@homeRowMenuRename": {"description": "Long-press row menu item; opens the rename dialog.", "placeholders": {"label": {"type": "String"}}},
+
+  "homeRowMenuHapticsOn": "Turn haptics on",
+  "@homeRowMenuHapticsOn": {"description": "Row menu item shown when silent haptics is currently off."},
+
+  "homeRowMenuHapticsOff": "Turn haptics off",
+  "@homeRowMenuHapticsOff": {"description": "Row menu item shown when silent haptics is currently on."},
+
+  "homeRowMenuShowBinding": "Show binding phrase",
+  "@homeRowMenuShowBinding": {"description": "Row menu item opening the binding-phrase screen."},
+
+  "homeRowMenuVerifyVideo": "Verify (video call)",
+  "@homeRowMenuVerifyVideo": {"description": "Row menu item jumping into verify with video mode pre-enabled."},
+
+  "homeRowMenuVerifyVideoSubtitle": "Adds a physical-action check — deepfake-resistant",
+  "@homeRowMenuVerifyVideoSubtitle": {"description": "Subtitle of the verify (video call) row menu item."},
+
+  "homeRowMenuCrGrid": "Challenge-response grid",
+  "@homeRowMenuCrGrid": {"description": "Row menu item opening the challenge-response grid viewer."},
+
+  "homeRowMenuCrGridSubtitle": "Fallback for when the other side has no phone",
+  "@homeRowMenuCrGridSubtitle": {"description": "Subtitle of the challenge-response grid row menu item."},
+
+  "homeRowMenuRekey": "Rekey {label}",
+  "@homeRowMenuRekey": {"description": "Row menu item starting the rekey (secret rotation) pair flow.", "placeholders": {"label": {"type": "String"}}},
+
+  "homeRowMenuRekeySubtitle": "Rotate the shared secret in person",
+  "@homeRowMenuRekeySubtitle": {"description": "Subtitle of the rekey row menu item."},
+
+  "homeRowMenuBackupPaper": "Back up to paper",
+  "@homeRowMenuBackupPaper": {"description": "Row menu item opening the paper backup export screen."},
+
+  "homeRowMenuBackupPaperSubtitle": "Restore on a new phone if you lose this one",
+  "@homeRowMenuBackupPaperSubtitle": {"description": "Subtitle of the back-up-to-paper row menu item."},
+
+  "homeRowMenuUnpair": "Unpair from {label}",
+  "@homeRowMenuUnpair": {"description": "Destructive (red) row menu item opening the unpair confirmation.", "placeholders": {"label": {"type": "String"}}},
+
+  "homeDebugBannerSemantics": "Debug logging is on. Double tap to manage in Settings.",
+  "@homeDebugBannerSemantics": {"description": "Semantics live-region label of the persistent debug-recording banner on Home."},
+
+  "homeDebugBannerText": "DEBUG LOGGING ON — recording app activity",
+  "@homeDebugBannerText": {"description": "Visible monospace text of the persistent debug-recording banner on Home."},
+
+  "homeSectionRelationships": "RELATIONSHIPS //",
+  "@homeSectionRelationships": {"description": "Monospace section header above the paired-contact list on Home. Keep the ' //' structure."},
+
+  "homeRowMetadata": "role:{role} · {fingerprint} · {date}",
+  "@homeRowMetadata": {"description": "Small monospace metadata line under each contact row: wire role letter, fingerprint prefix, pairing date (yyyy-MM-dd).", "placeholders": {"role": {"type": "String"}, "fingerprint": {"type": "String"}, "date": {"type": "String"}}},
+
+  "homeHapticsOffChip": "HAPTICS // OFF",
+  "@homeHapticsOffChip": {"description": "Small chip under a contact row when silent haptics is enabled for it. Keep the ' //' structure."},
+
+  "aboutTitle": "ABOUT",
+  "@aboutTitle": {"description": "AppBar title of the About screen."},
+
+  "aboutSectionSignet": "SIGNET",
+  "@aboutSectionSignet": {"description": "First section card title on About (app description)."},
+
+  "aboutIntroBody": "Cryptographic multi-factor authentication for human relationships. Defends against voice and video deepfake vishing via device-to-device rotating codes. Zero server, offline-first.",
+  "@aboutIntroBody": {"description": "Body of the SIGNET section on About (app pitch, no version line)."},
+
+  "aboutVersionLabel": "Version: {version}",
+  "@aboutVersionLabel": {"description": "Version line appended to the SIGNET section body on About.", "placeholders": {"version": {"type": "String"}}},
+
+  "aboutSectionLicense": "LICENSE",
+  "@aboutSectionLicense": {"description": "Section card title on About."},
+
+  "aboutLicenseBody": "AGPL-3.0-only. Signet is free software; you are free to use, modify, and redistribute it under the terms of the GNU Affero General Public License version 3.",
+  "@aboutLicenseBody": {"description": "Body of the LICENSE section on About."},
+
+  "aboutSectionSource": "SOURCE",
+  "@aboutSectionSource": {"description": "Section card title on About (source code)."},
+
+  "aboutSourceBody": "Source code, issue tracker, and release artifacts live on GitHub.",
+  "@aboutSourceBody": {"description": "Body of the SOURCE section on About."},
+
+  "aboutOpenRepositoryButton": "OPEN REPOSITORY",
+  "@aboutOpenRepositoryButton": {"description": "Outlined button on the SOURCE section; opens the GitHub repo."},
+
+  "aboutSectionPrivacy": "PRIVACY",
+  "@aboutSectionPrivacy": {"description": "Section card title on About."},
+
+  "aboutPrivacyBody": "Signet collects nothing. It sends nothing. There is no server, no account, no telemetry.",
+  "@aboutPrivacyBody": {"description": "Body of the PRIVACY section on About."},
+
+  "aboutPrivacyPolicyButton": "PRIVACY POLICY",
+  "@aboutPrivacyPolicyButton": {"description": "Outlined button on the PRIVACY section; opens PRIVACY.md."},
+
+  "aboutSectionReportBug": "REPORT A BUG",
+  "@aboutSectionReportBug": {"description": "Section card title on About."},
+
+  "aboutReportBugBody": "Found a problem? File an issue on GitHub. Include the device, OS version, and the steps that triggered it.",
+  "@aboutReportBugBody": {"description": "Body of the REPORT A BUG section on About."},
+
+  "aboutOpenIssuesButton": "OPEN ISSUES",
+  "@aboutOpenIssuesButton": {"description": "Outlined button on the REPORT A BUG section; opens the GitHub issue tracker."},
+
+  "aboutSectionSupport": "SUPPORT THE PROJECT",
+  "@aboutSectionSupport": {"description": "Section card title on About (donation)."},
+
+  "aboutSupportBody": "If Signet is useful to you, consider buying me a coffee. Signet is solo-maintained, and there is no paid tier or upsell in the app. Support is optional and appreciated.",
+  "@aboutSupportBody": {"description": "Body of the SUPPORT THE PROJECT section on About."},
+
+  "aboutBuyMeCoffeeButton": "BUY ME A COFFEE",
+  "@aboutBuyMeCoffeeButton": {"description": "Highlighted filled button on the SUPPORT section; opens Buy Me a Coffee."},
+
+  "aboutCopyright": "© digital-grease",
+  "@aboutCopyright": {"description": "Copyright line at the bottom of About. Author handle — keep untranslated."},
+
+  "crashReportTitle": "Signet had trouble",
+  "@crashReportTitle": {"description": "AlertDialog title of the post-crash report dialog, shown in error color."},
+
+  "crashReportIntroBody": "The app crashed during your last session. Sending the report helps us fix what happened.",
+  "@crashReportIntroBody": {"description": "First paragraph of the crash report dialog content."},
+
+  "crashReportContainsHeading": "The report contains:",
+  "@crashReportContainsHeading": {"description": "Bold lead-in before the bullet list in the crash report dialog."},
+
+  "crashReportBulletDevice": "Your device + OS + app version",
+  "@crashReportBulletDevice": {"description": "First bullet in the crash report dialog."},
+
+  "crashReportBulletStack": "A stack trace, with any cryptographic material (paired secrets, verify codes, backup payloads) replaced with [redacted:N] markers before it leaves your phone.",
+  "@crashReportBulletStack": {"description": "Second bullet in the crash report dialog explaining scrubbing. [redacted:N] is a literal marker — keep as-is."},
+
+  "crashReportChooseHeading": "Choose how to send it:",
+  "@crashReportChooseHeading": {"description": "Bold lead-in before the action buttons in the crash report dialog."},
+
+  "crashReportDismissButton": "DISMISS",
+  "@crashReportDismissButton": {"description": "TextButton closing the crash report dialog without sending."},
+
+  "crashReportCopyLogButton": "COPY LOG",
+  "@crashReportCopyLogButton": {"description": "TextButton copying the scrubbed crash trace to the clipboard."},
+
+  "crashReportFileIssueButton": "FILE ISSUE",
+  "@crashReportFileIssueButton": {"description": "FilledButton opening the pre-filled GitHub crash-report issue."},
+
+  "crashReportCopiedSnackbar": "Crash log copied to clipboard.",
+  "@crashReportCopiedSnackbar": {"description": "SnackBar after copying the crash log."},
+
+  "crashReportOpenFailedSnackbar": "Could not open the browser. The crash log has been copied to your clipboard so you can paste it manually.",
+  "@crashReportOpenFailedSnackbar": {"description": "SnackBar when the browser could not be launched for the crash report."},
+
+  "crashReportTruncatedSnackbar": "Trace was long — the full log is on your clipboard. Paste it below the truncation marker on GitHub.",
+  "@crashReportTruncatedSnackbar": {"description": "SnackBar when the crash-report URL was truncated and the full trace was placed on the clipboard."},
+
+  "faqTitle": "FAQ",
+  "@faqTitle": {"description": "AppBar title of the FAQ screen."},
+
+  "faqQ1": "What does Signet actually do?",
+  "@faqQ1": {"description": "FAQ question 1 (expansion tile title)."},
+
+  "faqA1": "Signet lets you confirm that a person calling, texting, or video-chatting you is who they say they are — even if they sound right, know biographical facts, and are asking for something urgent. You pair once, in person, with someone you trust. From then on, either of you can ask for a 4-word code that only the real paired device can produce.",
+  "@faqA1": {"description": "FAQ answer 1."},
+
+  "faqQ2": "What does \"verified\" actually prove?",
+  "@faqQ2": {"description": "FAQ question 2."},
+
+  "faqA2": "It proves the person on the other end has physical access to the phone you paired with, and that that phone hasn't been compromised. It does not prove their voice is real — a deepfake that can also compel someone to read a code off the real phone would still verify. Signet's job is to raise the attacker's cost from 'clone a voice' to 'also physically steal an unlocked phone.'",
+  "@faqA2": {"description": "FAQ answer 2."},
+
+  "faqQ3": "Why does the 4-word code keep changing?",
+  "@faqQ3": {"description": "FAQ question 3."},
+
+  "faqA3": "Each code is valid for 30 seconds. That way, even if an attacker records one code during a real call, they can't reuse it later. Signet accepts codes from the current window plus one before and one after, so a small clock mismatch or slow reader doesn't fail a legitimate verify.",
+  "@faqA3": {"description": "FAQ answer 3."},
+
+  "faqQ4": "What if the codes don't match?",
+  "@faqQ4": {"description": "FAQ question 4."},
+
+  "faqA4": "Treat it as a red flag. A real paired contact's code will almost always match on the first try. If it doesn't: hang up, reach the person through a separate channel you independently know (their known phone number, in person, a mutual friend), and confirm before acting on anything they asked for.",
+  "@faqA4": {"description": "FAQ answer 4."},
+
+  "faqQ5": "Can Signet see my pairings or my codes?",
+  "@faqQ5": {"description": "FAQ question 5."},
+
+  "faqA5": "No. Signet has no server, no account, no telemetry, no analytics. It doesn't ask for the internet permission on Android. Your shared secrets live in your phone's secure enclave (Keychain/Keystore) and don't leave the device. If Signet disappeared tomorrow, nothing of yours goes with it.",
+  "@faqA5": {"description": "FAQ answer 5."},
+
+  "faqQ6": "What if I lose my phone?",
+  "@faqQ6": {"description": "FAQ question 6."},
+
+  "faqA6": "If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn't need to do anything, and doesn't even know a restore happened. If you didn't back up, the pairing is gone and you'd need to re-pair in person with that contact on the new device.",
+  "@faqA6": {"description": "FAQ answer 6."},
+
+  "faqQ7": "Can I pair with more than one person?",
+  "@faqQ7": {"description": "FAQ question 7."},
+
+  "faqA7": "Yes. Add as many as you want — each pairing is independent. Every relationship gets its own secret; compromising one pairing doesn't reveal or affect any other.",
+  "@faqA7": {"description": "FAQ answer 7."},
+
+  "faqQ8": "What's the challenge-response grid?",
+  "@faqQ8": {"description": "FAQ question 8."},
+
+  "faqA8": "An offline fallback for when the other person can't reach their phone. Both of you have the same 8x8 grid of code words derived from your shared secret. You say \"what's the phrase for orange-anchor?\" — they look it up (in the app or on a printed card) and read you the three-word answer. If it matches what your app says, the pairing is genuine.",
+  "@faqA8": {"description": "FAQ answer 8."},
+
+  "faqQ9": "Why does video-call verify ask for a physical action?",
+  "@faqQ9": {"description": "FAQ question 9."},
+
+  "faqA9": "AI voice and video deepfakes keep getting better. A realtime deepfake that hears you ask for the 4 words can just say them — unless those words came from the paired device, which is why plain verify works. But a deepfake that hears you read a random prompt like \"touch your ear\" aloud can also mimic that action immediately. So Signet turns the action into something derived from the shared secret too: only the real paired device knows which action is expected in this window. When you turn on VIDEO CALL mode, passing requires BOTH the right 4 words AND the counterparty performing the expected action. A deepfake without the paired device can only guess, and the combined odds drop to roughly 1 in 100 trillion per 30-second window.",
+  "@faqA9": {"description": "FAQ answer 9. 'VIDEO CALL' refers to the on-screen toggle label."},
+
+  "faqQ10": "Why no account? What if I need recovery?",
+  "@faqQ10": {"description": "FAQ question 10."},
+
+  "faqA10": "An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.",
+  "@faqA10": {"description": "FAQ answer 10."},
+
+  "faqQ11": "Someone is asking me to skip the verify step.",
+  "@faqQ11": {"description": "FAQ question 11."},
+
+  "faqA11": "Do not skip it. A real paired contact understands why verification exists and won't pressure you to bypass it. Urgency plus a request to skip verification is the exact pattern a scammer uses to short-circuit the safety net. If you're being pressured, assume the call is hostile until proven otherwise.",
+  "@faqA11": {"description": "FAQ answer 11."},
+
+  "faqStillStuckHeader": "STILL STUCK //",
+  "@faqStillStuckHeader": {"description": "Monospace headline above the issue-filing block at the end of the FAQ. Keep the ' //' structure."},
+
+  "faqStillStuckBody": "Didn't find your answer here? File an issue on GitHub. Include your device, OS version, and what you were trying to do.",
+  "@faqStillStuckBody": {"description": "Body text of the still-stuck block at the end of the FAQ."},
+
+  "faqContactUsButton": "CONTACT US",
+  "@faqContactUsButton": {"description": "Outlined button at the end of the FAQ; opens the GitHub issue tracker."},
+
+  "onboardingSkipButton": "SKIP",
+  "@onboardingSkipButton": {"description": "AppBar TextButton on Onboarding while not on the last page; finishes the walkthrough immediately."},
+
+  "onboardingBriefingTag1": "BRIEFING // 01",
+  "@onboardingBriefingTag1": {"description": "Monospace section tag on onboarding slide 1. Keep the ' //' structure and the 01 numbering."},
+
+  "onboardingBriefingTag2": "BRIEFING // 02",
+  "@onboardingBriefingTag2": {"description": "Section tag on onboarding slide 2."},
+
+  "onboardingBriefingTag3": "BRIEFING // 03",
+  "@onboardingBriefingTag3": {"description": "Section tag on onboarding slide 3."},
+
+  "onboardingSlide1Title": "Verify who is on the line.",
+  "@onboardingSlide1Title": {"description": "Headline of onboarding slide 1 (what Signet is for)."},
+
+  "onboardingSlide1Body": "Deepfake voice and video can sound like anyone — a family member, a colleague, a source. When someone calls with urgency, asking for money, for help, for access, Signet lets you ask for a rotating 4-word phrase only their real phone can produce. If the words match, you know.",
+  "@onboardingSlide1Body": {"description": "Body of onboarding slide 1."},
+
+  "onboardingSlide2Title": "Pair once, in person.",
+  "@onboardingSlide2Title": {"description": "Headline of onboarding slide 2 (how pairing works)."},
+
+  "onboardingSlide2Body": "You pair two phones by scanning each other's QR codes while you're together. The shared secret stays on both devices — hardware-backed, offline, no cloud. Nothing to subpoena. Nothing to phish. Nothing to sync to a server that doesn't exist.",
+  "@onboardingSlide2Body": {"description": "Body of onboarding slide 2."},
+
+  "onboardingSlide3Title": "Ask for the phrase.",
+  "@onboardingSlide3Title": {"description": "Headline of onboarding slide 3 (how to verify a call)."},
+
+  "onboardingSlide3Body": "During the call, open Signet, tap the peer, ask them to read their 4 words. Type what you hear. Green banner = verified, trust the call. Red banner = do not trust it. Hang up and call back on a number you already know.",
+  "@onboardingSlide3Body": {"description": "Body of onboarding slide 3."},
+
+  "onboardingContinueButton": "CONTINUE",
+  "@onboardingContinueButton": {"description": "Bottom filled button on Onboarding while not on the last page."},
+
+  "pairStartTitle": "Pair a contact",
+  "@pairStartTitle": {"description": "AppBar title of pair step 1 (naming the contact)."},
+
+  "pairStartHeading": "What's this person's name?",
+  "@pairStartHeading": {"description": "Headline question on the pair-start screen."},
+
+  "pairStartPrivacyNote": "Only stored on your phone. Use whatever you will recognise at a glance — \"Mom\", \"Jake\", \"Finance Team\".",
+  "@pairStartPrivacyNote": {"description": "Explanatory text under the pair-start headline; example names are illustrative."},
+
+  "pairStartNameLabel": "Name",
+  "@pairStartNameLabel": {"description": "labelText of the name field on pair start."},
+
+  "pairStartEmptyNameError": "Please enter a name for this contact.",
+  "@pairStartEmptyNameError": {"description": "Validation error when continuing with an empty name on pair start."},
+
+  "pairStartContinueButton": "Continue",
+  "@pairStartContinueButton": {"description": "BigButton advancing to the QR exchange step."},
+
+  "pairExchangeTitlePair": "Pair with {contact}",
+  "@pairExchangeTitlePair": {"description": "AppBar title of the QR exchange screen during a fresh pairing.", "placeholders": {"contact": {"type": "String"}}},
+
+  "pairExchangeTitleRekey": "Rekey with {contact}",
+  "@pairExchangeTitleRekey": {"description": "AppBar title of the QR exchange screen during a rekey.", "placeholders": {"contact": {"type": "String"}}},
+
+  "pairExchangeFallbackContact": "contact",
+  "@pairExchangeFallbackContact": {"description": "Fallback word in the exchange AppBar title when no label has been set yet ('Pair with contact')."},
+
+  "pairExchangeIntro": "Hold your phones together. Each of you needs to do both of these.",
+  "@pairExchangeIntro": {"description": "Intro line at the top of the exchange overview pane."},
+
+  "pairExchangeStep1Title": "Show my QR",
+  "@pairExchangeStep1Title": {"description": "Step card 1 title: display my pairing QR."},
+
+  "pairExchangeStep1Subtitle": "Let the other person scan your code.",
+  "@pairExchangeStep1Subtitle": {"description": "Step card 1 subtitle."},
+
+  "pairExchangeStep2Title": "Scan their QR",
+  "@pairExchangeStep2Title": {"description": "Step card 2 title: scan the other device's QR."},
+
+  "pairExchangeStep2Subtitle": "Point your camera at their code.",
+  "@pairExchangeStep2Subtitle": {"description": "Step card 2 subtitle."},
+
+  "pairExchangeStep3Title": "Paste string (dev)",
+  "@pairExchangeStep3Title": {"description": "Dev-only step card 3 title (paste-exchange pane, compile-time flag)."},
+
+  "pairExchangeStep3Subtitle": "Two-emulator testing only. Bypasses the camera.",
+  "@pairExchangeStep3Subtitle": {"description": "Dev-only step card 3 subtitle."},
+
+  "pairExchangeDerivingStatus": "Deriving shared secret…",
+  "@pairExchangeDerivingStatus": {"description": "Status line under the step cards once both steps are complete."},
+
+  "pairExchangeWaitingStatus": "Waiting for both steps…",
+  "@pairExchangeWaitingStatus": {"description": "Status line under the step cards while steps are incomplete."},
+
+  "pairExchangeShowHeading": "Let them scan this.",
+  "@pairExchangeShowHeading": {"description": "Headline above the fullscreen pairing QR."},
+
+  "pairExchangeShowDoneButton": "They scanned — I'm done",
+  "@pairExchangeShowDoneButton": {"description": "BigButton under the QR confirming the other side has scanned."},
+
+  "pairExchangeCameraPermissionTitle": "Camera permission is turned off.",
+  "@pairExchangeCameraPermissionTitle": {"description": "Title of the camera-permission-denied pane."},
+
+  "pairExchangeCameraPermissionBody": "Signet needs the camera only to scan pairing QR codes. Turn it on in your phone settings: {path}.",
+  "@pairExchangeCameraPermissionBody": {"description": "Body of the permission-denied pane; {path} is the OS settings path.", "placeholders": {"path": {"type": "String"}}},
+
+  "pairCameraSettingsPathIos": "Settings → Signet → Camera",
+  "@pairCameraSettingsPathIos": {"description": "iOS per-app camera settings path, interpolated into the permission body."},
+
+  "pairCameraSettingsPathAndroid": "Apps → Signet → Permissions → Camera",
+  "@pairCameraSettingsPathAndroid": {"description": "Android per-app camera settings path, interpolated into the permission body."},
+
+  "pairExchangeDevHeading": "Dev: paste-exchange",
+  "@pairExchangeDevHeading": {"description": "Dev-only pane headline (paste string instead of camera)."},
+
+  "pairExchangeDevInstructions": "Copy the \"Your string\" value into the other emulator's paste box, then paste theirs below.",
+  "@pairExchangeDevInstructions": {"description": "Dev-only pane instructions; references the two field labels below."},
+
+  "pairExchangeDevYourString": "Your string",
+  "@pairExchangeDevYourString": {"description": "Label above our own pairing string in the dev pane."},
+
+  "pairExchangeDevCopyButton": "Copy",
+  "@pairExchangeDevCopyButton": {"description": "Copy button next to our pairing string in the dev pane."},
+
+  "pairExchangeDevCopiedSnackbar": "Copied to clipboard",
+  "@pairExchangeDevCopiedSnackbar": {"description": "SnackBar after copying our pairing string in the dev pane."},
+
+  "pairExchangeDevTheirString": "Their string",
+  "@pairExchangeDevTheirString": {"description": "Label above the input for the other device's pairing string in the dev pane."},
+
+  "pairExchangeDevSubmitButton": "Submit",
+  "@pairExchangeDevSubmitButton": {"description": "BigButton submitting the pasted pairing string in the dev pane."},
+
+  "pairExchangeDevSubmittingButton": "Submitting…",
+  "@pairExchangeDevSubmittingButton": {"description": "Disabled state of the dev-pane submit button."},
+
+  "pairExchangePasteEmptyError": "Paste the other device’s pairing string.",
+  "@pairExchangePasteEmptyError": {"description": "Validation error when submitting an empty pairing string in the dev pane."},
+
+  "pairingErrorNotPairingQr": "Not a Signet pairing QR (wrong scheme / version).",
+  "@pairingErrorNotPairingQr": {"description": "FormatException message from the pairing codec; shown in the scan pane and dev paste pane when the payload has the wrong prefix."},
+
+  "pairingErrorBadPayloadLength": "Decoded payload is {actual} bytes, expected 32.",
+  "@pairingErrorBadPayloadLength": {"description": "FormatException message from the pairing codec when the decoded key length is wrong.", "placeholders": {"actual": {"type": "int"}}},
+
+  "pairingErrorDecodeFailed": "Could not decode pairing QR: {error}",
+  "@pairingErrorDecodeFailed": {"description": "FormatException message from the pairing codec wrapping a base64 decode failure.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairingErrorBadKeyLength": "Scanned key is {actual} bytes; expected {expected}.",
+  "@pairingErrorBadKeyLength": {"description": "Error stored in pairing state when the scanned key has the wrong length; shown in the exchange overview error box.", "placeholders": {"actual": {"type": "int"}, "expected": {"type": "int"}}},
+
+  "pairingErrorDeriveFailed": "Failed to derive shared secret: {error}",
+  "@pairingErrorDeriveFailed": {"description": "Error stored in pairing state when ECDH derivation throws; shown in the exchange overview error box.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairConfirmTitle": "Confirm",
+  "@pairConfirmTitle": {"description": "AppBar title of the phrase-confirmation step during a fresh pair."},
+
+  "pairConfirmRekeyTitle": "Confirm rekey",
+  "@pairConfirmRekeyTitle": {"description": "AppBar title of the phrase-confirmation step during a rekey."},
+
+  "pairConfirmHeading": "Does this match their screen?",
+  "@pairConfirmHeading": {"description": "Headline above the 4-word phrase card on pair confirm."},
+
+  "pairConfirmInstructions": "Read it out loud. All four words should be identical on both devices.",
+  "@pairConfirmInstructions": {"description": "Instruction under the pair-confirm headline."},
+
+  "pairConfirmMatchButton": "It matches",
+  "@pairConfirmMatchButton": {"description": "BigButton confirming the phrases match; commits the pairing."},
+
+  "pairConfirmMismatchButton": "No match — start over",
+  "@pairConfirmMismatchButton": {"description": "Destructive BigButton when the phrases don't match; opens the abort dialog."},
+
+  "pairConfirmMismatchDialogTitle": "Phrases don’t match?",
+  "@pairConfirmMismatchDialogTitle": {"description": "Title of the abort-confirmation dialog (uses a curly apostrophe in the source)."},
+
+  "pairConfirmMismatchDialogBody": "If your phrase and theirs don’t match, something went wrong — this could be a bad scan or someone trying to get in the middle. Safer to throw this pairing away and start over.",
+  "@pairConfirmMismatchDialogBody": {"description": "Body of the abort-confirmation dialog (curly apostrophes in the source)."},
+
+  "pairConfirmStartOverButton": "Start over",
+  "@pairConfirmStartOverButton": {"description": "Destructive confirm button of the abort dialog."},
+
+  "pairConfirmRekeySnackbar": "Rekeyed pairing with {label}.",
+  "@pairConfirmRekeySnackbar": {"description": "SnackBar after a successful rekey commit.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairConfirmPairedSnackbar": "Paired with {label}.",
+  "@pairConfirmPairedSnackbar": {"description": "SnackBar after a successful fresh pairing commit.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairConfirmStateIncompleteError": "Pairing state is incomplete.",
+  "@pairConfirmStateIncompleteError": {"description": "SnackBar error when confirm is tapped with missing pairing state."},
+
+  "pairConfirmRekeyTargetMissingError": "Relationship to rekey is no longer paired.",
+  "@pairConfirmRekeyTargetMissingError": {"description": "SnackBar error when the relationship targeted by a rekey has disappeared."},
+
+  "pairCompleteTitle": "PAIRED",
+  "@pairCompleteTitle": {"description": "AppBar title of the post-commit practice screen."},
+
+  "pairCompleteCommittedHeader": "PAIR COMMITTED //",
+  "@pairCompleteCommittedHeader": {"description": "Monospace kicker above the headline on pair complete. Keep the ' //' structure."},
+
+  "pairCompleteHeading": "You're both still here.\nTry a verify now.",
+  "@pairCompleteHeading": {"description": "Large headline on pair complete; contains a manual line break."},
+
+  "pairCompletePracticeBody": "This is the easiest moment to practice. Ask {label} to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you'll know it works for real.",
+  "@pairCompletePracticeBody": {"description": "Instruction body on pair complete; 'Show-my-words' refers to the verify screen's own-words panel.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairCompleteFallbackPeer": "your peer",
+  "@pairCompleteFallbackPeer": {"description": "Fallback for the peer label in pair-complete texts when the label can't be resolved yet."},
+
+  "pairCompleteTipBody": "Skip this and you can still verify any time from Home. But the cheapest practice run you will ever get is right now.",
+  "@pairCompleteTipBody": {"description": "Tip box text on pair complete."},
+
+  "pairCompleteVerifyNowButton": "VERIFY {label} NOW",
+  "@pairCompleteVerifyNowButton": {"description": "FilledButton jumping into the first verify; the label is uppercased by the caller.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairCompleteSkipButton": "SKIP — DO IT LATER",
+  "@pairCompleteSkipButton": {"description": "OutlinedButton leaving pair complete without practicing."},
+
+  "pairTransportInImportTitle": "IMPORT PACKAGE",
+  "@pairTransportInImportTitle": {"description": "AppBar title of the transport-in unlock pane."},
+
+  "pairTransportInIncomingHeader": "INCOMING PACKAGE //",
+  "@pairTransportInIncomingHeader": {"description": "Section header above the pasted-package field on transport in. Keep the ' //' structure."},
+
+  "pairTransportInPasteInstruction": "Paste the text the sender gave you. Starts with \"signet:tp1:\".",
+  "@pairTransportInPasteInstruction": {"description": "Helper text above the package input on transport in; the wire prefix stays literal."},
+
+  "pairTransportInPakeDescription": "The 8 words the sender shared with you over a trusted channel (paper, encrypted email, a prior meeting note). Do not accept these words over an unverified voice call.",
+  "@pairTransportInPakeDescription": {"description": "Helper text above the PAKE word input on transport in."},
+
+  "pairTransportInUnlockButton": "UNLOCK PACKAGE",
+  "@pairTransportInUnlockButton": {"description": "FilledButton unlocking the incoming package on transport in."},
+
+  "pairTransportInPasteEmptyError": "Paste the package from the sender.",
+  "@pairTransportInPasteEmptyError": {"description": "Validation error when unlocking with an empty package field on transport in."},
+
+  "pairTransportInWordsIncompleteError": "Enter all 8 words from the sender.",
+  "@pairTransportInWordsIncompleteError": {"description": "Validation error when the 8 PAKE words aren't complete on transport in."},
+
+  "pairTransportInProcessFailedError": "Failed to process package: {error}",
+  "@pairTransportInProcessFailedError": {"description": "Generic catch-all unlock error on transport in.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairTransportInPhraseInstruction": "Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.",
+  "@pairTransportInPhraseInstruction": {"description": "Instruction above the phrase card on transport in."},
+
+  "pairTransportInResponseHeader": "YOUR RESPONSE //",
+  "@pairTransportInResponseHeader": {"description": "Section header above the response package on transport in. Keep the ' //' structure."},
+
+  "pairTransportInResponseInstruction": "Send this back to the sender, using the same channel you used to receive theirs. They will paste it to finish pairing.",
+  "@pairTransportInResponseInstruction": {"description": "Instruction above the response wire text on transport in."},
+
+  "pairTransportInCopyResponseButton": "Copy response",
+  "@pairTransportInCopyResponseButton": {"description": "Copy button next to the response package on transport in."},
+
+  "pairTransportInResponseCopiedSnackbar": "Response copied to clipboard",
+  "@pairTransportInResponseCopiedSnackbar": {"description": "SnackBar after copying the response package."},
+
+  "pairTransportOutNewPackageTitle": "NEW PACKAGE",
+  "@pairTransportOutNewPackageTitle": {"description": "AppBar title of the transport-out setup phase."},
+
+  "pairTransportOutShareWaitTitle": "SHARE + WAIT",
+  "@pairTransportOutShareWaitTitle": {"description": "AppBar title of the transport-out share-and-wait phase."},
+
+  "pairTransportOutNameDescription": "The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.",
+  "@pairTransportOutNameDescription": {"description": "Helper text under the NAME THIS CONTACT header on transport out."},
+
+  "pairTransportOutGenerateButton": "GENERATE PACKAGE",
+  "@pairTransportOutGenerateButton": {"description": "FilledButton generating the outgoing package on transport out."},
+
+  "pairTransportOutGenerateError": "Could not generate package: {error}",
+  "@pairTransportOutGenerateError": {"description": "Inline error when minting the ephemeral key pair / encoding the outgoing LDP package fails on transport out. Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairTransportOutOutgoingHeader": "OUTGOING PACKAGE //",
+  "@pairTransportOutOutgoingHeader": {"description": "Section header above the outgoing wire text on transport out. Keep the ' //' structure."},
+
+  "pairTransportOutOutgoingInstruction": "Send this text to {label}. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.",
+  "@pairTransportOutOutgoingInstruction": {"description": "Instruction above the outgoing wire text on transport out.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairTransportOutCopyWordsButton": "Copy words",
+  "@pairTransportOutCopyWordsButton": {"description": "Copy button next to the 8 PAKE words on transport out."},
+
+  "pairTransportOutWordsCopiedSnackbar": "PAKE words copied",
+  "@pairTransportOutWordsCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on transport out."},
+
+  "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
+  "@pairTransportOutChannelWarning": {"description": "Warning box about out-of-band PAKE delivery on transport out."},
+
+  "pairTransportOutReceiveHeader": "RECEIVE RESPONSE //",
+  "@pairTransportOutReceiveHeader": {"description": "Section header above the response input on transport out. Keep the ' //' structure."},
+
+  "pairTransportOutReceiveInstruction": "{label} will send you a response package. Paste it here.",
+  "@pairTransportOutReceiveInstruction": {"description": "Instruction above the response input on transport out.", "placeholders": {"label": {"type": "String"}}},
+
+  "pairTransportOutPasteEmptyError": "Paste the response package from the receiver.",
+  "@pairTransportOutPasteEmptyError": {"description": "Validation error when unlocking with an empty response field on transport out."},
+
+  "pairTransportOutUnlockResponseButton": "UNLOCK RESPONSE",
+  "@pairTransportOutUnlockResponseButton": {"description": "FilledButton unlocking the receiver's response on transport out."},
+
+  "pairTransportOutUnlockFailedError": "Could not unlock response: {error}",
+  "@pairTransportOutUnlockFailedError": {"description": "Error when the response package fails to unlock on transport out.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairTransportOutPhraseInstruction": "Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.",
+  "@pairTransportOutPhraseInstruction": {"description": "Instruction above the phrase card on transport out.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupExportTitle": "BACK UP TO PAPER",
+  "@backupExportTitle": {"description": "AppBar title of the single-relationship paper backup export."},
+
+  "backupExportGenerateError": "Could not generate backup: {error}",
+  "@backupExportGenerateError": {"description": "Error shown when minting the backup bundle fails.", "placeholders": {"error": {"type": "String"}}},
+
+  "backupExportHeading": "Back up {label}",
+  "@backupExportHeading": {"description": "Headline of the backup export content.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupExportIntro": "Writing this down lets you restore this pairing on a new phone if you lose this one. {label}'s phone won't know anything changed.",
+  "@backupExportIntro": {"description": "Explanatory body under the export headline.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "@backupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on single export."},
+
+  "backupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.",
+  "@backupExportWordsInstruction": {"description": "Instruction above the numbered PAKE word list on single export."},
+
+  "backupExportPackageInstruction": "Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.",
+  "@backupExportPackageInstruction": {"description": "Instruction above the package QR + text on single export."},
+
+  "backupExportShareSubject": "Signet backup - {label}",
+  "@backupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a single backup.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupExportRememberBody": "If this paper is ever found by someone else, UNPAIR {label} immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.",
+  "@backupExportRememberBody": {"description": "Body of the REMEMBER warning on single export.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupImportRestoreTitle": "RESTORE BACKUP",
+  "@backupImportRestoreTitle": {"description": "AppBar title of the backup-import unlock pane."},
+
+  "backupImportConfirmTitle": "CONFIRM IMPORT",
+  "@backupImportConfirmTitle": {"description": "AppBar title of the backup-import commit pane."},
+
+  "backupImportFileReadError": "Could not read the selected file.",
+  "@backupImportFileReadError": {"description": "Error when the picked backup file has neither bytes nor a readable path."},
+
+  "backupImportFileReadFailedError": "Could not read the file: {error}",
+  "@backupImportFileReadFailedError": {"description": "Error when reading the picked backup file throws.", "placeholders": {"error": {"type": "String"}}},
+
+  "backupImportInvalidFileError": "File is not a valid Signet backup: {message}",
+  "@backupImportInvalidFileError": {"description": "Error when the picked file fails bundle parsing.", "placeholders": {"message": {"type": "String"}}},
+
+  "backupImportPasteEmptyError": "Paste your backup package.",
+  "@backupImportPasteEmptyError": {"description": "Validation error when unlocking with an empty package field."},
+
+  "backupImportWordsIncompleteError": "Enter the 8 PAKE words you stored separately.",
+  "@backupImportWordsIncompleteError": {"description": "Validation error when the 8 PAKE words aren't complete on backup import."},
+
+  "backupImportNotBackupError": "Not a valid Signet backup.",
+  "@backupImportNotBackupError": {"description": "Error when the payload type can't be recognized."},
+
+  "backupImportInvitationError": "That's a pairing invitation, not a backup. Use the pair flow from Home.",
+  "@backupImportInvitationError": {"description": "Error when an LDP pairing package is pasted into the backup import."},
+
+  "backupImportClipboardEmptyError": "Clipboard is empty. Copy your backup package first.",
+  "@backupImportClipboardEmptyError": {"description": "Error when paste-from-clipboard finds nothing on backup import."},
+
+  "backupImportPasteInstruction": "Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.",
+  "@backupImportPasteInstruction": {"description": "Helper text above the package input on backup import; the wire prefix stays literal."},
+
+  "backupImportLoadFromFileButton": "Load from file",
+  "@backupImportLoadFromFileButton": {"description": "Button opening the file picker on backup import."},
+
+  "backupImportWordsInstruction": "The 8 words from your paper or password manager — stored separately from the package above.",
+  "@backupImportWordsInstruction": {"description": "Helper text above the PAKE word input on backup import."},
+
+  "backupImportUnlockButton": "UNLOCK BACKUP",
+  "@backupImportUnlockButton": {"description": "FilledButton unlocking the pasted backup."},
+
+  "backupImportRestoredPeerHeader": "RESTORED PEER //",
+  "@backupImportRestoredPeerHeader": {"description": "Section header above the decoded-contact summary on backup import. Keep the ' //' structure."},
+
+  "backupImportRoleLabel": "ROLE //",
+  "@backupImportRoleLabel": {"description": "Monospace key in the restored-peer summary; the value is the wire role letter. Keep the ' //' structure."},
+
+  "backupImportOriginallyLabel": "ORIGINALLY //",
+  "@backupImportOriginallyLabel": {"description": "Monospace key in the restored-peer summary; the value is the original pairing date. Keep the ' //' structure."},
+
+  "backupImportHapticsLabel": "HAPTICS //",
+  "@backupImportHapticsLabel": {"description": "Monospace key in the restored-peer summary; the value is ON/OFF. Keep the ' //' structure."},
+
+  "backupImportHapticsOff": "OFF",
+  "@backupImportHapticsOff": {"description": "Value for the HAPTICS key when silent haptics is enabled."},
+
+  "backupImportHapticsOn": "ON",
+  "@backupImportHapticsOn": {"description": "Value for the HAPTICS key when silent haptics is disabled."},
+
+  "backupImportWhatItDoesHeader": "WHAT THIS DOES //",
+  "@backupImportWhatItDoesHeader": {"description": "Secondary info-block headline on backup import. Keep the ' //' structure."},
+
+  "backupImportWhatItDoesBody": "This phone will start sharing a secret with {label} using the same key material as the old phone. {label}'s phone won't know anything changed. If they've already rekeyed with someone else since your backup, verifies will fail until you re-pair in person.",
+  "@backupImportWhatItDoesBody": {"description": "Body of the WHAT THIS DOES block on backup import.", "placeholders": {"label": {"type": "String"}}},
+
+  "backupImportCommitButton": "COMMIT IMPORT",
+  "@backupImportCommitButton": {"description": "FilledButton writing the restored relationship on backup import."},
+
+  "bulkBackupExportSetupTitle": "BACK UP EVERYTHING",
+  "@bulkBackupExportSetupTitle": {"description": "AppBar title of bulk export before generation."},
+
+  "bulkBackupExportReadyTitle": "BULK BACKUP READY",
+  "@bulkBackupExportReadyTitle": {"description": "AppBar title of bulk export after generation."},
+
+  "bulkBackupExportPrepareError": "Could not prepare backup: {error}",
+  "@bulkBackupExportPrepareError": {"description": "Error shown when preparing the bulk backup fails.", "placeholders": {"error": {"type": "String"}}},
+
+  "bulkBackupExportNoSecretsError": "No relationships had retrievable secrets.",
+  "@bulkBackupExportNoSecretsError": {"description": "Thrown when no relationship secret could be read; surfaces inside the prepare-error text."},
+
+  "bulkBackupExportEmptyTitle": "Nothing to back up yet.",
+  "@bulkBackupExportEmptyTitle": {"description": "Headline of the bulk-export empty state."},
+
+  "bulkBackupExportEmptyBody": "Pair with someone first, then come back here to create a bulk backup.",
+  "@bulkBackupExportEmptyBody": {"description": "Body of the bulk-export empty state."},
+
+  "bulkBackupExportReadyHeading": "Back up {count, plural, =1{1 relationship} other{{count} relationships}}",
+  "@bulkBackupExportReadyHeading": {"description": "Headline of the bulk-export pre-generation pane.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupExportReadyBody": "Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.",
+  "@bulkBackupExportReadyBody": {"description": "Body under the bulk-export pre-generation headline."},
+
+  "bulkBackupExportGenerateButton": "GENERATE BULK BACKUP",
+  "@bulkBackupExportGenerateButton": {"description": "FilledButton generating the bulk backup."},
+
+  "bulkBackupExportDoneHeading": "{count, plural, =1{1 relationship backed up} other{{count} relationships backed up}}",
+  "@bulkBackupExportDoneHeading": {"description": "Headline of the generated-bulk-backup pane.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "@bulkBackupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on bulk export (every-pairing variant)."},
+
+  "bulkBackupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.",
+  "@bulkBackupExportWordsInstruction": {"description": "Instruction above the PAKE word list on bulk export."},
+
+  "bulkBackupExportCopyPakeButton": "Copy PAKE",
+  "@bulkBackupExportCopyPakeButton": {"description": "Copy button next to the PAKE words on bulk export."},
+
+  "bulkBackupExportPakeCopiedSnackbar": "PAKE words copied to clipboard",
+  "@bulkBackupExportPakeCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on bulk export."},
+
+  "bulkBackupExportPackageInstruction": "The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.",
+  "@bulkBackupExportPackageInstruction": {"description": "Instruction above the bulk package text on bulk export."},
+
+  "bulkBackupExportShareLabel": "{count, plural, =1{1 relationship (bulk)} other{{count} relationships (bulk)}}",
+  "@bulkBackupExportShareLabel": {"description": "peerLabel embedded in the shared bulk-bundle text.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupExportShareSubject": "Signet bulk backup - {count} peers",
+  "@bulkBackupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a bulk backup.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupExportRememberBody": "If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.",
+  "@bulkBackupExportRememberBody": {"description": "Body of the REMEMBER warning on bulk export."},
+
+  "bulkBackupImportTitle": "BULK RESTORE",
+  "@bulkBackupImportTitle": {"description": "AppBar title of the bulk-import preview pane."},
+
+  "bulkBackupImportDoneTitle": "RESTORED",
+  "@bulkBackupImportDoneTitle": {"description": "AppBar title of the bulk-import success pane."},
+
+  "bulkBackupImportGenericError": "Error: {error}",
+  "@bulkBackupImportGenericError": {"description": "Top-level error text on the bulk-import screen.", "placeholders": {"error": {"type": "String"}}},
+
+  "bulkBackupImportPreviewHeading": "Restore {count, plural, =1{1 relationship} other{{count} relationships}}",
+  "@bulkBackupImportPreviewHeading": {"description": "Headline of the bulk-import preview pane.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportNoConflictBody": "Tick the rows you want to restore. Every pairing below will come back with its original label and pair date.",
+  "@bulkBackupImportNoConflictBody": {"description": "Body when no restored label collides with an existing pairing."},
+
+  "bulkBackupImportConflictBody": "Some of these labels are already paired on this phone. Choose what to do for each — default is skip.",
+  "@bulkBackupImportConflictBody": {"description": "Body when some restored labels collide with existing pairings."},
+
+  "bulkBackupImportProgressText": "Restoring {committed} of {total}…",
+  "@bulkBackupImportProgressText": {"description": "Monospace progress line shown while committing bulk records.", "placeholders": {"committed": {"type": "int"}, "total": {"type": "int"}}},
+
+  "bulkBackupImportRestoringButton": "RESTORING…",
+  "@bulkBackupImportRestoringButton": {"description": "Disabled state of the bulk restore button."},
+
+  "bulkBackupImportNothingSelectedButton": "NOTHING SELECTED",
+  "@bulkBackupImportNothingSelectedButton": {"description": "Disabled state of the bulk restore button when zero records are selected."},
+
+  "bulkBackupImportRestoreButton": "RESTORE {count}",
+  "@bulkBackupImportRestoreButton": {"description": "Bulk restore button with the number of selected records.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportAlreadyPairedChip": "ALREADY PAIRED",
+  "@bulkBackupImportAlreadyPairedChip": {"description": "Red chip replacing the checkbox on rows whose label already exists on this device."},
+
+  "bulkBackupImportNoLabel": "(no label)",
+  "@bulkBackupImportNoLabel": {"description": "Placeholder shown when a bulk record has an empty label."},
+
+  "bulkBackupImportRecordMeta": "ROLE {role} · PAIRED {date}",
+  "@bulkBackupImportRecordMeta": {"description": "Monospace metadata line on each bulk-import row: wire role letter and pairing date.", "placeholders": {"role": {"type": "String"}, "date": {"type": "String"}}},
+
+  "bulkBackupImportSkipOption": "Skip — leave existing pairing alone",
+  "@bulkBackupImportSkipOption": {"description": "Conflict radio option: keep the existing pairing untouched."},
+
+  "bulkBackupImportRenameOption": "Rename restored copy to \"{label} (restored)\"",
+  "@bulkBackupImportRenameOption": {"description": "Conflict radio option: import under a suffixed label; the suffix is stored on the contact name.", "placeholders": {"label": {"type": "String"}}},
+
+  "bulkBackupImportOverwriteOption": "Overwrite existing pairing",
+  "@bulkBackupImportOverwriteOption": {"description": "Conflict radio option: replace the existing pairing's secret."},
+
+  "bulkBackupImportCompleteHeading": "Restore complete.",
+  "@bulkBackupImportCompleteHeading": {"description": "Headline of the bulk-import success pane."},
+
+  "bulkBackupImportSummaryRestored": "RESTORED //",
+  "@bulkBackupImportSummaryRestored": {"description": "Summary row label: records created. Keep the ' //' structure."},
+
+  "bulkBackupImportSummaryRenamed": "RENAMED //",
+  "@bulkBackupImportSummaryRenamed": {"description": "Summary row label: records imported under a new label. Keep the ' //' structure."},
+
+  "bulkBackupImportSummaryOverwrote": "OVERWROTE //",
+  "@bulkBackupImportSummaryOverwrote": {"description": "Summary row label: existing pairings overwritten. Keep the ' //' structure."},
+
+  "bulkBackupImportSummarySkipped": "SKIPPED //",
+  "@bulkBackupImportSummarySkipped": {"description": "Summary row label: records skipped. Keep the ' //' structure."},
+
+  "bulkBackupImportNothingChangedBody": "Nothing was changed on this phone.",
+  "@bulkBackupImportNothingChangedBody": {"description": "Success-pane body when zero records were committed."},
+
+  "bulkBackupImportDoneBody": "Each restored pairing uses the same shared secret as the old phone; their other side won't notice the restore unless they rekey.",
+  "@bulkBackupImportDoneBody": {"description": "Success-pane body when at least one record was committed."},
+
+  "bindingPhraseTitle": "VERIFY BINDING",
+  "@bindingPhraseTitle": {"description": "AppBar title of the binding-phrase re-check screen."},
+
+  "bindingPhraseLoadError": "Could not read your pairing.",
+  "@bindingPhraseLoadError": {"description": "Error state message on the binding-phrase screen."},
+
+  "bindingPhraseExplanation": "These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.",
+  "@bindingPhraseExplanation": {"description": "Instruction above the phrase card on the binding-phrase screen.", "placeholders": {"label": {"type": "String"}}},
+
+  "bindingPhraseMismatchHeader": "IF THEY DO NOT MATCH //",
+  "@bindingPhraseMismatchHeader": {"description": "Red warning headline on the binding-phrase screen. Keep the ' //' structure."},
+
+  "bindingPhraseMismatchBody": "Unpair and re-pair in person. Do not verify any calls against this pairing until you have.",
+  "@bindingPhraseMismatchBody": {"description": "Body of the mismatch warning on the binding-phrase screen."},
+
+  "bindingPhraseBackHomeButton": "BACK TO HOME",
+  "@bindingPhraseBackHomeButton": {"description": "Button on the binding-phrase error state."},
+
+  "crGridTitle": "CHALLENGE-RESPONSE",
+  "@crGridTitle": {"description": "AppBar title of the challenge-response grid viewer."},
+
+  "crGridPrintTooltip": "Print grid",
+  "@crGridPrintTooltip": {"description": "Tooltip of the print icon in the cr-grid AppBar."},
+
+  "crGridLoadError": "Could not load grid: {error}",
+  "@crGridLoadError": {"description": "Error shown when deriving the grid fails.", "placeholders": {"error": {"type": "String"}}},
+
+  "crGridHeading": "Grid for {label}",
+  "@crGridHeading": {"description": "Headline of the cr-grid viewer.", "placeholders": {"label": {"type": "String"}}},
+
+  "crGridFallbackExplanation": "When {label} can't use their phone but can speak, use this grid as a fallback. You ask for a cell (e.g. \"{row} × {col}\"); they read the answer from the paper copy you both shared. Compare silently on your side.",
+  "@crGridFallbackExplanation": {"description": "Explanation under the cr-grid headline; the example cell uses the first row/column labels.", "placeholders": {"label": {"type": "String"}, "row": {"type": "String"}, "col": {"type": "String"}}},
+
+  "crGridFallbackNotice": "This is a FALLBACK. If you can run a rotating-word verify, do that first — its defenses are stronger. Use this only when the responder has no phone.",
+  "@crGridFallbackNotice": {"description": "Amber info box on the cr-grid viewer."},
+
+  "crGridSectionHeader": "GRID // 8×8 //",
+  "@crGridSectionHeader": {"description": "Section header above the grid table. Keep the ' //' structure."},
+
+  "crGridCellDialogTitle": "{row} × {col}",
+  "@crGridCellDialogTitle": {"description": "AlertDialog title when tapping a grid cell; the row/column word labels.", "placeholders": {"row": {"type": "String"}, "col": {"type": "String"}}},
+
+  "crGridCloseButton": "CLOSE",
+  "@crGridCloseButton": {"description": "Button closing the cell-answer dialog."},
+
+  "crPdfDocTitle": "Signet challenge-response · {label}",
+  "@crPdfDocTitle": {"description": "PDF document metadata title for the printed card.", "placeholders": {"label": {"type": "String"}}},
+
+  "crPdfCardTitle": "SIGNET CHALLENGE-RESPONSE CARD",
+  "@crPdfCardTitle": {"description": "Printed header line on the PDF card."},
+
+  "crPdfWarningTitle": "TREAT THIS CARD LIKE A SAFE COMBINATION",
+  "@crPdfWarningTitle": {"description": "Printed warning headline on the PDF card."},
+
+  "crPdfWarningBody": "Anyone who finds this card can answer challenges for this pairing. Challenge-response is a fallback - the rotating word verify in the app is still the stronger check for day-to-day calls. If you lose this card, unpair this relationship in the app and re-pair in person.",
+  "@crPdfWarningBody": {"description": "Printed warning paragraph on the PDF card."},
+
+  "crPdfRowsHeader": "ROWS //",
+  "@crPdfRowsHeader": {"description": "Axis legend panel title on the PDF card. Keep the ' //' structure."},
+
+  "crPdfColumnsHeader": "COLUMNS //",
+  "@crPdfColumnsHeader": {"description": "Axis legend panel title on the PDF card. Keep the ' //' structure."},
+
+  "crPdfFooter": "Signet - challenge-response v1",
+  "@crPdfFooter": {"description": "Printed attribution footer on the PDF card."},
+
+  "settingsTitle": "SETTINGS",
+  "@settingsTitle": {"description": "AppBar title of the Settings screen."},
+
+  "settingsAppearanceSection": "APPEARANCE",
+  "@settingsAppearanceSection": {"description": "Settings section card title for the theme picker."},
+
+  "settingsAppearanceBody": "Override the system theme. \"System\" follows your device; \"Dark\" and \"Light\" pin Signet regardless.",
+  "@settingsAppearanceBody": {"description": "Body of the appearance section; the quoted words are the picker labels below."},
+
+  "settingsThemeSystemLabel": "SYSTEM",
+  "@settingsThemeSystemLabel": {"description": "Theme option label: follow the OS."},
+
+  "settingsThemeSystemSubtitle": "Follow device theme",
+  "@settingsThemeSystemSubtitle": {"description": "Theme option subtitle for SYSTEM."},
+
+  "settingsThemeDarkLabel": "DARK",
+  "@settingsThemeDarkLabel": {"description": "Theme option label: always dark."},
+
+  "settingsThemeDarkSubtitle": "Operator default",
+  "@settingsThemeDarkSubtitle": {"description": "Theme option subtitle for DARK (the app's default aesthetic)."},
+
+  "settingsThemeLightLabel": "LIGHT",
+  "@settingsThemeLightLabel": {"description": "Theme option label: always light."},
+
+  "settingsThemeLightSubtitle": "High-contrast daylight",
+  "@settingsThemeLightSubtitle": {"description": "Theme option subtitle for LIGHT."},
+
+  "settingsBulkBackupSection": "BULK BACKUP",
+  "@settingsBulkBackupSection": {"description": "Settings section card title for bulk backup."},
+
+  "settingsBulkBackupEmptyBody": "No relationships paired yet. Pair with someone first, then you can back up every pairing at once.",
+  "@settingsBulkBackupEmptyBody": {"description": "Body of the bulk-backup section when no relationships exist."},
+
+  "settingsBulkBackupBody": "Back up all {count, plural, =1{1 relationship} other{{count} relationships}} into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.",
+  "@settingsBulkBackupBody": {"description": "Body of the bulk-backup section when relationships exist.", "placeholders": {"count": {"type": "int"}}},
+
+  "settingsBulkBackupAction": "BACK UP ALL {count}",
+  "@settingsBulkBackupAction": {"description": "Outlined action button of the bulk-backup section.", "placeholders": {"count": {"type": "int"}}},
+
+  "settingsDebugSection": "DEBUG LOGGING",
+  "@settingsDebugSection": {"description": "Settings section card title for opt-in debug logging (hidden when unavailable)."},
+
+  "settingsDebugActiveBody": "Recording app activity to an encrypted file on this device. It auto-erases {expiry} (or tap Stop). Export it to send a bug report — secrets are removed and contacts become tags like <peer-1> before it leaves your phone.",
+  "@settingsDebugActiveBody": {"description": "Body of the debug section while a session is active; {expiry} is a formatted expiry phrase.", "placeholders": {"expiry": {"type": "String"}}},
+
+  "settingsDebugInactiveBody": "Off — nothing is recorded. If you hit a bug, turn this on, reproduce it, then export the log to send us. It never includes your secrets or your contacts' names.",
+  "@settingsDebugInactiveBody": {"description": "Body of the debug section while inactive."},
+
+  "settingsDebugEnableAction": "ENABLE DEBUG LOGGING",
+  "@settingsDebugEnableAction": {"description": "Action button enabling debug logging."},
+
+  "settingsDebugExportButton": "EXPORT DEBUG LOGS",
+  "@settingsDebugExportButton": {"description": "Outlined button opening the debug-log export sheet."},
+
+  "settingsDebugStopWipeButton": "STOP & WIPE",
+  "@settingsDebugStopWipeButton": {"description": "Outlined button stopping the debug session and erasing its log."},
+
+  "settingsDebugNoLogSnackbar": "No debug log captured yet.",
+  "@settingsDebugNoLogSnackbar": {"description": "SnackBar when exporting an empty debug log."},
+
+  "settingsDebugExpiryIn24h": "in 24h",
+  "@settingsDebugExpiryIn24h": {"description": "Expiry phrase when no exact expiry timestamp is known."},
+
+  "settingsDebugExpiryAt": "at {time} on {date}",
+  "@settingsDebugExpiryAt": {"description": "Expiry phrase with a local timestamp, e.g. 'at 14:30 on 2026-10-01'.", "placeholders": {"time": {"type": "String"}, "date": {"type": "String"}}},
+
+  "settingsTourSection": "GUIDED TOUR",
+  "@settingsTourSection": {"description": "Settings section card title for replaying onboarding."},
+
+  "settingsTourBody": "Watch the first-run walkthrough again. Useful after a backup restore or if you want to re-read the pairing instructions.",
+  "@settingsTourBody": {"description": "Body of the guided-tour section."},
+
+  "settingsTourReplayAction": "REPLAY INTRO",
+  "@settingsTourReplayAction": {"description": "Action button replaying the onboarding."},
+
+  "settingsAboutSection": "ABOUT",
+  "@settingsAboutSection": {"description": "Settings section card title linking to About."},
+
+  "settingsAboutBody": "App version, license, source code, privacy policy, and support links.",
+  "@settingsAboutBody": {"description": "Body of the settings About section."},
+
+  "settingsAboutOpenAction": "OPEN ABOUT",
+  "@settingsAboutOpenAction": {"description": "Action button opening the About screen."},
+
+  "settingsBulkConfirmTitle": "BACK UP EVERYTHING?",
+  "@settingsBulkConfirmTitle": {"description": "Title of the one-tap confirm dialog before bulk export."},
+
+  "settingsBulkConfirmBody": "This exports the shared secret for all {count, plural, =1{1 relationship} other{{count} relationships}} into one file. Losing the 8-word PAKE means losing all {count} backups. The PAKE will be shown once — write it down before closing the screen.",
+  "@settingsBulkConfirmBody": {"description": "Body of the bulk-export confirm dialog.", "placeholders": {"count": {"type": "int"}}},
+
+  "settingsBulkConfirmContinue": "CONTINUE",
+  "@settingsBulkConfirmContinue": {"description": "Filled confirm button of the bulk-export dialog."},
+
+  "logExportTitle": "EXPORT DEBUG LOG",
+  "@logExportTitle": {"description": "Headline of the debug-log export bottom sheet."},
+
+  "logExportScrubNotice": "Secrets are removed and your contacts are shown as tags like <peer-1>. The log still describes app behavior, so review it before sharing. If you file a GitHub issue, don't type a contact's name in the description box — that box is not scrubbed.",
+  "@logExportScrubNotice": {"description": "Scrubbing explanation in the export sheet; <peer-1> is a literal example tag."},
+
+  "logExportFileIssueButton": "FILE A GITHUB ISSUE",
+  "@logExportFileIssueButton": {"description": "Outlined button opening the pre-filled GitHub issue with the log."},
+
+  "logExportShareButton": "SHARE…",
+  "@logExportShareButton": {"description": "Outlined button handing the log to the OS share sheet."},
+
+  "logExportCopyButton": "COPY TO CLIPBOARD",
+  "@logExportCopyButton": {"description": "Outlined button copying the scrubbed log."},
+
+  "logExportOpenFailedSnackbar": "Couldn't open the browser — log copied instead.",
+  "@logExportOpenFailedSnackbar": {"description": "SnackBar when the GitHub issue URL can't be opened from the export sheet."},
+
+  "logExportShareSubject": "Signet debug log",
+  "@logExportShareSubject": {"description": "Subject line handed to the OS share sheet for the debug log."},
+
+  "logExportCopiedSnackbar": "Debug log copied to clipboard.",
+  "@logExportCopiedSnackbar": {"description": "SnackBar after copying the debug log."},
+
+  "verifyTitle": "VERIFY",
+  "@verifyTitle": {"description": "AppBar title of the verify screen."},
+
+  "verifySectionChallenge": "CHALLENGE //",
+  "@verifySectionChallenge": {"description": "Section header above the ask-for-words block. Keep the ' //' structure."},
+
+  "verifyAskForWordsHeading": "Ask {label} for their 4 words.",
+  "@verifyAskForWordsHeading": {"description": "Large instruction headline in the challenge section.", "placeholders": {"label": {"type": "String"}}},
+
+  "verifyTypeInstruction": "Type what you hear. Tap a suggestion to fill a slot.",
+  "@verifyTypeInstruction": {"description": "Small instruction under the challenge headline; 'slot' means the word input slots."},
+
+  "verifySectionInput": "INPUT //",
+  "@verifySectionInput": {"description": "Section header above the word input. Keep the ' //' structure."},
+
+  "verifyFailHeader": "IF VERIFY FAILS //",
+  "@verifyFailHeader": {"description": "Red monospace headline of the education bottom sheet. Keep the ' //' structure."},
+
+  "verifyFailHeading": "Something is wrong with this call.",
+  "@verifyFailHeading": {"description": "Large statement at the top of the education sheet."},
+
+  "verifyFailStep1": "Hang up. Do not explain why. Do not argue. Do not agree to anything they're asking for.",
+  "@verifyFailStep1": {"description": "Education sheet step 01."},
+
+  "verifyFailStep2": "Call {label} back on a number you have used before — saved in your contacts, written down, something you know. Do not use a number the caller gave you.",
+  "@verifyFailStep2": {"description": "Education sheet step 02.", "placeholders": {"label": {"type": "String"}}},
+
+  "verifyFailStep3": "If {label} does not answer, call a family member or someone close who can physically check on them. A real {label} will never be upset that you checked.",
+  "@verifyFailStep3": {"description": "Education sheet step 03.", "placeholders": {"label": {"type": "String"}}},
+
+  "verifyFailStep4": "If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.",
+  "@verifyFailStep4": {"description": "Education sheet step 04; SHOW BINDING PHRASE refers to the Home row-menu item.", "placeholders": {"label": {"type": "String"}}},
+
+  "verifyStatusOk": "STATUS // 200 OK",
+  "@verifyStatusOk": {"description": "Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure."},
+
+  "verifyStatusFail": "STATUS // 403 MISMATCH",
+  "@verifyStatusFail": {"description": "Monospace kicker on the red result banner (HTTP-style). Keep the ' //' structure."},
+
+  "verifyBannerVerified": "VERIFIED",
+  "@verifyBannerVerified": {"description": "Headline of the green result banner."},
+
+  "verifyBannerNotVerified": "NOT VERIFIED — BE SUSPICIOUS",
+  "@verifyBannerNotVerified": {"description": "Headline of the red result banner."},
+
+  "verifySublineVerifiedWithAction": "Words matched AND you saw the expected physical action. You can trust this call.",
+  "@verifySublineVerifiedWithAction": {"description": "Green banner subline in video mode when both checks passed."},
+
+  "verifySublineVerified": "The words match. You can trust this call.",
+  "@verifySublineVerified": {"description": "Green banner subline in plain mode."},
+
+  "verifySublineWordsMismatch": "The words did not match. Someone may be impersonating them.",
+  "@verifySublineWordsMismatch": {"description": "Red banner subline when the typed words failed."},
+
+  "verifySublineActionMismatch": "Words matched but the physical action did not. Be suspicious and treat this as a failed verify.",
+  "@verifySublineActionMismatch": {"description": "Red banner subline when words passed but the video action failed."},
+
+  "verifyWhatShouldIDoButton": "WHAT SHOULD I DO?",
+  "@verifyWhatShouldIDoButton": {"description": "Outlined button on the red banner opening the education sheet."},
+
+  "verifyVideoModeSemanticsLabel": "Video call mode",
+  "@verifyVideoModeSemanticsLabel": {"description": "Semantics label of the video-mode toggle row."},
+
+  "verifyVideoModeSemanticsHint": "Turn on to also check a physical action on video.",
+  "@verifyVideoModeSemanticsHint": {"description": "Semantics hint of the video-mode toggle row."},
+
+  "verifyVideoModeHeader": "VIDEO CALL //",
+  "@verifyVideoModeHeader": {"description": "Monospace header of the video-mode toggle row. Keep the ' //' structure."},
+
+  "verifyVideoModeOnText": "Request a physical action too. Defeats deepfakes.",
+  "@verifyVideoModeOnText": {"description": "Toggle row description while video mode is on."},
+
+  "verifyVideoModeOffText": "Turn on to also check a physical action.",
+  "@verifyVideoModeOffText": {"description": "Toggle row description while video mode is off."},
+
+  "verifyWatchForHeader": "WATCH FOR //",
+  "@verifyWatchForHeader": {"description": "Header of the expected-action row in video mode. Keep the ' //' structure."},
+
+  "verifyExpectedActionText": "{label} should: {action}.",
+  "@verifyExpectedActionText": {"description": "Visible text of the expected-action row; {action} is the human-readable action phrase.", "placeholders": {"label": {"type": "String"}, "action": {"type": "String"}}},
+
+  "verifyExpectedActionSemantics": "Watch for: {label} should {action}.",
+  "@verifyExpectedActionSemantics": {"description": "Semantics live-region label of the expected-action row.", "placeholders": {"label": {"type": "String"}, "action": {"type": "String"}}},
+
+  "verifyActionHeader": "ACTION //",
+  "@verifyActionHeader": {"description": "Header of the action-judgment panel in video mode. Keep the ' //' structure."},
+
+  "verifyActionJudgmentPrompt": "Words ✅. Did you see {label}: {action}?",
+  "@verifyActionJudgmentPrompt": {"description": "Prompt in the action-judgment panel after the words verified; keep the ✅ emoji.", "placeholders": {"label": {"type": "String"}, "action": {"type": "String"}}},
+
+  "verifyActionNotSeenButton": "DID NOT SEE",
+  "@verifyActionNotSeenButton": {"description": "Destructive judgment button: the action was not performed."},
+
+  "verifyActionSeenButton": "SAW IT",
+  "@verifyActionSeenButton": {"description": "Confirming judgment button: the action was performed."},
+
+  "verifyShowMyWords": "Show my 4 words",
+  "@verifyShowMyWords": {"description": "Collapsible section title: my own rotating words."},
+
+  "verifyShowMyWordsSubtitle": "If {label} wants to verify you, read these.",
+  "@verifyShowMyWordsSubtitle": {"description": "Subtitle under the show-my-words title.", "placeholders": {"label": {"type": "String"}}},
+
+  "verifyFlagSecureBadge": "FLAG_SECURE",
+  "@verifyFlagSecureBadge": {"description": "Monospace badge marking that screenshots are blocked on this panel. Technical Android flag name — keep as-is."},
+
+  "verifyOwnActionWhile": "...while {action}.",
+  "@verifyOwnActionWhile": {"description": "Line under my own words in video mode; {action} is a gerund phrase from the verifyGerund* keys.", "placeholders": {"action": {"type": "String"}}},
+
+  "verifyGerundLookUp": "looking up at the ceiling",
+  "@verifyGerundLookUp": {"description": "Gerund of the look-up liveness action, used in verifyOwnActionWhile."},
+
+  "verifyGerundLookDown": "looking down at the floor",
+  "@verifyGerundLookDown": {"description": "Gerund of the look-down liveness action."},
+
+  "verifyGerundLookLeft": "looking over your left shoulder",
+  "@verifyGerundLookLeft": {"description": "Gerund of the look-left liveness action."},
+
+  "verifyGerundLookRight": "looking over your right shoulder",
+  "@verifyGerundLookRight": {"description": "Gerund of the look-right liveness action."},
+
+  "verifyGerundTouchNose": "touching the tip of your nose",
+  "@verifyGerundTouchNose": {"description": "Gerund of the touch-nose liveness action."},
+
+  "verifyGerundTouchForehead": "touching your forehead",
+  "@verifyGerundTouchForehead": {"description": "Gerund of the touch-forehead liveness action."},
+
+  "verifyGerundTouchLeftEar": "touching your left ear",
+  "@verifyGerundTouchLeftEar": {"description": "Gerund of the touch-left-ear liveness action."},
+
+  "verifyGerundTouchRightEar": "touching your right ear",
+  "@verifyGerundTouchRightEar": {"description": "Gerund of the touch-right-ear liveness action."},
+
+  "verifyActionLookUp": "Look up at the ceiling",
+  "@verifyActionLookUp": {"description": "Imperative form of the look-up liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookDown": "Look down at the floor",
+  "@verifyActionLookDown": {"description": "Imperative form of the look-down liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookLeft": "Look over your left shoulder",
+  "@verifyActionLookLeft": {"description": "Imperative form of the look-left liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionLookRight": "Look over your right shoulder",
+  "@verifyActionLookRight": {"description": "Imperative form of the look-right liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchNose": "Touch the tip of your nose",
+  "@verifyActionTouchNose": {"description": "Imperative form of the touch-nose liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchForehead": "Touch your forehead",
+  "@verifyActionTouchForehead": {"description": "Imperative form of the touch-forehead liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchLeftEar": "Touch your left ear",
+  "@verifyActionTouchLeftEar": {"description": "Imperative form of the touch-left-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyActionTouchRightEar": "Touch your right ear",
+  "@verifyActionTouchRightEar": {"description": "Imperative form of the touch-right-ear liveness action, shown to the verifier as the gesture to watch for and judge. Must stay in lockstep with LivenessAction.humanReadable in English."},
+
+  "verifyLoadError": "Could not read your paired contact.",
+  "@verifyLoadError": {"description": "Title of the verify error state."},
+
+  "verifyBackHomeButton": "Back to home",
+  "@verifyBackHomeButton": {"description": "Button on the verify error state."},
+
+  "wordInputClearAllButton": "Clear all",
+  "@wordInputClearAllButton": {"description": "Button resetting every word slot in the shared WordInput widget."},
+
+  "wordInputChecking": "Checking…",
+  "@wordInputChecking": {"description": "Shown while the parent verifies the submitted words."},
+
+  "wordInputSlotSemantics": "Word {index} of {total}",
+  "@wordInputSlotSemantics": {"description": "Semantics label of each word slot.", "placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+
+  "wordInputHint": "word",
+  "@wordInputHint": {"description": "hintText of each word slot (BIP-39 word placeholder)."},
+
+  "wordInputInvalidWordError": "Not a valid word",
+  "@wordInputInvalidWordError": {"description": "errorText when a slot holds text that no wordlist word starts with."},
+
+  "wordInputClearTooltip": "Clear",
+  "@wordInputClearTooltip": {"description": "Tooltip of the per-slot clear (x) icon button."},
+
+  "wordsDisplaySemantics": "Verification phrase: {words}, {seconds} seconds remaining",
+  "@wordsDisplaySemantics": {"description": "Semantics label of the rotating words display.", "placeholders": {"words": {"type": "String"}, "seconds": {"type": "int"}}},
+
+  "wordsDisplayCountdown": "{seconds} s",
+  "@wordsDisplayCountdown": {"description": "Countdown text under the words, e.g. '27 s'.", "placeholders": {"seconds": {"type": "int"}}}
+}

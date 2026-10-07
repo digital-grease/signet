@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/crypto/verification.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Re-derives the pair-time 4-word phrase from the currently-stored shared
@@ -69,10 +70,11 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('VERIFY BINDING'),
+          title: Text(l10n.bindingPhraseTitle),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.go('/'),
@@ -90,8 +92,9 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
 
   Widget _buildBody(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return const _ErrorBlock(message: 'Could not read your pairing.');
+      return _ErrorBlock(message: l10n.bindingPhraseLoadError);
     }
     final relationship = _relationship;
     final phrase = _phrase;
@@ -103,7 +106,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'PAIR-TIME PHRASE //',
+          l10n.commonPairTimePhraseHeader,
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 10,
@@ -114,9 +117,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'These 4 words were derived the moment you and ${relationship.label} paired. '
-          'Ask ${relationship.label} to open Signet and tap this same screen. '
-          'If the 4 words on both devices match, the pairing is intact.',
+          l10n.bindingPhraseExplanation(relationship.label),
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -133,7 +134,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'IF THEY DO NOT MATCH //',
+                l10n.bindingPhraseMismatchHeader,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 10,
@@ -144,8 +145,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Unpair and re-pair in person. Do not verify any calls '
-                'against this pairing until you have.',
+                l10n.bindingPhraseMismatchBody,
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onSurface,
@@ -159,7 +159,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
         Divider(color: scheme.outlineVariant),
         const SizedBox(height: 12),
         Text(
-          'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX',
+          AppLocalizations.of(context).commonAirplaneFooter,
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 10,
@@ -240,7 +240,9 @@ class _ErrorBlock extends StatelessWidget {
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            child: const Text('BACK TO HOME'),
+            child: Text(
+              AppLocalizations.of(context).bindingPhraseBackHomeButton,
+            ),
           ),
         ],
       ),

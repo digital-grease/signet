@@ -11,6 +11,7 @@ import '../../core/logging/breadcrumb.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -65,11 +66,15 @@ class _PairTransportInScreenState
     if (_unlocking) return;
     final wire = _packageController.text.trim();
     if (wire.isEmpty) {
-      setState(() => _unlockError = 'Paste the package from the sender.');
+      setState(() =>
+          _unlockError =
+              AppLocalizations.of(context).pairTransportInPasteEmptyError);
       return;
     }
     if (_pakeWords.length != 8) {
-      setState(() => _unlockError = 'Enter all 8 words from the sender.');
+      setState(() =>
+          _unlockError =
+              AppLocalizations.of(context).pairTransportInWordsIncompleteError);
       return;
     }
     setState(() {
@@ -111,7 +116,8 @@ class _PairTransportInScreenState
     } on InvalidPakeException catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = 'Could not unlock: ${e.message}';
+        _unlockError = AppLocalizations.of(context)
+            .commonUnlockFailedError(e.message);
         _unlocking = false;
         _pakeResetKey++;
       });
@@ -124,7 +130,8 @@ class _PairTransportInScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = 'Failed to process package: $e';
+        _unlockError = AppLocalizations.of(context)
+            .pairTransportInProcessFailedError(e.toString());
         _unlocking = false;
       });
     }
@@ -139,7 +146,8 @@ class _PairTransportInScreenState
     if (unlocked == null || _committing) return;
     final label = _labelController.text.trim();
     if (label.isEmpty) {
-      setState(() => _unlockError = 'Give this contact a name.');
+      setState(() =>
+          _unlockError = AppLocalizations.of(context).commonGiveContactName);
       return;
     }
     final labelReason = LabelPolicy.rejectionReason(label);
@@ -167,7 +175,8 @@ class _PairTransportInScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = 'Could not save: $e';
+        _unlockError =
+            AppLocalizations.of(context).commonSaveFailedError(e.toString());
         _committing = false;
       });
     }
@@ -179,10 +188,13 @@ class _PairTransportInScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SecureScreen(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_unlocked == null ? 'IMPORT PACKAGE' : 'CONFIRM PAIRING'),
+          title: Text(_unlocked == null
+              ? l10n.pairTransportInImportTitle
+              : l10n.commonConfirmPairingTitle),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => context.go('/'),
@@ -201,13 +213,14 @@ class _PairTransportInScreenState
 
   Widget _buildUnlockPane() {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('INCOMING PACKAGE'),
+        _SectionHeader(l10n.pairTransportInIncomingHeader),
         const SizedBox(height: 8),
         Text(
-          'Paste the text the sender gave you. Starts with "signet:tp1:".',
+          l10n.pairTransportInPasteInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -233,16 +246,14 @@ class _PairTransportInScreenState
               setState(() => _packageController.text = data!.text!);
             },
             icon: const Icon(Icons.content_paste),
-            label: const Text('Paste from clipboard'),
+            label: Text(l10n.commonPasteFromClipboard),
           ),
         ),
         const SizedBox(height: 16),
-        const _SectionHeader('PAKE SECRET'),
+        _SectionHeader(l10n.commonPakeSecretHeader),
         const SizedBox(height: 6),
         Text(
-          'The 8 words the sender shared with you over a trusted channel '
-          '(paper, encrypted email, a prior meeting note). Do not accept '
-          'these words over an unverified voice call.',
+          l10n.pairTransportInPakeDescription,
           style: TextStyle(
             fontSize: 12,
             color: scheme.onSurfaceVariant,
@@ -275,7 +286,11 @@ class _PairTransportInScreenState
         const SizedBox(height: 24),
         FilledButton(
           onPressed: _unlocking ? null : _handleUnlock,
-          child: Text(_unlocking ? 'UNLOCKING…' : 'UNLOCK PACKAGE'),
+          child: Text(
+            _unlocking
+                ? l10n.commonUnlocking
+                : l10n.pairTransportInUnlockButton,
+          ),
         ),
       ],
     );
@@ -284,15 +299,14 @@ class _PairTransportInScreenState
   Widget _buildConfirmPane() {
     final unlocked = _unlocked!;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _SectionHeader('PAIR-TIME PHRASE'),
+        _SectionHeader(l10n.commonPairTimePhraseHeader),
         const SizedBox(height: 8),
         Text(
-          'Ask the sender to confirm these 4 words appear on their screen, '
-          'via the same trusted channel you used to share the PAKE secret. '
-          'If they match, the package is authentic.',
+          l10n.pairTransportInPhraseInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -342,11 +356,10 @@ class _PairTransportInScreenState
           ),
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('YOUR RESPONSE'),
+        _SectionHeader(l10n.pairTransportInResponseHeader),
         const SizedBox(height: 8),
         Text(
-          'Send this back to the sender, using the same channel you used '
-          'to receive theirs. They will paste it to finish pairing.',
+          l10n.pairTransportInResponseInstruction,
           style: TextStyle(
             fontSize: 13,
             color: scheme.onSurfaceVariant,
@@ -367,28 +380,29 @@ class _PairTransportInScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
+              final copied = l10n.pairTransportInResponseCopiedSnackbar;
               await Clipboard.setData(
                 ClipboardData(text: unlocked.responseWire),
               );
               messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Response copied to clipboard'),
-                  duration: Duration(seconds: 1),
+                SnackBar(
+                  content: Text(copied),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             },
             icon: const Icon(Icons.copy),
-            label: const Text('Copy response'),
+            label: Text(l10n.pairTransportInCopyResponseButton),
           ),
         ),
         const SizedBox(height: 24),
-        const _SectionHeader('NAME THIS CONTACT'),
+        _SectionHeader(l10n.commonNameThisContactHeader),
         const SizedBox(height: 8),
         TextField(
           controller: _labelController,
           maxLength: 32,
-          decoration: const InputDecoration(
-            hintText: 'e.g. Alice',
+          decoration: InputDecoration(
+            hintText: l10n.commonNameHintExample,
           ),
         ),
         if (_unlockError != null) ...<Widget>[
@@ -401,12 +415,12 @@ class _PairTransportInScreenState
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _committing ? null : _handleCommit,
-          child: Text(_committing ? 'SAVING…' : 'COMMIT PAIR'),
+          child: Text(_committing ? l10n.commonSaving : l10n.commonCommitPair),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: _committing ? null : () => context.go('/'),
-          child: const Text('CANCEL'),
+          child: Text(l10n.commonCancelCaps),
         ),
       ],
     );
@@ -436,7 +450,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label //',
+      label,
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: 10,
