@@ -5,8 +5,10 @@
 // Uses a temp directory + in-memory CrashlogCipher with an injected
 // FlutterSecureStorage stub.
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -169,5 +171,63 @@ void main() {
     expect(report.scrubbedTrace,
         isNot(contains('0a1b2c3d4e5f60718293a4b5c6d7e8f9')));
   });
+
+  // L1: several error boundaries can fire at once (FlutterError.onError,
+  // PlatformDispatcher.onError, the zone). Each calls record() unawaited, so
+  // overlapping writes used to race on last.bin.tmp, and a failed record
+  // threw back into the zone handler, which called record() again.
+  test('concurrent records never throw and leave one readable report',
+      () async {
+    final slow = CrashRecorder(cipher: _SlowCipher(cipher), crashesDir: tempDir);
+    final errors = <Object>[];
+    await runZonedGuarded(() async {
+      await Future.wait([
+        for (var i = 0; i < 5; i++)
+          slow.record(error: StateError('e$i'), stack: null, context: ctx),
+      ]);
+    }, (e, _) => errors.add(e));
+    expect(errors, isEmpty);
+    expect(File('${tempDir.path}/${CrashRecorder.sentinelFileName}.tmp')
+        .existsSync(), isFalse);
+    expect(await detector.readPendingReport(), isNotNull);
+  });
+
+  test('the detector removes an orphaned recorder temp file', () async {
+    final temp = File('${tempDir.path}/${CrashRecorder.sentinelFileName}.tmp')
+      ..writeAsBytesSync(<int>[1, 2, 3]);
+    expect(await detector.readPendingReport(), isNull);
+    expect(temp.existsSync(), isFalse);
+  });
+
+  test('an I/O failure inside record does not throw', () async {
+    tempDir.deleteSync(recursive: true);
+    File(tempDir.path).writeAsStringSync('not a directory');
+    final broken = CrashRecorder(cipher: cipher, crashesDir: tempDir);
+    await expectLater(
+      broken.record(error: StateError('x'), stack: null, context: ctx),
+      completes,
+    );
+    File(tempDir.path).deleteSync();
+    tempDir.createSync();
+  });
 }
 
+class _SlowCipher implements CrashlogCipher {
+  _SlowCipher(this._inner);
+
+  final CrashlogCipher _inner;
+  int _calls = 0;
+
+  @override
+  Future<Uint8List> encrypt(List<int> plaintext) async {
+    _calls++;
+    await Future<void>.delayed(Duration(milliseconds: _calls.isOdd ? 20 : 2));
+    return _inner.encrypt(plaintext);
+  }
+
+  @override
+  Future<Uint8List> decrypt(List<int> blob) => _inner.decrypt(blob);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}

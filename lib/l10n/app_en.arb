@@ -706,6 +706,12 @@
   "pairTransportOutUnlockFailedError": "Could not unlock response: {error}",
   "@pairTransportOutUnlockFailedError": {"description": "Error when the response package fails to unlock on transport out.", "placeholders": {"error": {"type": "String"}}},
 
+  "pairingWeakKeyInPersonError": "Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.",
+  "@pairingWeakKeyInPersonError": {"description": "In-person QR pairing: the scanned code carries a low-order or reflected public key (possible tampering). Must not reassure; tells both people to cancel and restart."},
+
+  "pairingWeakKeyRemoteError": "This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.",
+  "@pairingWeakKeyRemoteError": {"description": "Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel."},
+
   "pairTransportOutPhraseInstruction": "Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.",
   "@pairTransportOutPhraseInstruction": {"description": "Instruction above the phrase card on transport out.", "placeholders": {"label": {"type": "String"}}},
 
@@ -1044,6 +1050,9 @@
 
   "settingsDebugEnableAction": "ENABLE DEBUG LOGGING",
   "@settingsDebugEnableAction": {"description": "Action button enabling debug logging."},
+
+  "settingsDebugEnableFailed": "Couldn't turn on debug logging. Nothing was recorded. Try again.",
+  "@settingsDebugEnableFailed": {"description": "Snackbar when starting a debug-logging session fails (e.g. the secure key store is unavailable). Logging stays off."},
 
   "settingsDebugExportButton": "EXPORT DEBUG LOGS",
   "@settingsDebugExportButton": {"description": "Outlined button opening the debug-log export sheet."},

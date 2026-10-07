@@ -77,11 +77,21 @@ operating system's behavior, not the app's.
   visible to the developer (as an aggregate number) and to Google.
 - The Android OS writes app-install events to its own device logs,
   which may be included in full-device backups.
-- Android's Accessibility Services — if you have any enabled —
-  can observe screen content of any app. Signet blocks this on
-  sensitive screens via `FLAG_SECURE`, but an accessibility
-  service that runs before `FLAG_SECURE` is applied (e.g. during
-  screen transitions) could in principle see UI state.
+- Android's Accessibility Services (if you have any enabled) can
+  read the screen content of any app, including Signet's words and
+  phrases. `FLAG_SECURE`, which Signet sets on sensitive screens, blocks
+  screenshots, screen recording and the recent-apps thumbnail; it does
+  not block accessibility services. Only enable accessibility services
+  you trust.
+- Android backup is switched off for Signet (from v0.3.7). The app
+  sets `allowBackup="false"` and data-extraction rules that exclude all
+  of its data from Google cloud backup and from device-to-device
+  transfer, so your pairings never leave the phone that way. They would
+  not work on another phone anyway: the key that unlocks them lives in
+  this phone's Android Keystore. Use Signet's own backup to move
+  pairings to a new phone. A Google backup made by an earlier version
+  may still hold Signet's encrypted files until Google replaces or
+  expires it.
 
 ### iOS
 

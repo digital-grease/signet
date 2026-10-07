@@ -4,6 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/verification.dart';
 
+/// Typed pairing failures the UI renders with localized copy (the
+/// free-form [PairingState.error] string stays English-only for logs).
+enum PairingFailure {
+  /// The scanned key was a low-order point or a copy of our own key: a
+  /// tampered or broken pairing code (see [WeakPublicKeyException]).
+  weakPublicKey,
+}
+
 /// Cross-screen state for a single pairing attempt. Lives only in memory —
 /// never persisted in-flight, so if the app dies mid-pair the user simply
 /// starts over. A completed pair is committed atomically via [commit].
@@ -17,6 +25,7 @@ class PairingState {
     this.totpSecret,
     this.phrase,
     this.error,
+    this.failure,
     this.rekeyTargetId,
   });
 
@@ -27,6 +36,9 @@ class PairingState {
   final Uint8List? totpSecret;
   final List<String>? phrase;
   final String? error;
+
+  /// Set together with [error] when the failure has localized UI copy.
+  final PairingFailure? failure;
 
   /// When non-null, this flow is rekeying an existing relationship rather
   /// than creating a new one. The `pair_confirm_screen.onMatch` handler
@@ -49,6 +61,7 @@ class PairingState {
     Uint8List? totpSecret,
     List<String>? phrase,
     String? error,
+    PairingFailure? failure,
     String? rekeyTargetId,
     bool clearError = false,
     bool clearTheirPublicKey = false,
@@ -65,6 +78,7 @@ class PairingState {
       totpSecret: clearTotpSecret ? null : totpSecret ?? this.totpSecret,
       phrase: clearPhrase ? null : phrase ?? this.phrase,
       error: clearError ? null : error ?? this.error,
+      failure: clearError ? null : failure ?? this.failure,
       rekeyTargetId: clearRekeyTargetId
           ? null
           : rekeyTargetId ?? this.rekeyTargetId,
@@ -115,7 +129,7 @@ class PairingController extends Notifier<PairingState> {
     // exception path inside _maybeDerive; with derivation now gated on
     // didShowQr the bad-length scan would otherwise be silently swallowed.
     if (theirKey.length != PairingHandshake.publicKeyLength) {
-      state = state.copyWith(
+      state = state.copyWith(clearError: true).copyWith(
         error: 'Scanned key is ${theirKey.length} bytes; '
             'expected ${PairingHandshake.publicKeyLength}.',
       );
@@ -146,6 +160,14 @@ class PairingController extends Notifier<PairingState> {
         sharedSecret: sharedSecret,
       );
       state = state.copyWith(totpSecret: totpSecret, phrase: phrase);
+    } on WeakPublicKeyException catch (e) {
+      // Drop the bad key so a rescan starts clean; keep our key pair so the
+      // other device's scan of our QR stays valid.
+      state = state.copyWith(
+        error: e.message,
+        failure: PairingFailure.weakPublicKey,
+        clearTheirPublicKey: true,
+      );
     } catch (error) {
       state = state.copyWith(error: 'Failed to derive shared secret: $error');
     }

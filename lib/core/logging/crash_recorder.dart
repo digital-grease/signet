@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -118,9 +119,42 @@ class CrashRecorder {
   /// Filename for the (single) pending-crash sentinel.
   static const String sentinelFileName = 'last.bin';
 
+  /// Serializes records. Several error boundaries can fire for one failure
+  /// and each calls [record] unawaited, so overlapping writes used to race on
+  /// the shared temp file.
+  Future<void> _queue = Future<void>.value();
+
   /// Record [error] + [stack] for surfacing on the next launch. Idempotent
   /// under the cooldown: a second crash within [_cooldown] is a no-op.
+  ///
+  /// Never throws. This runs inside the app's error boundaries; a failure
+  /// here (disk full, Keystore unavailable) that escaped would be routed
+  /// straight back into [record] by the zone handler.
   Future<void> record({
+    required Object error,
+    required StackTrace? stack,
+    required CrashContext context,
+  }) {
+    final next = _queue.then(
+      (_) => _recordNow(error: error, stack: stack, context: context),
+    );
+    _queue = next;
+    return next;
+  }
+
+  Future<void> _recordNow({
+    required Object error,
+    required StackTrace? stack,
+    required CrashContext context,
+  }) async {
+    try {
+      await _write(error: error, stack: stack, context: context);
+    } on Object {
+      // Best effort by design; see [record].
+    }
+  }
+
+  Future<void> _write({
     required Object error,
     required StackTrace? stack,
     required CrashContext context,
@@ -178,7 +212,9 @@ class CrashRecorder {
     );
 
     final json = utf8.encode(jsonEncode(report.toJson()));
-    final ciphertext = await cipher.encrypt(json);
+    // Bounded so a hung Keystore call cannot stall every later record.
+    final ciphertext =
+        await cipher.encrypt(json).timeout(const Duration(seconds: 5));
 
     await crashesDir.create(recursive: true);
     // Write to a temp file then rename — atomic on POSIX, avoids the

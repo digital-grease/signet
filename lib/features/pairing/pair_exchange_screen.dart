@@ -194,7 +194,9 @@ class _OverviewPane extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                state.error!,
+                state.failure == PairingFailure.weakPublicKey
+                    ? l10n.pairingWeakKeyInPersonError
+                    : state.error!,
                 style: textTheme.bodyMedium?.copyWith(
                   color: colors.onErrorContainer,
                 ),

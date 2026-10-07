@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,6 +135,40 @@ void main() {
       );
     },
   );
+
+  // The response uses the same LDP format and PAKE words as the outgoing
+  // package, so anyone on the channel can echo the sender's own package back
+  // as the "response". The self-key check must stop the sender pairing with
+  // herself; a low-order key must be rejected the same way.
+  for (final scenario in ['own package echoed back', 'low-order key']) {
+    testWidgets('UNLOCK RESPONSE rejects $scenario as tampered', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+
+      final extracted = await _extractOutgoing(tester);
+      final responseWire = scenario == 'own package echoed back'
+          ? extracted.outgoing
+          : await TransportPackage.encodeLdp(
+              publicKey: Uint8List(32),
+              labelHint: '',
+              pakeWords: extracted.pake,
+            );
+
+      await tester.enterText(find.byType(TextField).first, responseWire);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('not safe to use'), findsOneWidget);
+      expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+      expect(find.text('COMMIT PAIR'), findsNothing);
+    });
+  }
 
   testWidgets(
     'UNLOCK RESPONSE with matching PAKE reveals the pair-time phrase',

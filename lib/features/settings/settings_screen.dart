@@ -90,8 +90,19 @@ class SettingsScreen extends ConsumerWidget {
                       : l10n.settingsDebugEnableAction,
                   onAction: debugState.active
                       ? null
-                      : () =>
-                          ref.read(debugLoggingProvider.notifier).enable(),
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final failedText = l10n.settingsDebugEnableFailed;
+                          try {
+                            await ref
+                                .read(debugLoggingProvider.notifier)
+                                .enable();
+                          } on Object {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(failedText)),
+                            );
+                          }
+                        },
                   child: debugState.active
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -45,6 +45,9 @@ class CrashDetector {
   /// auth failure). A return of `null` means "no actionable report" — the
   /// caller should not surface a dialog.
   Future<CrashReport?> readPendingReport() async {
+    // A kill mid-record can leave ciphertext in the recorder's temp file;
+    // it is never read, so never keep it.
+    await _deleteTemp();
     final sentinel = _sentinelFile();
     if (!await sentinel.exists()) return null;
     try {
@@ -69,12 +72,22 @@ class CrashDetector {
   /// issue / Copy log / Dismiss) so the dialog doesn't re-fire on the next
   /// launch. Idempotent.
   Future<void> dismissPendingReport() async {
+    await _deleteTemp();
     final sentinel = _sentinelFile();
     if (!await sentinel.exists()) return;
     try {
       await sentinel.delete();
     } on FileSystemException {
       // Ignore — if the file's already gone or unwritable, nothing to do.
+    }
+  }
+
+  Future<void> _deleteTemp() async {
+    final temp = File('${_sentinelFile().path}.tmp');
+    try {
+      if (await temp.exists()) await temp.delete();
+    } on FileSystemException {
+      // Best-effort cleanup.
     }
   }
 

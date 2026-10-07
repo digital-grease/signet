@@ -121,6 +121,12 @@ class _PairTransportInScreenState
         _unlocking = false;
         _pakeResetKey++;
       });
+    } on WeakPublicKeyException {
+      if (!mounted) return;
+      setState(() {
+        _unlockError = AppLocalizations.of(context).pairingWeakKeyRemoteError;
+        _unlocking = false;
+      });
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {

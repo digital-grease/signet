@@ -276,6 +276,37 @@ phrases. This requires the users to actually *read the phrases to
 each other* — the UI nudges this but does not enforce it (enforcement
 is a copy / social-layer concern).
 
+**Low-order key substitution (fixed in v0.3.7):** a MITM could instead
+substitute a *low-order* point (for example the all-zero u-coordinate)
+in both directions. X25519 then outputs 32 zero bytes for every private
+key, so both victims derive the same secret, see *matching* phrases,
+and the attacker can compute every future code. The phrase check alone
+cannot catch this. `PairingHandshake.deriveSharedSecret` therefore
+rejects an all-zero ECDH output (RFC 7748 §6.1, constant-time check)
+and any encoding of our own key reflected back (detected by comparing
+derived secrets), throwing `WeakPublicKeyException`;
+the in-person, long-distance and rekey flows all go through it and
+show a "this code may have been tampered with" message. Because the
+scalar is clamped to a multiple of 8, the zero check covers every
+low-order point, including its non-canonical encodings (non-canonical
+encodings of ordinary points are harmless and are not rejected).
+
+**Known limit: the phrase is short and uncommitted (open, tracked for
+v0.3.8+).** The pair-time phrase carries 44 bits, and neither device
+commits to its public key before seeing the other's. A MITM who can
+substitute both QR codes sees both real keys first and can search for
+two substitute keys whose phrases collide: a birthday search of about
+2^22 tries, seconds of work. For long-distance pairing, an attacker who
+also knows the 8 PAKE words must match a phrase already fixed by one
+side, about 2^44 tries (hours on GPUs, and the asynchronous channel
+hides the delay). The phrase check therefore does not, on its own,
+stop a well-resourced pairing-time MITM. The planned fix is a
+commit-then-reveal step (as in Bluetooth numeric comparison and ZRTP):
+one side first sends a hash of its public key and reveals the key only
+after receiving the other side's. Until then, in-person pairing where
+each person scans the other's screen directly remains the strongest
+mode.
+
 ### 3.2 Role-asymmetric rotating verify code
 
 - Role `{a, b}` derived at pair commit from byte-lex of the two pubkeys.
@@ -612,6 +643,10 @@ a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
 
+- 2026-10-07 · v0.3.7: §3.1 low-order X25519 key substitution
+  documented and closed: all-zero ECDH output and reflected own keys
+  are rejected in `PairingHandshake.deriveSharedSecret`. Documented the
+  open limit that the 44-bit pair-time phrase has no key commitment.
 - 2026-06-12 · Phase 8 — opt-in debug logging added. A₁₀ extended to
   cover the debug `session.bin` artifact (present only while opt-in
   logging is active). New §3.7 covers the opt-in retention model, the

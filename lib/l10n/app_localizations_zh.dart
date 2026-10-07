@@ -791,6 +791,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pairingWeakKeyInPersonError =>
+      '停止。这个配对码不安全。请在两部手机上都取消配对，然后重新开始。不要相信任何一部手机上显示的单词。';
+
+  @override
+  String get pairingWeakKeyRemoteError =>
+      '这个配对包不安全，可能已被篡改。请关闭此页面，重新生成配对包，并换一种与之前不同的方式发送。不要相信任何一部手机上显示的单词。';
+
+  @override
   String pairTransportOutPhraseInstruction(String label) {
     return '通过传递 PAKE 密语的同一条可信渠道，请 $label 确认这 4 个单词与屏幕上一致。一致即表示配对真实有效。';
   }
@@ -1231,6 +1239,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDebugEnableAction => '开启调试日志';
+
+  @override
+  String get settingsDebugEnableFailed => '无法开启调试日志，未记录任何内容。请重试。';
 
   @override
   String get settingsDebugExportButton => '导出调试日志';

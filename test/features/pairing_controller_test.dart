@@ -149,6 +149,56 @@ void main() {
       expect(s.totpSecret, hasLength(32));
     });
 
+    // C1 / P1: a MITM substituting a low-order point would otherwise make
+    // both phones derive an all-zero secret with matching phrases.
+    test('low-order key: no phrase, typed failure, key dropped for rescan',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
+      await ctrl.recordTheirPublicKey(Uint8List(32)); // all-zero point
+      final s = container.read(pairingControllerProvider);
+      expect(s.confirmationReady, isFalse);
+      expect(s.phrase, isNull);
+      expect(s.totpSecret, isNull);
+      expect(s.failure, PairingFailure.weakPublicKey);
+      expect(s.error, isNotNull);
+      expect(s.hasScannedTheirKey, isFalse,
+          reason: 'bad key is dropped so the user can rescan');
+      expect(s.ourKeyPair, isNotNull,
+          reason: 'our QR stays valid for the other device');
+    });
+
+    test('a good rescan after a low-order key clears the failure', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
+      await ctrl.recordTheirPublicKey(Uint8List(32));
+      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 9)));
+      final s = container.read(pairingControllerProvider);
+      expect(s.failure, isNull);
+      expect(s.error, isNull);
+      expect(s.confirmationReady, isTrue);
+    });
+
+    test('a wrong-length scan after a weak key replaces the weak-key failure',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
+      await ctrl.recordTheirPublicKey(Uint8List(32));
+      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(31, 1)));
+      final s = container.read(pairingControllerProvider);
+      expect(s.failure, isNull);
+      expect(s.error, contains('31 bytes'));
+    });
+
     test('records an error if the remote key length is wrong', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);

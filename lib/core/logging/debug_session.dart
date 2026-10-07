@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -31,9 +32,11 @@ class DebugSession {
     DateTime Function()? now,
     Duration maxAge = const Duration(hours: 24),
     int maxBytes = 2 * 1024 * 1024,
+    Duration ioTimeout = defaultIoTimeout,
   })  : _now = now ?? (() => DateTime.now().toUtc()),
         _maxAge = maxAge,
-        _maxBytes = maxBytes;
+        _maxBytes = maxBytes,
+        _ioTimeout = ioTimeout;
 
   final CrashlogCipher cipher;
 
@@ -44,11 +47,27 @@ class DebugSession {
   final DateTime Function() _now;
   final Duration _maxAge;
   final int _maxBytes;
+  final Duration _ioTimeout;
 
   static const String sessionFileName = 'session.bin';
 
+  /// Upper bound for one encrypt (a Keystore/Keychain platform hop) and for
+  /// [stop] waiting on in-flight writes, so a hung platform call can never
+  /// block "Stop & wipe" or every later write.
+  static const Duration defaultIoTimeout = Duration(seconds: 5);
+
   DateTime? _startedAt;
   final List<String> _lines = <String>[];
+
+  /// Serializes every disk write. `DebugLog.log` calls [record] without
+  /// awaiting, so persists used to overlap and race on one temp file; the
+  /// losing rename threw into the zone handler and was recorded as a crash.
+  Future<void> _writeQueue = Future<void>.value();
+
+  /// Bumped by [start] and [stop]. A persist queued under an older
+  /// generation is dropped, so an in-flight write can never resurrect a
+  /// session the user just stopped.
+  int _generation = 0;
 
   bool get isActive => _startedAt != null;
   DateTime? get startedAt => _startedAt;
@@ -61,14 +80,24 @@ class DebugSession {
 
   /// Begin a fresh session, replacing any existing one.
   Future<void> start() async {
+    final generation = ++_generation;
     _startedAt = _now();
     _lines.clear();
-    await _persist();
+    try {
+      await _enqueuePersist();
+    } on Object {
+      // Roll back so the session is never active in memory while the
+      // caller (and the Settings UI) believes enabling failed.
+      if (_generation == generation) await stop();
+      rethrow;
+    }
   }
 
   /// Restore an in-flight session after an app relaunch. Returns true iff an
   /// unexpired session was loaded; expired or corrupt files are wiped.
   Future<bool> restore() async {
+    // A kill mid-write can leave ciphertext in the temp file; never keep it.
+    await _deleteQuietly(_tempFile());
     final f = _file();
     if (!await f.exists()) return false;
     try {
@@ -91,12 +120,22 @@ class DebugSession {
   }
 
   /// Append one structured [crumb]. No-op when inactive or expired (an expired
-  /// session is wiped as a side effect).
+  /// session is wiped as a side effect). Never throws: debug logging is a
+  /// diagnostic aid and must not be able to crash the app or feed the crash
+  /// recorder with its own I/O failures.
   Future<void> record(Breadcrumb crumb) async {
-    if (!await _ensureActive()) return;
-    _lines.add(crumb.format());
-    _trimToCap();
-    await _persist();
+    try {
+      final generation = _generation;
+      if (!await _ensureActive()) return;
+      // A stop (or stop + start) during the await above must not let this
+      // crumb land in the stopped session's memory or in a new session.
+      if (generation != _generation) return;
+      _lines.add(crumb.format());
+      _trimToCap();
+      await _enqueuePersist();
+    } on Object {
+      // Swallowed by design; see doc comment.
+    }
   }
 
   /// Decrypt + return the raw session log (structured, id-pseudonymous). The
@@ -109,10 +148,36 @@ class DebugSession {
 
   /// End the session and delete the on-disk file.
   Future<void> stop() async {
+    final stopGeneration = ++_generation;
     _startedAt = null;
     _lines.clear();
-    final f = _file();
-    if (await f.exists()) await f.delete();
+    // Wipe immediately: the generation bump already stops any in-flight
+    // write from renaming over the deleted file, so the user's "Stop &
+    // wipe" never depends on the platform cipher finishing.
+    await _wipeFiles();
+    // Then let queued writes drain (bounded, in case the cipher hangs) and
+    // wipe again for anything that slipped in, unless a new session was
+    // started meanwhile (its own persist owns the file now).
+    try {
+      await _writeQueue.timeout(_ioTimeout);
+    } on TimeoutException {
+      // A hung write can no longer rename (generation check); move on.
+    }
+    if (_generation != stopGeneration) return;
+    await _wipeFiles();
+  }
+
+  Future<void> _wipeFiles() async {
+    await _deleteQuietly(_file());
+    await _deleteQuietly(_tempFile());
+  }
+
+  static Future<void> _deleteQuietly(File f) async {
+    try {
+      if (await f.exists()) await f.delete();
+    } on FileSystemException {
+      // Already gone or unreachable; nothing left to wipe.
+    }
   }
 
   // ===========================================================================
@@ -142,17 +207,41 @@ class DebugSession {
     }
   }
 
-  Future<void> _persist() async {
+  File _tempFile() => File('${_file().path}.tmp');
+
+  /// Queue a persist behind any in-flight one. The returned future completes
+  /// with the persist's own outcome (so [start] can surface a failure); the
+  /// queue itself never stays errored.
+  Future<void> _enqueuePersist() {
+    final generation = _generation;
+    final result = _writeQueue.then((_) => _persist(generation));
+    _writeQueue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _persist(int generation) async {
+    // Snapshot state at execution time: a later record's lines are included,
+    // and a stop/start since this write was queued cancels it.
+    final started = _startedAt;
+    if (generation != _generation || started == null) return;
     await debugDir.create(recursive: true);
     final payload = utf8.encode(jsonEncode(<String, dynamic>{
-      'startedAt': _startedAt!.toUtc().toIso8601String(),
-      'lines': _lines,
+      'startedAt': started.toUtc().toIso8601String(),
+      'lines': List<String>.of(_lines),
     }));
-    final ciphertext = await cipher.encrypt(payload);
-    final f = _file();
-    // Temp-write then rename — atomic on POSIX; no half-written session file.
-    final temp = File('${f.path}.tmp');
+    final ciphertext = await cipher.encrypt(payload).timeout(_ioTimeout);
+    // Temp-write then rename: atomic on POSIX, so no half-written session
+    // file. Writes are serialized by [_writeQueue], so the temp path is never
+    // shared between two in-flight persists.
+    final temp = _tempFile();
     await temp.writeAsBytes(ciphertext, flush: true);
-    await temp.rename(f.path);
+    // Defense in depth: a hung encrypt already times out before stop()'s
+    // bounded wait ends, but a stalled disk write could still outlive it;
+    // never rename a stopped session back into place.
+    if (generation != _generation) {
+      await temp.delete();
+      return;
+    }
+    await temp.rename(_file().path);
   }
 }

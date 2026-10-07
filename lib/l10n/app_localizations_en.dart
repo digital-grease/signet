@@ -826,6 +826,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pairingWeakKeyInPersonError =>
+      'Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.';
+
+  @override
+  String get pairingWeakKeyRemoteError =>
+      'This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.';
+
+  @override
   String pairTransportOutPhraseInstruction(String label) {
     return 'Ask $label to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.';
   }
@@ -1278,6 +1286,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDebugEnableAction => 'ENABLE DEBUG LOGGING';
+
+  @override
+  String get settingsDebugEnableFailed =>
+      'Couldn\'t turn on debug logging. Nothing was recorded. Try again.';
 
   @override
   String get settingsDebugExportButton => 'EXPORT DEBUG LOGS';

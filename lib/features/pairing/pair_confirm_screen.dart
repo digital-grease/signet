@@ -8,6 +8,7 @@ import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/big_button.dart';
+import '../../shared/widgets/secure_screen.dart';
 import 'pairing_controller.dart';
 
 /// Step 3 of the pair flow: show the 4-word verification phrase derived from
@@ -128,8 +129,15 @@ class PairConfirmScreen extends ConsumerWidget {
     context.go('/');
   }
 
+  // The pair-time phrase is derived from the shared secret, so this screen
+  // blocks screenshots and recording like every other secret-bearing
+  // screen (and keeps FLAG_SECURE held across the exchange → confirm
+  // transition).
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) =>
+      SecureScreen(child: _buildBody(context, ref));
+
+  Widget _buildBody(BuildContext context, WidgetRef ref) {
     final pair = ref.watch(pairingControllerProvider);
     final phrase = pair.phrase;
     final colors = Theme.of(context).colorScheme;

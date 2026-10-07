@@ -471,6 +471,10 @@
 
   "pairTransportOutUnlockFailedError": "无法解锁响应包：{error}",
 
+  "pairingWeakKeyInPersonError": "停止。这个配对码不安全。请在两部手机上都取消配对，然后重新开始。不要相信任何一部手机上显示的单词。",
+
+  "pairingWeakKeyRemoteError": "这个配对包不安全，可能已被篡改。请关闭此页面，重新生成配对包，并换一种与之前不同的方式发送。不要相信任何一部手机上显示的单词。",
+
   "pairTransportOutPhraseInstruction": "通过传递 PAKE 密语的同一条可信渠道，请 {label} 确认这 4 个单词与屏幕上一致。一致即表示配对真实有效。",
 
   "backupExportTitle": "备份到纸上",
@@ -696,6 +700,8 @@
   "settingsDebugInactiveBody": "关闭 — 不记录任何内容。遇到问题时，先开启，复现问题，再导出日志发给我们。日志不会包含你的密钥或联系人名称。",
 
   "settingsDebugEnableAction": "开启调试日志",
+
+  "settingsDebugEnableFailed": "无法开启调试日志，未记录任何内容。请重试。",
 
   "settingsDebugExportButton": "导出调试日志",
 

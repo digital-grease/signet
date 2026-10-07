@@ -148,6 +148,12 @@ class _PairTransportOutScreenState
             .pairTransportOutUnlockFailedError(e.message);
         _busy = false;
       });
+    } on WeakPublicKeyException {
+      if (!mounted) return;
+      setState(() {
+        _errorText = AppLocalizations.of(context).pairingWeakKeyRemoteError;
+        _busy = false;
+      });
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {

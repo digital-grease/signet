@@ -1508,6 +1508,18 @@ abstract class AppLocalizations {
   /// **'Could not unlock response: {error}'**
   String pairTransportOutUnlockFailedError(String error);
 
+  /// In-person QR pairing: the scanned code carries a low-order or reflected public key (possible tampering). Must not reassure; tells both people to cancel and restart.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.'**
+  String get pairingWeakKeyInPersonError;
+
+  /// Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel.
+  ///
+  /// In en, this message translates to:
+  /// **'This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.'**
+  String get pairingWeakKeyRemoteError;
+
   /// Instruction above the phrase card on transport out.
   ///
   /// In en, this message translates to:
@@ -2185,6 +2197,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ENABLE DEBUG LOGGING'**
   String get settingsDebugEnableAction;
+
+  /// Snackbar when starting a debug-logging session fails (e.g. the secure key store is unavailable). Logging stays off.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t turn on debug logging. Nothing was recorded. Try again.'**
+  String get settingsDebugEnableFailed;
 
   /// Outlined button opening the debug-log export sheet.
   ///

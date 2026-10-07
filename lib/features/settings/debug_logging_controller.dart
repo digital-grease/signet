@@ -42,14 +42,23 @@ class DebugLoggingController extends Notifier<DebugLoggingState> {
     );
   }
 
+  /// Start a session. Rethrows if it could not be started (the session
+  /// rolls itself back), so the caller can tell the user; the state is
+  /// re-snapshotted either way so the UI never shows a stale value.
   Future<void> enable() async {
-    await _session?.start();
-    state = _snapshot();
+    try {
+      await _session?.start();
+    } finally {
+      state = _snapshot();
+    }
   }
 
   Future<void> stop() async {
-    await _session?.stop();
-    state = _snapshot();
+    try {
+      await _session?.stop();
+    } finally {
+      state = _snapshot();
+    }
   }
 
   void refresh() => state = _snapshot();

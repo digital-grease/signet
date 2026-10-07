@@ -16,17 +16,34 @@ import 'package:flutter/widgets.dart';
 /// Web / desktop: no-op. The method channel returns `MissingPluginException`
 /// and we swallow it silently.
 ///
-/// Nested usage is safe — if two `SecureScreen`s are mounted at the same
-/// time the flag is set twice (idempotent on Android) and cleared only
-/// when both are dismounted (stack-last-wins is fine because every mount
-/// calls `secureOn` and every dismount calls `secureOff`; the flag is
-/// effectively set whenever any `SecureScreen` is in the tree).
+/// Nested and stacked usage is reference-counted: every mount calls
+/// `secureOn` (idempotent on the platform side, and a retry if an earlier
+/// call failed), but `secureOff` is sent only when the last mounted
+/// `SecureScreen` is disposed. Without the count, popping one secure route
+/// back to another (for example bulk import back to the import screen
+/// still showing PAKE words) cleared the flag while secrets were visible.
+/// Route replacement is safe too: the new route's `initState` runs before
+/// the old route's `dispose`, so the count never touches zero in between.
 class SecureScreen extends StatefulWidget {
   const SecureScreen({super.key, required this.child});
   final Widget child;
 
   static const MethodChannel channel =
       MethodChannel('dev.digitalgrease.signet/window');
+
+  // Process-wide. A hot restart resets it to 0 while the platform flag
+  // stays on until the next secure screen closes; that fails safe and only
+  // affects debug builds.
+  static int _mountCount = 0;
+
+  /// Number of currently mounted [SecureScreen]s.
+  @visibleForTesting
+  static int get debugMountCount => _mountCount;
+
+  /// Resets the mount count between widget tests, which can leave states
+  /// undisposed when a test fails mid-way.
+  @visibleForTesting
+  static void debugResetMountCount() => _mountCount = 0;
 
   @override
   State<SecureScreen> createState() => _SecureScreenState();
@@ -36,12 +53,17 @@ class _SecureScreenState extends State<SecureScreen> {
   @override
   void initState() {
     super.initState();
+    SecureScreen._mountCount++;
     _invoke('secureOn');
   }
 
   @override
   void dispose() {
-    _invoke('secureOff');
+    SecureScreen._mountCount--;
+    if (SecureScreen._mountCount <= 0) {
+      SecureScreen._mountCount = 0;
+      _invoke('secureOff');
+    }
     super.dispose();
   }
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -121,6 +123,34 @@ void main() {
         find.textContaining('Could not unlock'),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'a package carrying a low-order key is rejected as tampered (C1)',
+    (tester) async {
+      // An attacker who controls the package channel and knows the PAKE
+      // words could swap in the all-zero point; both sides would then
+      // derive the same public secret and matching phrases.
+      final wire = await TransportPackage.encodeLdp(
+        publicKey: Uint8List(32),
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+      );
+
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('not safe to use'), findsOneWidget);
+      expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+      expect(find.text('COMMIT PAIR'), findsNothing);
     },
   );
 

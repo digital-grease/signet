@@ -123,6 +123,9 @@ jobs:
           flutter build appbundle --release
           flutter build apk --release
 
+      - name: Check APK manifest privacy properties
+        run: scripts/check-apk-manifest.sh build/app/outputs/flutter-apk/app-release.apk
+
       - name: Verify signatures are NOT debug
         # AAB and APK use different verification tools because of how
         # they are signed:
