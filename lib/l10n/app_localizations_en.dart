@@ -1079,6 +1079,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get packageNeedsNewerSignetError =>
+      'This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.';
+
+  @override
+  String get packageNeedsNewerSignetVerifiedError =>
+      'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.';
+
+  @override
+  String get packageDamagedError =>
+      'This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.';
+
+  @override
+  String get backupImportRepairedDateNotice =>
+      'Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.';
+
+  @override
+  String get backupImportRepairedLabelNotice =>
+      'Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.';
+
+  @override
+  String bulkBackupImportRepairedNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.',
+      one:
+          '1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkBackupImportSkippedNewerNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.',
+      one:
+          '1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkBackupImportRepairedBadge => 'FIXED';
+
+  @override
+  String get bulkBackupImportSummarySkippedNewer => 'NEEDS NEWER SIGNET //';
+
+  @override
   String get bulkBackupImportNoConflictBody =>
       'Tick the rows you want to restore. Every pairing below will come back with its original label and pair date.';
 

@@ -1038,6 +1038,52 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get packageNeedsNewerSignetError =>
+      '需要较新版本的 Signet。请只通过您最初安装 Signet 的应用商店更新。Signet 从不通过链接或文件发送更新。如果您没有预料到这条消息，请当面向发送者确认。';
+
+  @override
+  String get packageNeedsNewerSignetVerifiedError =>
+      '这是由较新版本的 Signet 生成的。请通过您安装 Signet 的应用商店更新后再试一次。';
+
+  @override
+  String get packageDamagedError => '此包已损坏或不完整。请检查是否完整复制，或请对方重新发送。';
+
+  @override
+  String get backupImportRepairedDateNotice =>
+      '此备份中有部分内容无法读取，已修复：配对日期已重置为今天。配对本身不受影响。';
+
+  @override
+  String get backupImportRepairedLabelNotice =>
+      '此备份中有部分内容无法读取，已修复：名称中的少数字符已被替换。恢复前请检查名称。配对本身不受影响。';
+
+  @override
+  String bulkBackupImportRepairedNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '此备份中有 $count 个关系的日期或名称无法读取，已修复，并在下方标记为“已修复”。恢复前请检查其名称。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkBackupImportSkippedNewerNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '此备份中有 $count 个关系需要较新版本的 Signet，因此未显示。在完成恢复之前请保留旧手机。请只通过您最初安装 Signet 的应用商店更新，然后重新恢复。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkBackupImportRepairedBadge => '已修复';
+
+  @override
+  String get bulkBackupImportSummarySkippedNewer => '需要较新版本 //';
+
+  @override
   String get bulkBackupImportNoConflictBody => '勾选要恢复的行。下面每个配对都会以原名称和原配对日期恢复。';
 
   @override

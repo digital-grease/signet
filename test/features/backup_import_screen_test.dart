@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -313,4 +315,53 @@ void main() {
     final stored = await store.listRelationships();
     expect(stored.single.silentHaptics, isTrue);
   });
+
+  // Plan Task 1.6: a package from a newer Signet must say "update", not
+  // "not a valid backup".
+  testWidgets('a package from a newer Signet asks the user to update',
+      (tester) async {
+    final v1 = await _mintLprWire(sharedSecret: secret);
+    final b = base64Url.decode(_pad(v1.substring('signet:tp1:'.length)));
+    b[0] = 3;
+    final v3 = 'signet:tp1:${base64Url.encode(b).replaceAll('=', '')}';
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, v3);
+    await tester.pumpAndSettle();
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('newer version of Signet'), findsOneWidget);
+  });
+
+  testWidgets('a repaired backup says so before restoring', (tester) async {
+    final wire = await TransportPackage.debugEncodeRaw(
+      version: 1,
+      payloadType: TransportPayloadType.lpr,
+      plaintext: <int>[
+        ...secret,
+        0x01, // role a
+        3, 0x4d, 0x6f, 0x6d, // "Mom"
+        0x80, 0, 0, 0, 0, 0, 0, 0, // pairedAt with the high bit set
+        0x00, // silentHaptics
+      ],
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mom'), findsOneWidget);
+    expect(find.textContaining('pairing date was reset to today'),
+        findsOneWidget);
+    expect(find.textContaining('characters in the name'), findsNothing,
+        reason: 'only the repair that happened is reported');
+  });
 }
+
+String _pad(String s) => s + '=' * ((4 - s.length % 4) % 4);

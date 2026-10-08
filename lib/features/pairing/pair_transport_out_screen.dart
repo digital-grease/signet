@@ -10,6 +10,7 @@ import '../../core/crypto/verification.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 
 /// Sender side of Phase-10 long-distance pairing. Three linear phases:
@@ -157,7 +158,7 @@ class _PairTransportOutScreenState
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = e.message;
+        _errorText = packageErrorText(e, AppLocalizations.of(context));
         _busy = false;
       });
     } catch (e) {

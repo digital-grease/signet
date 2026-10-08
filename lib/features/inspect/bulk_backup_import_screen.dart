@@ -234,7 +234,33 @@ class _BulkBackupImportScreenState
     }
     final summary = _summary;
     if (summary != null) {
-      return _SuccessPane(summary: summary);
+      return _SuccessPane(
+        summary: summary,
+        skippedNeedsNewerVersion: widget.decoded.skippedNeedsNewerVersion,
+      );
+    }
+    final skippedNewer = widget.decoded.skippedNeedsNewerVersion;
+    if (widget.decoded.records.isEmpty && skippedNewer > 0) {
+      // Nothing restorable in this build: show only what to do about it.
+      final l10n = AppLocalizations.of(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            l10n.bulkBackupImportSkippedNewerNotice(skippedNewer),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.error,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: () => context.go('/'),
+            child: Text(l10n.commonDone),
+          ),
+        ],
+      );
     }
     final existing = _existing;
     if (existing == null) {
@@ -247,6 +273,8 @@ class _BulkBackupImportScreenState
     }
     return _PreviewPane(
       records: widget.decoded.records,
+      repairedCount: widget.decoded.repairedCount,
+      skippedNeedsNewerVersion: widget.decoded.skippedNeedsNewerVersion,
       dispositions: _dispositions,
       conflictIndexes: _conflictIndexes,
       busy: _busy,
@@ -273,6 +301,8 @@ PairRole _scratchRole() => PairRole.a;
 class _PreviewPane extends StatelessWidget {
   const _PreviewPane({
     required this.records,
+    required this.repairedCount,
+    required this.skippedNeedsNewerVersion,
     required this.dispositions,
     required this.conflictIndexes,
     required this.busy,
@@ -282,6 +312,8 @@ class _PreviewPane extends StatelessWidget {
   });
 
   final List<BlkRelationshipRecord> records;
+  final int repairedCount;
+  final int skippedNeedsNewerVersion;
   final Map<int, _Disposition> dispositions;
   final Set<int> conflictIndexes;
   final bool busy;
@@ -308,6 +340,21 @@ class _PreviewPane extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
+        if (skippedNeedsNewerVersion > 0) ...<Widget>[
+          Text(
+            l10n.bulkBackupImportSkippedNewerNotice(skippedNeedsNewerVersion),
+            style: TextStyle(fontSize: 13, color: scheme.error, height: 1.4),
+          ),
+          const SizedBox(height: 6),
+        ],
+        if (repairedCount > 0) ...<Widget>[
+          Text(
+            l10n.bulkBackupImportRepairedNotice(repairedCount),
+            style: TextStyle(
+                fontSize: 13, color: scheme.onSurfaceVariant, height: 1.4),
+          ),
+          const SizedBox(height: 6),
+        ],
         Text(
           conflictIndexes.isEmpty
               ? l10n.bulkBackupImportNoConflictBody
@@ -431,6 +478,27 @@ class _RecordRow extends StatelessWidget {
                         color: scheme.onSurface,
                       ),
                     ),
+                    if (record.repaired) ...<Widget>[
+                      const SizedBox(height: 4),
+                      // Matches the "marked FIXED below" preview notice.
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: scheme.outline),
+                        ),
+                        child: Text(
+                          l10n.bulkBackupImportRepairedBadge,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            color: scheme.onSurfaceVariant,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Text(
                       l10n.bulkBackupImportRecordMeta(
@@ -547,8 +615,12 @@ class _Summary {
 }
 
 class _SuccessPane extends StatelessWidget {
-  const _SuccessPane({required this.summary});
+  const _SuccessPane({
+    required this.summary,
+    required this.skippedNeedsNewerVersion,
+  });
   final _Summary summary;
+  final int skippedNeedsNewerVersion;
 
   @override
   Widget build(BuildContext context) {
@@ -580,6 +652,18 @@ class _SuccessPane extends StatelessWidget {
           _SummaryRow(
               label: l10n.bulkBackupImportSummarySkipped,
               value: summary.skipped),
+        if (skippedNeedsNewerVersion > 0) ...<Widget>[
+          _SummaryRow(
+              label: l10n.bulkBackupImportSummarySkippedNewer,
+              value: skippedNeedsNewerVersion),
+          const SizedBox(height: 12),
+          // Repeated here so someone switching phones does not wipe the old
+          // one before these are restored.
+          Text(
+            l10n.bulkBackupImportSkippedNewerNotice(skippedNeedsNewerVersion),
+            style: TextStyle(fontSize: 13, color: scheme.error, height: 1.4),
+          ),
+        ],
         const SizedBox(height: 20),
         Text(
           summary.created + summary.renamed + summary.overwrote == 0

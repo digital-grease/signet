@@ -13,6 +13,7 @@ import '../../core/crypto/transport_package.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -130,7 +131,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     // bulk (BLK) restores before attempting decryption. Reject LDP (pairing
     // invitations are not backups) and any unknown / malformed wire with
     // a user-facing error.
-    final payloadType = TransportPackage.peekPayloadType(wire);
+    final TransportPayloadType? payloadType;
+    try {
+      payloadType = TransportPackage.peekPayloadType(wire);
+    } on UnsupportedPackageVersionException catch (e) {
+      setState(() => _error = packageErrorText(e, l10n));
+      return;
+    }
     if (payloadType == null) {
       setState(() => _error = l10n.backupImportNotBackupError);
       return;
@@ -171,7 +178,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } on InvalidPackageException catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = e.message;
+          _error = packageErrorText(e, AppLocalizations.of(context));
           _busy = false;
         });
       } catch (e) {
@@ -207,7 +214,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = packageErrorText(e, AppLocalizations.of(context));
         _busy = false;
       });
     } catch (e) {
@@ -387,6 +394,21 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       children: <Widget>[
         _SectionHeader(l10n.backupImportRestoredPeerHeader),
         const SizedBox(height: 10),
+        // Informational, not an alarm: the secret is intact. A live region
+        // so TalkBack announces it when the commit pane appears.
+        for (final notice in <String>[
+          if (decoded.labelRepaired) l10n.backupImportRepairedLabelNotice,
+          if (decoded.pairedAtRepaired) l10n.backupImportRepairedDateNotice,
+        ]) ...<Widget>[
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              notice,
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Container(
           padding: const EdgeInsets.all(16),
           color: scheme.surfaceContainerHighest,

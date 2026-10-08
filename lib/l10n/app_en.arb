@@ -883,6 +883,33 @@
   "bulkBackupImportPreviewHeading": "Restore {count, plural, =1{1 relationship} other{{count} relationships}}",
   "@bulkBackupImportPreviewHeading": {"description": "Headline of the bulk-import preview pane.", "placeholders": {"count": {"type": "int"}}},
 
+  "packageNeedsNewerSignetError": "This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.",
+  "@packageNeedsNewerSignetError": {"description": "A package's unauthenticated version or type byte says it needs a newer Signet. Anyone can trigger this without the 8 words, so it must steer users only to their normal install source and warn against links or files (scam lever)."},
+
+  "packageNeedsNewerSignetVerifiedError": "This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.",
+  "@packageNeedsNewerSignetVerifiedError": {"description": "A package unlocked with the correct 8 words contains a must-understand field this build does not know. Only the holder of the words can produce this, so plain wording is fine."},
+
+  "packageDamagedError": "This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.",
+  "@packageDamagedError": {"description": "Any malformed transport package (backup or pairing): replaces English developer error text."},
+
+  "backupImportRepairedDateNotice": "Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.",
+  "@backupImportRepairedDateNotice": {"description": "Single-backup restore: the stored pairing date was invalid and was reset to the import time. The secret is intact."},
+
+  "backupImportRepairedLabelNotice": "Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.",
+  "@backupImportRepairedLabelNotice": {"description": "Single-backup restore: the stored name was not valid text and some characters were replaced. The secret is intact."},
+
+  "bulkBackupImportRepairedNotice": "{count, plural, =1{1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.} other{{count} relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.}}",
+  "@bulkBackupImportRepairedNotice": {"description": "Bulk restore preview: records whose pairing date or label was repaired on decode. Matches the FIXED badge on each row.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportSkippedNewerNotice": "{count, plural, =1{1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.} other{{count} relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.}}",
+  "@bulkBackupImportSkippedNewerNotice": {"description": "Bulk restore preview and summary: records skipped because they carry a must-understand field this build does not know.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportRepairedBadge": "FIXED",
+  "@bulkBackupImportRepairedBadge": {"description": "Small badge on a bulk-restore row whose date or name was repaired on decode."},
+
+  "bulkBackupImportSummarySkippedNewer": "NEEDS NEWER SIGNET //",
+  "@bulkBackupImportSummarySkippedNewer": {"description": "Bulk-restore summary row label: records not restored because they need a newer Signet. Operator-style header with the trailing ' //'."},
+
   "bulkBackupImportNoConflictBody": "Tick the rows you want to restore. Every pairing below will come back with its original label and pair date.",
   "@bulkBackupImportNoConflictBody": {"description": "Body when no restored label collides with an existing pairing."},
 

@@ -589,6 +589,24 @@
 
   "bulkBackupImportPreviewHeading": "恢复 {count, plural, =1{1 个配对关系} other{{count} 个配对关系}}",
 
+  "packageNeedsNewerSignetError": "需要较新版本的 Signet。请只通过您最初安装 Signet 的应用商店更新。Signet 从不通过链接或文件发送更新。如果您没有预料到这条消息，请当面向发送者确认。",
+
+  "packageNeedsNewerSignetVerifiedError": "这是由较新版本的 Signet 生成的。请通过您安装 Signet 的应用商店更新后再试一次。",
+
+  "packageDamagedError": "此包已损坏或不完整。请检查是否完整复制，或请对方重新发送。",
+
+  "backupImportRepairedDateNotice": "此备份中有部分内容无法读取，已修复：配对日期已重置为今天。配对本身不受影响。",
+
+  "backupImportRepairedLabelNotice": "此备份中有部分内容无法读取，已修复：名称中的少数字符已被替换。恢复前请检查名称。配对本身不受影响。",
+
+  "bulkBackupImportRepairedNotice": "{count, plural, other{此备份中有 {count} 个关系的日期或名称无法读取，已修复，并在下方标记为“已修复”。恢复前请检查其名称。}}",
+
+  "bulkBackupImportSkippedNewerNotice": "{count, plural, other{此备份中有 {count} 个关系需要较新版本的 Signet，因此未显示。在完成恢复之前请保留旧手机。请只通过您最初安装 Signet 的应用商店更新，然后重新恢复。}}",
+
+  "bulkBackupImportRepairedBadge": "已修复",
+
+  "bulkBackupImportSummarySkippedNewer": "需要较新版本 //",
+
   "bulkBackupImportNoConflictBody": "勾选要恢复的行。下面每个配对都会以原名称和原配对日期恢复。",
 
   "bulkBackupImportConflictBody": "其中一些名称已在本机配对。请为每一项选择处理方式 — 默认跳过。",

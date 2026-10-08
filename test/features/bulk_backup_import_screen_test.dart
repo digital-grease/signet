@@ -278,4 +278,46 @@ void main() {
       expect(filled.onPressed, isNull);
     },
   );
+
+  // Plan Task 1.6: per-record repairs and newer-version skips are visible.
+  testWidgets('preview tells the user about repaired and skipped records',
+      (tester) async {
+    final decoded = BlkPackage(
+      records: <BlkRelationshipRecord>[
+        _record(seed: 1, label: 'Mom'),
+        BlkRelationshipRecord(
+          sharedSecret: Uint8List.fromList(List<int>.filled(32, 9)),
+          role: PairRole.a,
+          label: 'Dad',
+          pairedAt: DateTime.utc(2026, 1, 1),
+          silentHaptics: false,
+          repaired: true,
+        ),
+      ],
+      timestamp: DateTime.utc(2026, 4, 22),
+      skippedNeedsNewerVersion: 2,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore(), decoded: decoded));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 relationship in this backup had an '
+        'unreadable'), findsOneWidget);
+    expect(find.text('FIXED'), findsOneWidget,
+        reason: 'the repaired row is marked, as the notice promises');
+    expect(find.textContaining('2 relationships in this backup need a newer'),
+        findsOneWidget);
+  });
+
+  testWidgets('a backup whose records all need a newer Signet shows only '
+      'the update notice', (tester) async {
+    final decoded = BlkPackage(
+      records: const <BlkRelationshipRecord>[],
+      timestamp: DateTime.utc(2026, 4, 22),
+      skippedNeedsNewerVersion: 1,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore(), decoded: decoded));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 relationship in this backup needs a newer'),
+        findsOneWidget);
+    expect(find.textContaining('Restore 0'), findsNothing);
+  });
 }

@@ -248,7 +248,7 @@ abstract class AppLocalizations {
   /// **'Could not unlock: {error}'**
   String commonUnlockFailedError(String error);
 
-  /// (Not used by pair confirm, which has its own copy.) Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.
+  /// Inline error / SnackBar when persisting a relationship fails (transport in/out, backup import). Shows the underlying exception message.
   ///
   /// In en, this message translates to:
   /// **'Could not save: {error}'**
@@ -1861,6 +1861,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore {count, plural, =1{1 relationship} other{{count} relationships}}'**
   String bulkBackupImportPreviewHeading(int count);
+
+  /// A package's unauthenticated version or type byte says it needs a newer Signet. Anyone can trigger this without the 8 words, so it must steer users only to their normal install source and warn against links or files (scam lever).
+  ///
+  /// In en, this message translates to:
+  /// **'This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.'**
+  String get packageNeedsNewerSignetError;
+
+  /// A package unlocked with the correct 8 words contains a must-understand field this build does not know. Only the holder of the words can produce this, so plain wording is fine.
+  ///
+  /// In en, this message translates to:
+  /// **'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.'**
+  String get packageNeedsNewerSignetVerifiedError;
+
+  /// Any malformed transport package (backup or pairing): replaces English developer error text.
+  ///
+  /// In en, this message translates to:
+  /// **'This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.'**
+  String get packageDamagedError;
+
+  /// Single-backup restore: the stored pairing date was invalid and was reset to the import time. The secret is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.'**
+  String get backupImportRepairedDateNotice;
+
+  /// Single-backup restore: the stored name was not valid text and some characters were replaced. The secret is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.'**
+  String get backupImportRepairedLabelNotice;
+
+  /// Bulk restore preview: records whose pairing date or label was repaired on decode. Matches the FIXED badge on each row.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.} other{{count} relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.}}'**
+  String bulkBackupImportRepairedNotice(int count);
+
+  /// Bulk restore preview and summary: records skipped because they carry a must-understand field this build does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.} other{{count} relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.}}'**
+  String bulkBackupImportSkippedNewerNotice(int count);
+
+  /// Small badge on a bulk-restore row whose date or name was repaired on decode.
+  ///
+  /// In en, this message translates to:
+  /// **'FIXED'**
+  String get bulkBackupImportRepairedBadge;
+
+  /// Bulk-restore summary row label: records not restored because they need a newer Signet. Operator-style header with the trailing ' //'.
+  ///
+  /// In en, this message translates to:
+  /// **'NEEDS NEWER SIGNET //'**
+  String get bulkBackupImportSummarySkippedNewer;
 
   /// Body when no restored label collides with an existing pairing.
   ///

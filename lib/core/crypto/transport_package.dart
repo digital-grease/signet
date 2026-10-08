@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'bip39_english_wordlist.dart';
 import 'pair_role.dart';
@@ -26,14 +27,14 @@ import 'pair_role.dart';
 ///   to migrate in one step instead of N separate exports. See
 ///   `.devloop/spikes/bulk-backup.md` for the full rationale.
 ///
-/// Wire format (see `.devloop/spikes/transport-package.md` for the full
-/// rationale — this implementation matches Option B with 8-word HKDF):
+/// Wire format (see `.devloop/spikes/transport-package.md` and
+/// `docs/WIRE_FORMAT.md`):
 ///
 /// ```
 /// signet:tp1:<base64url(body)>
 ///
 /// body:
-///   [1]   version                  0x01
+///   [1]   version                  0x01 or 0x02
 ///   [1]   payload-type             0x01 LDP, 0x02 LPR, 0x03 BLK
 ///   [8]   timestamp                unix seconds, big-endian
 ///   [12]  AEAD nonce
@@ -42,25 +43,54 @@ import 'pair_role.dart';
 /// ```
 ///
 /// AEAD key `K` is derived as:
-/// `HKDF-SHA-256(secretKey = W_bytes, info = <domain>, salt = nonce, len = 32)`.
-/// The domain string is `signet/v1/tp1/ldp`, `signet/v1/tp1/lpr`, or
-/// `signet/v1/tp1/blk` per payload, so even if an attacker flips the
-/// payload-type byte the ciphertext won't decrypt.
+/// `HKDF-SHA-256(secretKey = W_bytes, info = <domain>, salt = nonce, len = 32)`
+/// with domain `signet/v<version>/tp1/<ldp|lpr|blk>`, so flipping the
+/// payload-type or version byte makes the ciphertext undecryptable.
+///
+/// **Version 2** also passes the 10 header bytes (version, payload type,
+/// timestamp) to AES-GCM as associated data, so the header cannot be
+/// altered, and appends a length-delimited extension area to the LDP and
+/// LPR payloads and to every BLK record:
+///
+/// ```
+/// [2]    ext_len                   big-endian u16
+/// [ext_len] TLVs, each: [1] tag, [2] big-endian length, [length] value
+/// ```
+///
+/// Tag bit 0x80 marks a must-understand ("critical") field. A decoder that
+/// does not know a critical tag rejects the package (LDP, LPR) or skips
+/// that record (BLK) with an "update Signet" error; unknown non-critical
+/// tags are ignored. Extensions may only add fields, never override the
+/// fixed ones. A structurally broken extension area (overrun, truncated
+/// field, repeated tag) rejects the whole package.
+///
+/// Version 1 packages (every backup made before the switch) keep decoding
+/// exactly as before. This release still *encodes* version 1
+/// ([TransportPackage.currentEncodeVersion]); the next release switches the
+/// encoder to version 2 once decoders that read it are in the field. An
+/// LDP response mirrors the version of the request it answers.
 ///
 /// `W_bytes` is the UTF-8 lowercased concatenation of the 8 BIP-39 words
-/// separated by spaces — the same normalization we apply on input so the
-/// same words always produce the same key regardless of whitespace /
-/// case.
+/// separated by spaces, the same normalization applied on input, so the
+/// same words always produce the same key regardless of whitespace or case.
 ///
 /// See `transport_package_test.dart` for deterministic test vectors.
 class TransportPackage {
   const TransportPackage._();
 
   static const String _prefix = 'signet:tp1:';
-  static const int _version = 0x01;
+  static const int _versionV1 = 0x01;
+  static const int _versionV2 = 0x02;
+
+  /// Version written by the encoders. Decoders accept 1 and 2. Switch to 2
+  /// in v0.3.8, one release after decoders that understand it ship (plan
+  /// Task 1.6 part B).
+  static const int currentEncodeVersion = _versionV1;
+
   static const int _typeLdp = 0x01;
   static const int _typeLpr = 0x02;
   static const int _typeBlk = 0x03;
+  static const int _headerLength = 2 + _timestampLength;
   static const int _pakeWordCount = 8;
   static const int _nonceLength = 12;
   static const int _tagLength = 16;
@@ -71,6 +101,22 @@ class TransportPackage {
   static const int _maxSubLabelBytes = 64;
   static const int _blkCountPrefixLength = 2;
   static const int _blkMaxRecords = 255;
+  static const int _extLenLength = 2;
+  static const int _tlvHeaderLength = 3;
+  static const int _maxExtBytes = 0xFFFF;
+
+  /// Tag bit marking a must-understand extension.
+  static const int criticalTagBit = 0x80;
+
+  /// Critical tags this build understands. None yet: any critical tag is
+  /// from a newer Signet.
+  static const Set<int> _knownCriticalTags = <int>{};
+
+  /// Never valid on the wire (see `docs/WIRE_FORMAT.md`).
+  static const Set<int> _reservedTags = <int>{0x00, 0x80};
+
+  /// Latest representable unix second (9999-12-31T23:59:59Z).
+  static const int _maxUnixSeconds = 253402300799;
 
   static final Set<String> _wordlistSet = bip39EnglishWordlist.toSet();
 
@@ -80,12 +126,13 @@ class TransportPackage {
 
   /// Inspect a wire string's payload-type byte without attempting
   /// decryption. Returns `null` if the wire is structurally malformed
-  /// (wrong scheme, wrong version, unparseable base64, too short).
+  /// (wrong scheme, unparseable base64, too short, unknown payload type in
+  /// a version this build reads). Throws [UnsupportedPackageVersionException]
+  /// for a package written by a newer Signet (a version above 2), so the
+  /// UI can say "update the app" instead of "not a valid backup".
   ///
-  /// The version + payload-type bytes are plaintext (they precede the
-  /// AEAD-sealed body), so this peek is safe without the PAKE secret.
-  /// Used by the import screen to dispatch between LPR and BLK flows
-  /// before asking the user for their PAKE words.
+  /// The version + payload-type bytes precede the AEAD-sealed body, so
+  /// this peek is safe without the PAKE secret.
   static TransportPayloadType? peekPayloadType(String wire) {
     if (!wire.startsWith(_prefix)) return null;
     final encoded = wire.substring(_prefix.length);
@@ -95,15 +142,28 @@ class TransportPackage {
     } on InvalidPackageException {
       return null;
     }
+    if (body.isEmpty) return null;
+    // Version before length, matching _decode, so peek and decode agree
+    // even on a truncated package.
+    final version = body[0];
+    if (version > _versionV2) throw const UnsupportedPackageVersionException();
+    if (version != _versionV1 && version != _versionV2) return null;
     if (body.length < 2) return null;
-    if (body[0] != _version) return null;
-    return switch (body[1]) {
-      _typeLdp => TransportPayloadType.ldp,
-      _typeLpr => TransportPayloadType.lpr,
-      _typeBlk => TransportPayloadType.blk,
-      _ => null,
-    };
+    final type = _payloadTypeOf(body[1]);
+    // A payload type this build does not know, inside a version that can
+    // grow new types, means a newer Signet wrote it.
+    if (type == null && version == _versionV2) {
+      throw const UnsupportedPackageVersionException();
+    }
+    return type;
   }
+
+  static TransportPayloadType? _payloadTypeOf(int byte) => switch (byte) {
+        _typeLdp => TransportPayloadType.ldp,
+        _typeLpr => TransportPayloadType.lpr,
+        _typeBlk => TransportPayloadType.blk,
+        _ => null,
+      };
 
   // ========================================================================
   // PAKE words
@@ -147,12 +207,18 @@ class TransportPackage {
   /// Encode an LDP package carrying [publicKey] (32 bytes X25519) and a
   /// short [labelHint] (≤32 UTF-8 bytes). The caller chooses [pakeWords]
   /// via [mintPakeWords] and communicates them to the receiver OOB.
+  ///
+  /// A response to a received request passes that request's
+  /// [LdpPackage.version] as [version], so peers on an older build that
+  /// only reads version 1 can still pair. [extensions] are version 2 only.
   static Future<String> encodeLdp({
     required List<int> publicKey,
     required String labelHint,
     required List<String> pakeWords,
     DateTime? now,
     Random? nonceRandom,
+    int version = currentEncodeVersion,
+    List<TransportExtension> extensions = const <TransportExtension>[],
   }) async {
     if (publicKey.length != _x25519KeyLength) {
       throw ArgumentError.value(
@@ -173,8 +239,10 @@ class TransportPackage {
       ...publicKey,
       labelBytes.length,
       ...labelBytes,
+      ..._encodeExtensions(version, extensions),
     ];
     return _encode(
+      version: version,
       payloadType: _typeLdp,
       plaintext: plaintext,
       pakeWords: pakeWords,
@@ -184,17 +252,19 @@ class TransportPackage {
   }
 
   /// Decode an LDP wire string with the receiver-entered [pakeWords].
-  /// Throws [InvalidPackageException] on a malformed wire string and
-  /// [InvalidPakeException] on a wrong PAKE secret.
+  /// Throws [InvalidPakeException] on a wrong PAKE secret,
+  /// [UnsupportedPackageVersionException] for a package that needs a newer
+  /// Signet, and [InvalidPackageException] on anything else malformed.
   static Future<LdpPackage> decodeLdp(
     String wire, {
     required List<String> pakeWords,
   }) async {
-    final (plaintext, timestamp) = await _decode(
+    final opened = await _decode(
       wire: wire,
       expectedPayloadType: _typeLdp,
       pakeWords: pakeWords,
     );
+    final plaintext = opened.plaintext;
     if (plaintext.length < _x25519KeyLength + 1) {
       throw const InvalidPackageException(
         'LDP payload too short to contain the public key.',
@@ -202,18 +272,42 @@ class TransportPackage {
     }
     final publicKey = plaintext.sublist(0, _x25519KeyLength);
     final labelLen = plaintext[_x25519KeyLength];
-    if (plaintext.length != _x25519KeyLength + 1 + labelLen) {
+    var cursor = _x25519KeyLength + 1;
+    if (plaintext.length < cursor + labelLen) {
       throw const InvalidPackageException(
         'LDP payload length inconsistent with its label-length byte.',
       );
     }
-    final labelBytes =
-        plaintext.sublist(_x25519KeyLength + 1, _x25519KeyLength + 1 + labelLen);
-    final labelHint = utf8.decode(labelBytes);
+    // The hint only pre-fills a name field the user confirms, so a repair
+    // here is not flagged.
+    final label = _decodeLabel(
+      plaintext.sublist(cursor, cursor + labelLen),
+      maxBytes: _maxLabelBytes,
+    );
+    cursor += labelLen;
+    var extensions = const <int, Uint8List>{};
+    if (opened.version == _versionV1) {
+      if (cursor != plaintext.length) {
+        throw const InvalidPackageException(
+          'LDP payload length inconsistent with its label-length byte.',
+        );
+      }
+    } else {
+      final ext = _parseExtensions(plaintext, cursor);
+      if (ext.unknownCritical) {
+        throw const UnsupportedPackageVersionException(authenticated: true);
+      }
+      if (ext.end != plaintext.length) {
+        throw const InvalidPackageException('LDP payload has trailing bytes.');
+      }
+      extensions = ext.fields;
+    }
     return LdpPackage(
       publicKey: Uint8List.fromList(publicKey),
-      labelHint: labelHint,
-      timestamp: timestamp,
+      labelHint: label.text,
+      timestamp: opened.timestamp,
+      version: opened.version,
+      extensions: extensions,
     );
   }
 
@@ -233,36 +327,22 @@ class TransportPackage {
     required List<String> pakeWords,
     DateTime? now,
     Random? nonceRandom,
+    int version = currentEncodeVersion,
+    List<TransportExtension> extensions = const <TransportExtension>[],
   }) async {
-    if (sharedSecret.length != _sharedSecretLength) {
-      throw ArgumentError.value(
-        sharedSecret.length,
-        'sharedSecret.length',
-        'Shared secret must be exactly $_sharedSecretLength bytes.',
-      );
-    }
-    final labelBytes = utf8.encode(label);
-    if (labelBytes.length > _maxSubLabelBytes) {
-      throw ArgumentError.value(
-        labelBytes.length,
-        'label',
-        'Label must be ≤$_maxSubLabelBytes UTF-8 bytes.',
-      );
-    }
-    final roleByte = switch (role) {
-      PairRole.a => 0x01,
-      PairRole.b => 0x02,
-    };
-    final pairedAtSecs = pairedAt.toUtc().millisecondsSinceEpoch ~/ 1000;
     final plaintext = <int>[
-      ...sharedSecret,
-      roleByte,
-      labelBytes.length,
-      ...labelBytes,
-      ..._uint64BE(pairedAtSecs),
-      silentHaptics ? 0x01 : 0x00,
+      ..._encodeRecord(
+        sharedSecret: sharedSecret,
+        role: role,
+        label: label,
+        pairedAt: pairedAt,
+        silentHaptics: silentHaptics,
+        argPrefix: '',
+      ),
+      ..._encodeExtensions(version, extensions),
     ];
     return _encode(
+      version: version,
       payloadType: _typeLpr,
       plaintext: plaintext,
       pakeWords: pakeWords,
@@ -271,54 +351,45 @@ class TransportPackage {
     );
   }
 
+  /// Decode an LPR wire string. A damaged pairing date or label (possible
+  /// only from a buggy encoder, since the payload is authenticated) is
+  /// repaired rather than rejected, and [LprPackage.repaired] is set so the
+  /// UI can say so.
   static Future<LprPackage> decodeLpr(
     String wire, {
     required List<String> pakeWords,
+    DateTime? now,
   }) async {
-    final (plaintext, timestamp) = await _decode(
+    final opened = await _decode(
       wire: wire,
       expectedPayloadType: _typeLpr,
       pakeWords: pakeWords,
     );
-    // Required: 32 secret + 1 role + 1 label-len + ≥0 label + 8 pairedAt + 1 silent.
-    if (plaintext.length < _sharedSecretLength + 1 + 1 + _timestampLength + 1) {
-      throw const InvalidPackageException('LPR payload too short.');
+    final plaintext = opened.plaintext;
+    final record = _decodeRecord(
+      plaintext,
+      0,
+      version: opened.version,
+      now: now,
+      where: 'LPR',
+    );
+    if (record.unknownCritical) {
+      throw const UnsupportedPackageVersionException(authenticated: true);
     }
-    var cursor = 0;
-    final sharedSecret =
-        plaintext.sublist(cursor, cursor + _sharedSecretLength);
-    cursor += _sharedSecretLength;
-    final roleByte = plaintext[cursor++];
-    final role = switch (roleByte) {
-      0x01 => PairRole.a,
-      0x02 => PairRole.b,
-      _ => throw InvalidPackageException(
-          'LPR payload has unknown role byte 0x${roleByte.toRadixString(16)}.',
-        ),
-    };
-    final labelLen = plaintext[cursor++];
-    if (plaintext.length <
-        cursor + labelLen + _timestampLength + 1) {
-      throw const InvalidPackageException(
-        'LPR payload length inconsistent with its label-length byte.',
-      );
+    if (record.end != plaintext.length) {
+      throw const InvalidPackageException('LPR payload has trailing bytes.');
     }
-    final label = utf8.decode(plaintext.sublist(cursor, cursor + labelLen));
-    cursor += labelLen;
-    final pairedAtSecs =
-        _uint64FromBE(plaintext.sublist(cursor, cursor + _timestampLength));
-    cursor += _timestampLength;
-    final silentHaptics = plaintext[cursor++] != 0;
     return LprPackage(
-      sharedSecret: Uint8List.fromList(sharedSecret),
-      label: label,
-      role: role,
-      pairedAt: DateTime.fromMillisecondsSinceEpoch(
-        pairedAtSecs * 1000,
-        isUtc: true,
-      ),
-      silentHaptics: silentHaptics,
-      timestamp: timestamp,
+      sharedSecret: record.sharedSecret,
+      label: record.label,
+      role: record.role!,
+      pairedAt: record.pairedAt,
+      silentHaptics: record.silentHaptics,
+      timestamp: opened.timestamp,
+      version: opened.version,
+      pairedAtRepaired: record.pairedAtRepaired,
+      labelRepaired: record.labelRepaired,
+      extensions: record.extensions,
     );
   }
 
@@ -339,10 +410,10 @@ class TransportPackage {
   ///   [...]  label (UTF-8)
   ///   [8]    pairedAt               unix seconds, big-endian
   ///   [1]    silentHaptics          0x01 / 0x00
+  ///   v2 only:
+  ///   [2]    ext_len, then ext_len bytes of TLVs
   /// ```
   ///
-  /// Each record is structurally identical to a [LprPackage] payload
-  /// minus its own timestamp (the outer body timestamp is shared).
   /// Rejects [records] with more than 255 entries or any label >64
   /// UTF-8 bytes.
   static Future<String> encodeBlk({
@@ -350,6 +421,7 @@ class TransportPackage {
     required List<String> pakeWords,
     DateTime? now,
     Random? nonceRandom,
+    int version = currentEncodeVersion,
   }) async {
     if (records.length > _blkMaxRecords) {
       throw ArgumentError.value(
@@ -363,35 +435,21 @@ class TransportPackage {
       records.length & 0xFF,
     ];
     for (final r in records) {
-      if (r.sharedSecret.length != _sharedSecretLength) {
-        throw ArgumentError.value(
-          r.sharedSecret.length,
-          'record.sharedSecret.length',
-          'Shared secret must be exactly $_sharedSecretLength bytes.',
-        );
-      }
-      final labelBytes = utf8.encode(r.label);
-      if (labelBytes.length > _maxSubLabelBytes) {
-        throw ArgumentError.value(
-          labelBytes.length,
-          'record.label',
-          'Label must be ≤$_maxSubLabelBytes UTF-8 bytes.',
-        );
-      }
-      final roleByte = switch (r.role) {
-        PairRole.a => 0x01,
-        PairRole.b => 0x02,
-      };
-      final pairedAtSecs = r.pairedAt.toUtc().millisecondsSinceEpoch ~/ 1000;
       plaintext
-        ..addAll(r.sharedSecret)
-        ..add(roleByte)
-        ..add(labelBytes.length)
-        ..addAll(labelBytes)
-        ..addAll(_uint64BE(pairedAtSecs))
-        ..add(r.silentHaptics ? 0x01 : 0x00);
+        ..addAll(_encodeRecord(
+          sharedSecret: r.sharedSecret,
+          role: r.role,
+          label: r.label,
+          pairedAt: r.pairedAt,
+          silentHaptics: r.silentHaptics,
+          argPrefix: 'record.',
+        ))
+        ..addAll(_encodeExtensions(version, <TransportExtension>[
+          for (final e in r.extensions.entries) TransportExtension(e.key, e.value),
+        ]));
     }
     return _encode(
+      version: version,
       payloadType: _typeBlk,
       plaintext: plaintext,
       pakeWords: pakeWords,
@@ -401,17 +459,24 @@ class TransportPackage {
   }
 
   /// Decode a BLK wire string with the receiver-entered [pakeWords].
-  /// Throws [InvalidPackageException] on a malformed wire / inconsistent
-  /// record count, and [InvalidPakeException] on wrong PAKE.
+  ///
+  /// The whole bundle is under one AEAD tag, so a malformed record came
+  /// from whoever holds the PAKE words (a buggy encoder or a newer build),
+  /// not an attacker. Structural errors reject the whole package; semantic
+  /// problems are handled per record: a damaged date or label is repaired
+  /// and flagged, and a record with an unknown must-understand extension
+  /// is skipped and counted in [BlkPackage.skippedNeedsNewerVersion].
   static Future<BlkPackage> decodeBlk(
     String wire, {
     required List<String> pakeWords,
+    DateTime? now,
   }) async {
-    final (plaintext, timestamp) = await _decode(
+    final opened = await _decode(
       wire: wire,
       expectedPayloadType: _typeBlk,
       pakeWords: pakeWords,
     );
+    final plaintext = opened.plaintext;
     if (plaintext.length < _blkCountPrefixLength) {
       throw const InvalidPackageException(
         'BLK payload too short to contain a count prefix.',
@@ -420,45 +485,28 @@ class TransportPackage {
     final count = (plaintext[0] << 8) | plaintext[1];
     var cursor = _blkCountPrefixLength;
     final records = <BlkRelationshipRecord>[];
+    var skipped = 0;
     for (var i = 0; i < count; i++) {
-      // Required per record: 32 secret + 1 role + 1 label_len + label + 8 pairedAt + 1 silent.
-      if (plaintext.length < cursor + _sharedSecretLength + 1 + 1) {
-        throw const InvalidPackageException(
-          'BLK payload truncated — missing record header.',
-        );
+      final record = _decodeRecord(
+        plaintext,
+        cursor,
+        version: opened.version,
+        now: now,
+        where: 'BLK record',
+      );
+      cursor = record.end;
+      if (record.unknownCritical) {
+        skipped++;
+        continue;
       }
-      final sharedSecret =
-          plaintext.sublist(cursor, cursor + _sharedSecretLength);
-      cursor += _sharedSecretLength;
-      final roleByte = plaintext[cursor++];
-      final role = switch (roleByte) {
-        0x01 => PairRole.a,
-        0x02 => PairRole.b,
-        _ => throw InvalidPackageException(
-            'BLK record has unknown role byte 0x${roleByte.toRadixString(16)}.',
-          ),
-      };
-      final labelLen = plaintext[cursor++];
-      if (plaintext.length < cursor + labelLen + _timestampLength + 1) {
-        throw const InvalidPackageException(
-          'BLK payload truncated — record body does not fit.',
-        );
-      }
-      final label = utf8.decode(plaintext.sublist(cursor, cursor + labelLen));
-      cursor += labelLen;
-      final pairedAtSecs =
-          _uint64FromBE(plaintext.sublist(cursor, cursor + _timestampLength));
-      cursor += _timestampLength;
-      final silentHaptics = plaintext[cursor++] != 0;
       records.add(BlkRelationshipRecord(
-        sharedSecret: Uint8List.fromList(sharedSecret),
-        role: role,
-        label: label,
-        pairedAt: DateTime.fromMillisecondsSinceEpoch(
-          pairedAtSecs * 1000,
-          isUtc: true,
-        ),
-        silentHaptics: silentHaptics,
+        sharedSecret: record.sharedSecret,
+        role: record.role!,
+        label: record.label,
+        pairedAt: record.pairedAt,
+        silentHaptics: record.silentHaptics,
+        repaired: record.pairedAtRepaired || record.labelRepaired,
+        extensions: record.extensions,
       ));
     }
     if (cursor != plaintext.length) {
@@ -466,38 +514,309 @@ class TransportPackage {
         'BLK payload length inconsistent with its record count.',
       );
     }
-    return BlkPackage(records: records, timestamp: timestamp);
+    return BlkPackage(
+      records: records,
+      timestamp: opened.timestamp,
+      version: opened.version,
+      skippedNeedsNewerVersion: skipped,
+    );
   }
+
+  // ========================================================================
+  // Records and extensions
+  // ========================================================================
+
+  static List<int> _encodeRecord({
+    required List<int> sharedSecret,
+    required PairRole role,
+    required String label,
+    required DateTime pairedAt,
+    required bool silentHaptics,
+    required String argPrefix,
+  }) {
+    if (sharedSecret.length != _sharedSecretLength) {
+      throw ArgumentError.value(
+        sharedSecret.length,
+        '${argPrefix}sharedSecret.length',
+        'Shared secret must be exactly $_sharedSecretLength bytes.',
+      );
+    }
+    final labelBytes = utf8.encode(label);
+    if (labelBytes.length > _maxSubLabelBytes) {
+      throw ArgumentError.value(
+        labelBytes.length,
+        '${argPrefix}label',
+        'Label must be ≤$_maxSubLabelBytes UTF-8 bytes.',
+      );
+    }
+    final roleByte = switch (role) {
+      PairRole.a => 0x01,
+      PairRole.b => 0x02,
+    };
+    final pairedAtSecs = pairedAt.toUtc().millisecondsSinceEpoch ~/ 1000;
+    if (!_inRange(pairedAtSecs)) {
+      // Fail loudly here instead of having the receiver silently repair it.
+      throw ArgumentError.value(
+        pairedAt,
+        '${argPrefix}pairedAt',
+        'Pairing date must be between 1970 and 9999.',
+      );
+    }
+    return <int>[
+      ...sharedSecret,
+      roleByte,
+      labelBytes.length,
+      ...labelBytes,
+      ..._uint64BE(pairedAtSecs),
+      silentHaptics ? 0x01 : 0x00,
+    ];
+  }
+
+  static _DecodedRecord _decodeRecord(
+    List<int> plaintext,
+    int start, {
+    required int version,
+    required DateTime? now,
+    required String where,
+  }) {
+    var cursor = start;
+    // Fixed fields: 32 secret + 1 role + 1 label_len (+ label + 8 + 1).
+    if (plaintext.length < cursor + _sharedSecretLength + 1 + 1) {
+      throw InvalidPackageException('$where truncated: missing header.');
+    }
+    final sharedSecret = Uint8List.fromList(
+        plaintext.sublist(cursor, cursor + _sharedSecretLength));
+    cursor += _sharedSecretLength;
+    // Validated after the extension area: a record a newer build marked
+    // must-understand is skipped, whatever its fixed fields hold.
+    final roleByte = plaintext[cursor++];
+    final labelLen = plaintext[cursor++];
+    if (plaintext.length < cursor + labelLen + _timestampLength + 1) {
+      throw InvalidPackageException('$where truncated: body does not fit.');
+    }
+    final label = _decodeLabel(
+      plaintext.sublist(cursor, cursor + labelLen),
+      maxBytes: _maxSubLabelBytes,
+    );
+    cursor += labelLen;
+    final pairedAtSecs =
+        _uint64FromBE(plaintext.sublist(cursor, cursor + _timestampLength));
+    cursor += _timestampLength;
+    final silentHaptics = plaintext[cursor++] != 0;
+
+    final DateTime pairedAt;
+    final bool pairedAtRepaired;
+    if (_inRange(pairedAtSecs)) {
+      pairedAt =
+          DateTime.fromMillisecondsSinceEpoch(pairedAtSecs * 1000, isUtc: true);
+      pairedAtRepaired = false;
+    } else {
+      pairedAt = (now ?? DateTime.now()).toUtc();
+      pairedAtRepaired = true;
+    }
+
+    var extensions = const <int, Uint8List>{};
+    var unknownCritical = false;
+    if (version != _versionV1) {
+      final ext = _parseExtensions(plaintext, cursor);
+      cursor = ext.end;
+      extensions = ext.fields;
+      unknownCritical = ext.unknownCritical;
+    }
+    final PairRole? role = switch (roleByte) {
+      0x01 => PairRole.a,
+      0x02 => PairRole.b,
+      _ => null,
+    };
+    if (role == null && !unknownCritical) {
+      throw InvalidPackageException(
+        '$where has unknown role byte 0x${roleByte.toRadixString(16)}.',
+      );
+    }
+    return _DecodedRecord(
+      sharedSecret: sharedSecret,
+      role: role,
+      label: label.text,
+      pairedAt: pairedAt,
+      silentHaptics: silentHaptics,
+      pairedAtRepaired: pairedAtRepaired,
+      labelRepaired: label.repaired,
+      extensions: extensions,
+      unknownCritical: unknownCritical,
+      end: cursor,
+    );
+  }
+
+  /// Decode a label, repairing instead of failing: bytes beyond [maxBytes]
+  /// (the encoder's own limit) are dropped and invalid UTF-8 is replaced
+  /// with U+FFFD. Labels are display-only; a damaged one must not cost the
+  /// user a secret. Only reachable after authentication, so only a buggy
+  /// encoder that held the PAKE words can trigger it.
+  static ({String text, bool repaired}) _decodeLabel(
+    List<int> bytes, {
+    required int maxBytes,
+  }) {
+    final truncated = bytes.length > maxBytes;
+    final kept = truncated ? bytes.sublist(0, maxBytes) : bytes;
+    try {
+      return (text: utf8.decode(kept), repaired: truncated);
+    } on FormatException {
+      return (text: utf8.decode(kept, allowMalformed: true), repaired: true);
+    }
+  }
+
+  static List<int> _encodeExtensions(
+    int version,
+    List<TransportExtension> extensions,
+  ) {
+    if (version == _versionV1) {
+      if (extensions.isNotEmpty) {
+        throw ArgumentError.value(
+          extensions,
+          'extensions',
+          'Extensions require transport-package version 2.',
+        );
+      }
+      return const <int>[];
+    }
+    final seen = <int>{};
+    final body = <int>[];
+    for (final e in extensions) {
+      if (e.tag < 0 || e.tag > 0xFF) {
+        throw ArgumentError.value(e.tag, 'extension.tag', 'Tag must be one byte.');
+      }
+      if (_reservedTags.contains(e.tag)) {
+        throw ArgumentError.value(e.tag, 'extension.tag', 'Reserved tag.');
+      }
+      if (!seen.add(e.tag)) {
+        throw ArgumentError.value(e.tag, 'extension.tag', 'Repeated tag.');
+      }
+      if (e.value.length > _maxExtBytes) {
+        throw ArgumentError.value(
+            e.value.length, 'extension.value.length', 'Too long.');
+      }
+      body
+        ..add(e.tag)
+        ..add((e.value.length >> 8) & 0xFF)
+        ..add(e.value.length & 0xFF)
+        ..addAll(e.value);
+    }
+    if (body.length > _maxExtBytes) {
+      throw ArgumentError.value(body.length, 'extensions', 'Too long.');
+    }
+    return <int>[(body.length >> 8) & 0xFF, body.length & 0xFF, ...body];
+  }
+
+  static ({Map<int, Uint8List> fields, bool unknownCritical, int end})
+      _parseExtensions(List<int> plaintext, int start) {
+    if (plaintext.length < start + _extLenLength) {
+      throw const InvalidPackageException(
+          'Extension area truncated: missing length.');
+    }
+    final extLen = (plaintext[start] << 8) | plaintext[start + 1];
+    final areaStart = start + _extLenLength;
+    final areaEnd = areaStart + extLen;
+    if (areaEnd > plaintext.length) {
+      throw const InvalidPackageException('Extension area overruns payload.');
+    }
+    final fields = <int, Uint8List>{};
+    var unknownCritical = false;
+    var cursor = areaStart;
+    while (cursor < areaEnd) {
+      if (areaEnd - cursor < _tlvHeaderLength) {
+        throw const InvalidPackageException('Extension field truncated.');
+      }
+      final tag = plaintext[cursor];
+      if (_reservedTags.contains(tag)) {
+        throw const InvalidPackageException('Extension uses a reserved tag.');
+      }
+      final len = (plaintext[cursor + 1] << 8) | plaintext[cursor + 2];
+      cursor += _tlvHeaderLength;
+      if (cursor + len > areaEnd) {
+        throw const InvalidPackageException(
+            'Extension field overruns its area.');
+      }
+      if (fields.containsKey(tag)) {
+        throw const InvalidPackageException('Extension tag repeated.');
+      }
+      fields[tag] = Uint8List.fromList(plaintext.sublist(cursor, cursor + len));
+      cursor += len;
+      if (tag & criticalTagBit != 0 && !_knownCriticalTags.contains(tag)) {
+        unknownCritical = true;
+      }
+    }
+    return (
+      fields: Map<int, Uint8List>.unmodifiable(fields),
+      unknownCritical: unknownCritical,
+      end: areaEnd,
+    );
+  }
+
+  /// Encrypt an arbitrary [plaintext] as a package. Tests only: lets them
+  /// build structurally malformed but correctly sealed packages (damaged
+  /// dates, invalid labels, broken extension areas) that the public
+  /// encoders refuse to produce.
+  @visibleForTesting
+  static Future<String> debugEncodeRaw({
+    required int version,
+    required TransportPayloadType payloadType,
+    required List<int> plaintext,
+    required List<String> pakeWords,
+    DateTime? now,
+  }) =>
+      _encode(
+        version: version,
+        payloadType: switch (payloadType) {
+          TransportPayloadType.ldp => _typeLdp,
+          TransportPayloadType.lpr => _typeLpr,
+          TransportPayloadType.blk => _typeBlk,
+        },
+        plaintext: plaintext,
+        pakeWords: pakeWords,
+        now: now,
+      );
+
+  static bool _inRange(int unixSeconds) =>
+      unixSeconds >= 0 && unixSeconds <= _maxUnixSeconds;
 
   // ========================================================================
   // Internal encode/decode
   // ========================================================================
 
   static Future<String> _encode({
+    required int version,
     required int payloadType,
     required List<int> plaintext,
     required List<String> pakeWords,
     DateTime? now,
     Random? nonceRandom,
   }) async {
+    if (version != _versionV1 && version != _versionV2) {
+      throw ArgumentError.value(version, 'version', 'Unsupported version.');
+    }
     final normalized = normalizePakeWords(pakeWords);
     final nonce = _mintNonce(nonceRandom);
     final key = await _deriveKey(
+      version: version,
       pakeWords: normalized,
       payloadType: payloadType,
       nonce: nonce,
     );
+    final timestamp = now ?? DateTime.now();
+    final header = <int>[
+      version,
+      payloadType,
+      ..._uint64BE(timestamp.toUtc().millisecondsSinceEpoch ~/ 1000),
+    ];
     final cipher = AesGcm.with256bits();
     final secretBox = await cipher.encrypt(
       plaintext,
       secretKey: SecretKey(key),
       nonce: nonce,
+      aad: version == _versionV1 ? const <int>[] : header,
     );
-    final timestamp = now ?? DateTime.now();
     final body = <int>[
-      _version,
-      payloadType,
-      ..._uint64BE(timestamp.toUtc().millisecondsSinceEpoch ~/ 1000),
+      ...header,
       ...nonce,
       ...secretBox.cipherText,
       ...secretBox.mac.bytes,
@@ -505,7 +824,7 @@ class TransportPackage {
     return '$_prefix${_base64UrlNoPad(body)}';
   }
 
-  static Future<(List<int>, DateTime)> _decode({
+  static Future<_Opened> _decode({
     required String wire,
     required int expectedPayloadType,
     required List<String> pakeWords,
@@ -516,13 +835,23 @@ class TransportPackage {
       );
     }
     final body = _base64UrlDecode(wire.substring(_prefix.length));
-    if (body.length < 2 + _timestampLength + _nonceLength + _tagLength) {
+    if (body.isEmpty) {
       throw const InvalidPackageException('Transport package body too short.');
     }
-    if (body[0] != _version) {
+    // Version first, so even a truncated package from a newer Signet gets
+    // the "update" message rather than a length error.
+    final version = body[0];
+    if (version > _versionV2) throw const UnsupportedPackageVersionException();
+    if (version != _versionV1 && version != _versionV2) {
       throw InvalidPackageException(
-        'Unsupported transport-package version 0x${body[0].toRadixString(16)}.',
+        'Unsupported transport-package version 0x${version.toRadixString(16)}.',
       );
+    }
+    if (body.length < _headerLength + _nonceLength + _tagLength) {
+      throw const InvalidPackageException('Transport package body too short.');
+    }
+    if (version == _versionV2 && _payloadTypeOf(body[1]) == null) {
+      throw const UnsupportedPackageVersionException();
     }
     if (body[1] != expectedPayloadType) {
       throw InvalidPackageException(
@@ -530,8 +859,9 @@ class TransportPackage {
         'got 0x${body[1].toRadixString(16)}.',
       );
     }
-    final timestampSecs = _uint64FromBE(body.sublist(2, 2 + _timestampLength));
-    const nonceStart = 2 + _timestampLength;
+    final header = body.sublist(0, _headerLength);
+    final timestampSecs = _uint64FromBE(body.sublist(2, _headerLength));
+    const nonceStart = _headerLength;
     final nonce = body.sublist(nonceStart, nonceStart + _nonceLength);
     final tagStart = body.length - _tagLength;
     const ciphertextStart = nonceStart + _nonceLength;
@@ -545,26 +875,40 @@ class TransportPackage {
 
     final normalized = normalizePakeWords(pakeWords);
     final key = await _deriveKey(
+      version: version,
       pakeWords: normalized,
       payloadType: expectedPayloadType,
       nonce: nonce,
     );
     final cipher = AesGcm.with256bits();
+    final List<int> plaintext;
     try {
-      final plaintext = await cipher.decrypt(
+      plaintext = await cipher.decrypt(
         SecretBox(ciphertext, nonce: nonce, mac: Mac(tag)),
         secretKey: SecretKey(key),
+        aad: version == _versionV1 ? const <int>[] : header,
       );
-      final timestamp = DateTime.fromMillisecondsSinceEpoch(
-        timestampSecs * 1000,
-        isUtc: true,
-      );
-      return (plaintext, timestamp);
     } on SecretBoxAuthenticationError {
       throw const InvalidPakeException(
         'PAKE secret is wrong (authentication tag did not verify).',
       );
     }
+    // Checked after authentication: for version 2 the header is
+    // authenticated; for version 1 it is not, and an out-of-range value
+    // must surface as a malformed package rather than a RangeError.
+    if (!_inRange(timestampSecs)) {
+      throw const InvalidPackageException(
+        'Transport package timestamp is out of range.',
+      );
+    }
+    return _Opened(
+      version: version,
+      plaintext: plaintext,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(
+        timestampSecs * 1000,
+        isUtc: true,
+      ),
+    );
   }
 
   // ========================================================================
@@ -572,20 +916,22 @@ class TransportPackage {
   // ========================================================================
 
   static Future<List<int>> _deriveKey({
+    required int version,
     required List<String> pakeWords,
     required int payloadType,
     required List<int> nonce,
   }) async {
-    final info = switch (payloadType) {
-      _typeLdp => 'signet/v1/tp1/ldp',
-      _typeLpr => 'signet/v1/tp1/lpr',
-      _typeBlk => 'signet/v1/tp1/blk',
+    final kind = switch (payloadType) {
+      _typeLdp => 'ldp',
+      _typeLpr => 'lpr',
+      _typeBlk => 'blk',
       _ => throw ArgumentError.value(
           payloadType,
           'payloadType',
           'Unknown transport-package payload type.',
         ),
     };
+    final info = 'signet/v$version/tp1/$kind';
     final wBytes = utf8.encode(pakeWords.join(' '));
     final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
     final derived = await hkdf.deriveKey(
@@ -611,6 +957,8 @@ class TransportPackage {
     return bytes;
   }
 
+  /// Reads 8 big-endian bytes into a Dart int. A set high bit yields a
+  /// negative value, which [_inRange] rejects.
   static int _uint64FromBE(List<int> bytes) {
     var out = 0;
     for (var i = 0; i < _timestampLength; i++) {
@@ -634,6 +982,56 @@ class TransportPackage {
   }
 }
 
+class _Opened {
+  const _Opened({
+    required this.version,
+    required this.plaintext,
+    required this.timestamp,
+  });
+
+  final int version;
+  final List<int> plaintext;
+  final DateTime timestamp;
+}
+
+class _DecodedRecord {
+  const _DecodedRecord({
+    required this.sharedSecret,
+    required this.role,
+    required this.label,
+    required this.pairedAt,
+    required this.silentHaptics,
+    required this.pairedAtRepaired,
+    required this.labelRepaired,
+    required this.extensions,
+    required this.unknownCritical,
+    required this.end,
+  });
+
+  final Uint8List sharedSecret;
+
+  /// Null only when [unknownCritical] is set (the record will be skipped).
+  final PairRole? role;
+  final String label;
+  final DateTime pairedAt;
+  final bool silentHaptics;
+  final bool pairedAtRepaired;
+  final bool labelRepaired;
+  final Map<int, Uint8List> extensions;
+  final bool unknownCritical;
+  final int end;
+}
+
+/// One extension field to write into a version 2 package. Set
+/// [TransportPackage.criticalTagBit] in [tag] for must-understand fields.
+/// Tags are registered in `docs/WIRE_FORMAT.md`.
+class TransportExtension {
+  const TransportExtension(this.tag, this.value);
+
+  final int tag;
+  final List<int> value;
+}
+
 // ============================================================================
 // Result types
 // ============================================================================
@@ -643,11 +1041,20 @@ class LdpPackage {
     required this.publicKey,
     required this.labelHint,
     required this.timestamp,
+    this.version = 1,
+    this.extensions = const <int, Uint8List>{},
   });
 
   final Uint8List publicKey;
   final String labelHint;
   final DateTime timestamp;
+
+  /// Wire version of this package. A response must be encoded with the
+  /// same version so an older peer can read it.
+  final int version;
+
+  /// Non-critical extension fields (version 2), by tag.
+  final Map<int, Uint8List> extensions;
 }
 
 class LprPackage {
@@ -658,6 +1065,10 @@ class LprPackage {
     required this.pairedAt,
     required this.silentHaptics,
     required this.timestamp,
+    this.version = 1,
+    this.pairedAtRepaired = false,
+    this.labelRepaired = false,
+    this.extensions = const <int, Uint8List>{},
   });
 
   final Uint8List sharedSecret;
@@ -666,6 +1077,16 @@ class LprPackage {
   final DateTime pairedAt;
   final bool silentHaptics;
   final DateTime timestamp;
+  final int version;
+
+  /// An invalid pairing date was reset to the import time.
+  final bool pairedAtRepaired;
+
+  /// An invalid label had characters replaced with U+FFFD.
+  final bool labelRepaired;
+
+  bool get repaired => pairedAtRepaired || labelRepaired;
+  final Map<int, Uint8List> extensions;
 }
 
 /// One relationship's worth of recovery data inside a [BlkPackage].
@@ -677,6 +1098,8 @@ class BlkRelationshipRecord {
     required this.label,
     required this.pairedAt,
     required this.silentHaptics,
+    this.repaired = false,
+    this.extensions = const <int, List<int>>{},
   });
 
   final Uint8List sharedSecret;
@@ -684,13 +1107,35 @@ class BlkRelationshipRecord {
   final String label;
   final DateTime pairedAt;
   final bool silentHaptics;
+
+  /// Set on decode when the pairing date or label had to be repaired.
+  final bool repaired;
+
+  /// Extension fields by tag: populated on decode (version 2), written on
+  /// encode (version 2 only). Nothing persists them, so they are not
+  /// carried through a restore and re-export; a future field that must
+  /// survive needs storage support of its own.
+  final Map<int, List<int>> extensions;
 }
 
 class BlkPackage {
-  const BlkPackage({required this.records, required this.timestamp});
+  const BlkPackage({
+    required this.records,
+    required this.timestamp,
+    this.version = 1,
+    this.skippedNeedsNewerVersion = 0,
+  });
 
   final List<BlkRelationshipRecord> records;
   final DateTime timestamp;
+  final int version;
+
+  /// Records left out because they carry a must-understand field this
+  /// build does not know. The user needs to update Signet to restore them.
+  final int skippedNeedsNewerVersion;
+
+  /// Records whose pairing date or label was repaired on decode.
+  int get repairedCount => records.where((r) => r.repaired).length;
 }
 
 // ============================================================================
@@ -729,4 +1174,25 @@ class InvalidPackageException implements Exception {
 
   @override
   String toString() => 'InvalidPackageException: $message';
+}
+
+/// Thrown for a package written by a newer Signet: a wire version above
+/// the ones this build reads, or a must-understand extension it does not
+/// know. The UI should ask the user to update the app rather than calling
+/// the package invalid.
+///
+/// [authenticated] is false when the verdict comes from the plaintext
+/// version or payload-type byte, which anyone can set without the PAKE
+/// words: the UI must then use cautious copy (a scammer could send such a
+/// package and follow up with a fake "update"). It is true only when the
+/// verdict comes from inside the authenticated payload (an unknown
+/// must-understand extension), which only the PAKE holder can produce.
+class UnsupportedPackageVersionException extends InvalidPackageException {
+  const UnsupportedPackageVersionException({this.authenticated = false})
+      : super('This package was made by a newer version of Signet.');
+
+  final bool authenticated;
+
+  @override
+  String toString() => 'UnsupportedPackageVersionException: $message';
 }

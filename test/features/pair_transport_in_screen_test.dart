@@ -254,4 +254,36 @@ void main() {
       expect(await store.listRelationships(), isEmpty);
     },
   );
+
+  // Plan Task 1.6: a response must use the request's wire version, or a
+  // sender on an older build could not open it.
+  for (final version in [1, 2]) {
+    testWidgets('the response mirrors a v$version request', (tester) async {
+      final kp = await PairingHandshake.generateEphemeralKeyPair();
+      final wire = await TransportPackage.encodeLdp(
+        publicKey: kp.publicKey,
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+        version: version,
+      );
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+
+      final response = tester
+          .widgetList<SelectableText>(find.byType(SelectableText))
+          .map((t) => t.data ?? '')
+          .firstWhere((t) => t.startsWith('signet:tp1:'));
+      final decoded = await TransportPackage.decodeLdp(
+        response,
+        pakeWords: goodPake,
+      );
+      expect(decoded.version, version);
+    });
+  }
 }

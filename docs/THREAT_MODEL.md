@@ -324,6 +324,15 @@ mode.
 - Payload types: LDP (ephemeral pubkey + label hint — long-distance
   pairing) or LPR (shared secret + full relationship metadata —
   lost-phone recovery).
+- Version 1 does not authenticate the header: the timestamp can be
+  altered undetected (nothing depends on it), and an out-of-range value
+  is rejected as a malformed package rather than crashing. Version 2
+  (decoded from v0.3.7, encoded from the following release) passes the
+  header to AES-GCM as associated data and binds the version into the
+  HKDF info (`signet/v2/tp1/...`), so relabelling between versions fails.
+  It also adds a length-delimited extension area with a must-understand
+  bit, so future security-relevant fields cannot be silently dropped by
+  an older decoder. Full layout and tag registry: `docs/WIRE_FORMAT.md`.
 
 ### 3.4 Storage
 
@@ -643,6 +652,10 @@ a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
 
+- 2026-10-07 · v0.3.7: §3.3 transport package version 2 (authenticated
+  header, versioned KDF domain, extension area with must-understand bit);
+  decoders read v1 and v2, encoders stay on v1 for one release. Spec in
+  `docs/WIRE_FORMAT.md`.
 - 2026-10-07 · v0.3.7: §3.1 low-order X25519 key substitution
   documented and closed: all-zero ECDH output and reflected own keys
   are rejected in `PairingHandshake.deriveSharedSecret`. Documented the

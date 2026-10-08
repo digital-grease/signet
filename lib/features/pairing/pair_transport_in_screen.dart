@@ -12,6 +12,7 @@ import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -100,6 +101,9 @@ class _PairTransportInScreenState
         publicKey: ourKeyPair.publicKey,
         labelHint: '', // receiver hint is not useful to the sender
         pakeWords: _pakeWords,
+        // Answer in the request's wire version so a sender on an older
+        // build (which reads only version 1) can still open the response.
+        version: ldp.version,
       );
       if (!mounted) return;
       setState(() {
@@ -130,7 +134,7 @@ class _PairTransportInScreenState
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = e.message;
+        _unlockError = packageErrorText(e, AppLocalizations.of(context));
         _unlocking = false;
       });
     } catch (e) {
