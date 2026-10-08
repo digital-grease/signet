@@ -550,7 +550,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairExchangeIntro =>
-      'Hold your phones together. Each of you needs to do both of these.';
+      'Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.';
 
   @override
   String get pairExchangeStep1Title => 'Show my QR';
@@ -761,7 +761,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      'Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.';
+      'Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
 
   @override
   String get pairTransportInResponseHeader => 'YOUR RESPONSE //';
@@ -811,7 +811,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportOutChannelWarning =>
-      'Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.';
+      'Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.';
 
   @override
   String get pairTransportOutReceiveHeader => 'RECEIVE RESPONSE //';
@@ -843,7 +843,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String pairTransportOutPhraseInstruction(String label) {
-    return 'Ask $label to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.';
+    return 'Check these 4 words with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
   }
 
   @override
@@ -1208,7 +1208,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return 'These 4 words were derived the moment you and $label paired. Ask $label to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.';
+    return 'These 4 words were derived the moment you and $label paired. Ask $label to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.';
   }
 
   @override

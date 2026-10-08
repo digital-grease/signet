@@ -478,7 +478,7 @@
   "pairExchangeFallbackContact": "contact",
   "@pairExchangeFallbackContact": {"description": "Fallback word in the exchange AppBar title when no label has been set yet ('Pair with contact')."},
 
-  "pairExchangeIntro": "Hold your phones together. Each of you needs to do both of these.",
+  "pairExchangeIntro": "Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.",
   "@pairExchangeIntro": {"description": "Intro line at the top of the exchange overview pane."},
 
   "pairExchangeStep1Title": "Show my QR",
@@ -652,7 +652,7 @@
   "pairTransportInProcessFailedError": "Failed to process package: {error}",
   "@pairTransportInProcessFailedError": {"description": "Generic catch-all unlock error on transport in.", "placeholders": {"error": {"type": "String"}}},
 
-  "pairTransportInPhraseInstruction": "Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.",
+  "pairTransportInPhraseInstruction": "Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.",
   "@pairTransportInPhraseInstruction": {"description": "Instruction above the phrase card on transport in."},
 
   "pairTransportInResponseHeader": "YOUR RESPONSE //",
@@ -694,7 +694,7 @@
   "pairTransportOutWordsCopiedSnackbar": "PAKE words copied",
   "@pairTransportOutWordsCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on transport out."},
 
-  "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
+  "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
   "@pairTransportOutChannelWarning": {"description": "Warning box about out-of-band PAKE delivery on transport out."},
 
   "pairTransportOutReceiveHeader": "RECEIVE RESPONSE //",
@@ -718,7 +718,7 @@
   "pairingWeakKeyRemoteError": "This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.",
   "@pairingWeakKeyRemoteError": {"description": "Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel."},
 
-  "pairTransportOutPhraseInstruction": "Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.",
+  "pairTransportOutPhraseInstruction": "Check these 4 words with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.",
   "@pairTransportOutPhraseInstruction": {"description": "Instruction above the phrase card on transport out.", "placeholders": {"label": {"type": "String"}}},
 
   "backupExportTitle": "BACK UP TO PAPER",
@@ -973,7 +973,7 @@
   "bindingPhraseLoadError": "Could not read your pairing.",
   "@bindingPhraseLoadError": {"description": "Error state message on the binding-phrase screen."},
 
-  "bindingPhraseExplanation": "These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.",
+  "bindingPhraseExplanation": "These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.",
   "@bindingPhraseExplanation": {"description": "Instruction above the phrase card on the binding-phrase screen.", "placeholders": {"label": {"type": "String"}}},
 
   "bindingPhraseMismatchHeader": "IF THEY DO NOT MATCH //",

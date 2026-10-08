@@ -531,7 +531,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairExchangeFallbackContact => '联系人';
 
   @override
-  String get pairExchangeIntro => '把两部手机放在一起。双方都需要完成以下两步。';
+  String get pairExchangeIntro =>
+      '在同一个房间里把两部手机放在一起。双方都需要完成以下两步。只扫描对方手机本身，切勿扫描照片或视频通话中的二维码：这些码可能被调包。';
 
   @override
   String get pairExchangeStep1Title => '出示我的二维码';
@@ -728,7 +729,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      '通过你接收 PAKE 密语的同一条可信渠道，请发件人确认他们的屏幕上出现这 4 个单词。一致即表示传输包真实可信。';
+      '请当面与发件人核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示传输包真实可信。';
 
   @override
   String get pairTransportInResponseHeader => '你的响应包 //';
@@ -777,7 +778,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairTransportOutChannelWarning =>
-      '这 8 个单词务必通过与传输包不同的渠道发送。绝不要通过临时拨通的语音电话。纸质、事先见面的约定，或另一段已配对的 Signet 关系，都比口头念出来更安全。';
+      '这 8 个单词务必通过与传输包不同的渠道发送。绝不要使用别人提供的电话或号码。纸质、事先见面的约定，或另一段已配对的 Signet 关系，都比口头念出来更安全。';
 
   @override
   String get pairTransportOutReceiveHeader => '接收响应包 //';
@@ -808,7 +809,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pairTransportOutPhraseInstruction(String label) {
-    return '通过传递 PAKE 密语的同一条可信渠道，请 $label 确认这 4 个单词与屏幕上一致。一致即表示配对真实有效。';
+    return '请当面与 $label 核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示配对真实有效。';
   }
 
   @override
@@ -1157,7 +1158,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return '这 4 个单词在你和 $label 配对的那一刻生成。请 $label 打开 Signet 进入同一个界面。两台设备上的 4 个单词一致，即表示配对完好。';
+    return '这 4 个单词在你和 $label 配对的那一刻生成。请 $label 打开 Signet 进入同一个界面。请当面核对，或拨打你原本就有的对方号码核对。两台设备上的 4 个单词一致，即表示配对完好。';
   }
 
   @override

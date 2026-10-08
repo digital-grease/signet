@@ -1055,7 +1055,7 @@ abstract class AppLocalizations {
   /// Intro line at the top of the exchange overview pane.
   ///
   /// In en, this message translates to:
-  /// **'Hold your phones together. Each of you needs to do both of these.'**
+  /// **'Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.'**
   String get pairExchangeIntro;
 
   /// Step card 1 title: display my pairing QR.
@@ -1403,7 +1403,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on transport in.
   ///
   /// In en, this message translates to:
-  /// **'Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.'**
+  /// **'Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.'**
   String get pairTransportInPhraseInstruction;
 
   /// Section header above the response package on transport in. Keep the ' //' structure.
@@ -1487,7 +1487,7 @@ abstract class AppLocalizations {
   /// Warning box about out-of-band PAKE delivery on transport out.
   ///
   /// In en, this message translates to:
-  /// **'Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.'**
+  /// **'Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.'**
   String get pairTransportOutChannelWarning;
 
   /// Section header above the response input on transport out. Keep the ' //' structure.
@@ -1535,7 +1535,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on transport out.
   ///
   /// In en, this message translates to:
-  /// **'Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.'**
+  /// **'Check these 4 words with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.'**
   String pairTransportOutPhraseInstruction(String label);
 
   /// AppBar title of the single-relationship paper backup export.
@@ -2045,7 +2045,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on the binding-phrase screen.
   ///
   /// In en, this message translates to:
-  /// **'These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.'**
+  /// **'These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.'**
   String bindingPhraseExplanation(String label);
 
   /// Red warning headline on the binding-phrase screen. Keep the ' //' structure.

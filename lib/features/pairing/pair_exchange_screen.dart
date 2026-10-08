@@ -148,6 +148,28 @@ class _OverviewPane extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
 
+    // Scrolls when large text or a small screen makes the steps taller than
+    // the viewport; otherwise fills it so the status line stays at the
+    // bottom (the Spacer needs a bounded height, which IntrinsicHeight
+    // provides inside the scroll view).
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: _overviewColumn(context, textTheme, colors, l10n),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _overviewColumn(
+    BuildContext context,
+    TextTheme textTheme,
+    ColorScheme colors,
+    AppLocalizations l10n,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
