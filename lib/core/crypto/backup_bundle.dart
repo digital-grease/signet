@@ -1,4 +1,15 @@
+import 'dart:convert';
+
 import 'bip39_english_wordlist.dart';
+
+/// Decode the bytes of a backup file as UTF-8 text. Dart's UTF-8 decoder
+/// drops a leading byte order mark (some editors add one), and invalid
+/// sequences are replaced rather than failing: the parser only needs the
+/// ASCII wire and the BIP-39 words, so stray bytes elsewhere must not
+/// block a restore. (Decoding as Latin-1, as before, turned a BOM into
+/// three junk characters glued to the first line.)
+String decodeBackupText(List<int> bytes) =>
+    utf8.decode(bytes, allowMalformed: true);
 
 /// Serialization wrapper for a backup export — pairs the LPR wire (the
 /// encrypted package) and the 8 PAKE words in a single plain-text blob

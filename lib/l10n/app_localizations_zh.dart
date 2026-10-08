@@ -859,12 +859,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportConfirmTitle => '确认导入';
 
   @override
-  String get backupImportFileReadError => '无法读取所选文件。';
+  String get backupImportFileTooLargeError =>
+      '这个文件太大，不可能是 Signet 备份。请选择你创建备份时保存的那个小文本文件。';
 
   @override
-  String backupImportFileReadFailedError(String error) {
-    return '无法读取文件：$error';
-  }
+  String get backupImportFileReadError => '无法读取所选文件。请重新选择。';
 
   @override
   String backupImportInvalidFileError(String message) {

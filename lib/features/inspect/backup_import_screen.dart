@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -58,32 +57,64 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   // Load from file
   // ------------------------------------------------------------------
 
+  /// Backups are a few hundred bytes of text; anything far larger is the
+  /// wrong file. Checked before Dart reads it, so a picked video is never
+  /// loaded into memory. (The native picker has already copied the file
+  /// into the app cache by then; [_handleLoadFromFile] clears that copy.)
+  static const int _maxBackupFileBytes = 256 * 1024;
+
+  /// The file's bytes, or null if it is larger than [_maxBackupFileBytes].
+  /// Uses the size the picker already knows when available and otherwise
+  /// streams, stopping as soon as the cap is passed, so an oversized file
+  /// is never loaded whole.
+  static Future<List<int>?> _readCapped(PlatformFile file) async {
+    final known = file.lengthSync();
+    if (known != null && known > _maxBackupFileBytes) return null;
+    final out = <int>[];
+    await for (final chunk in file.readAsByteStream()) {
+      out.addAll(chunk);
+      if (out.length > _maxBackupFileBytes) return null;
+    }
+    return out;
+  }
+
   Future<void> _handleLoadFromFile() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.any,
-      // Allow either plain text or arbitrary — don't filter on extension
-      // because Android's file picker is flaky about .txt vs .* filtering.
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
+    try {
+      await _loadPickedFile();
+    } finally {
+      // The native picker copies the chosen file into the app cache before
+      // Dart sees it, and never deletes it. For a backup that copy is the
+      // package and its 8 words in plaintext, so remove it on every path.
+      try {
+        await FilePicker.clearTemporaryFiles();
+      } catch (_) {
+        // Best effort: the OS clears the cache eventually.
+      }
+    }
+  }
+
+  Future<void> _loadPickedFile() async {
+    final PlatformFile? file;
     String contents;
     try {
-      if (file.bytes != null) {
-        contents = String.fromCharCodes(file.bytes!);
-      } else if (file.path != null) {
-        contents = await File(file.path!).readAsString();
-      } else {
+      // Single file: pickFiles() allows multi-select by default since
+      // file_picker 12. Any type: Android's picker is flaky about .txt
+      // filtering.
+      file = await FilePicker.pickFile(type: FileType.any);
+      if (!mounted || file == null) return;
+      final bytes = await _readCapped(file);
+      if (!mounted) return;
+      if (bytes == null) {
         setState(() => _error =
-            AppLocalizations.of(context).backupImportFileReadError);
+            AppLocalizations.of(context).backupImportFileTooLargeError);
         return;
       }
-    } catch (e) {
+      contents = decodeBackupText(bytes);
+    } catch (_) {
       if (!mounted) return;
-      setState(
-        () => _error = AppLocalizations.of(context)
-            .backupImportFileReadFailedError(e.toString()),
-      );
+      // No exception text: it can contain cache paths and is not for users.
+      setState(() =>
+          _error = AppLocalizations.of(context).backupImportFileReadError);
       return;
     }
     try {

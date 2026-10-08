@@ -22,6 +22,16 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
 
+// Kotlin compiler options live in the top-level `kotlin {}` block. The old
+// `android { kotlinOptions { jvmTarget = ... } }` form is deprecated and is
+// a compile error from Kotlin 2.4 (it blocked the Kotlin update). The
+// target matches compileOptions below.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 android {
     namespace = "dev.digitalgrease.signet"
     compileSdk = flutter.compileSdkVersion
@@ -30,10 +40,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {

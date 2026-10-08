@@ -1604,17 +1604,17 @@ abstract class AppLocalizations {
   /// **'CONFIRM IMPORT'**
   String get backupImportConfirmTitle;
 
-  /// Error when the picked backup file has neither bytes nor a readable path.
+  /// The picked file is larger than any backup could be (checked before reading it).
   ///
   /// In en, this message translates to:
-  /// **'Could not read the selected file.'**
-  String get backupImportFileReadError;
+  /// **'That file is too large to be a Signet backup. Pick the small text file you saved when you made the backup.'**
+  String get backupImportFileTooLargeError;
 
-  /// Error when reading the picked backup file throws.
+  /// Picking or reading the backup file failed. Never shows exception text (it can contain cache paths).
   ///
   /// In en, this message translates to:
-  /// **'Could not read the file: {error}'**
-  String backupImportFileReadFailedError(String error);
+  /// **'Could not read the selected file. Try picking it again.'**
+  String get backupImportFileReadError;
 
   /// Error when the picked file fails bundle parsing.
   ///

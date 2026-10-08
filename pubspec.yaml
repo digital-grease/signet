@@ -76,31 +76,22 @@ dependencies:
   # Platform share sheet for exporting backup packages + PAKE to a
   # destination of the user's choice (Files / Drive / Notes / etc.).
   # Share sheet is OS-mediated; we don't make network calls.
-  # Pinned at ^12 (not 13). v13 requires win32 ^6.0.0, which transitively
-  # conflicts with file_picker 11.0.2 (latest available, requires
-  # win32 ^5.9.0). flutter_secure_storage_windows 4.2.2 already supports
-  # win32 ^6, so the chain is single-blocked on file_picker upstream.
-  # Coupled with package_info_plus below — bumping share_plus to 13
-  # forces package_info_plus to 10 (also win32 ^6), and vice versa.
-  # Revisit when file_picker ships a win32-6-compatible release.
-  share_plus: ^12.0.2
+  # share_plus, package_info_plus and device_info_plus move together: their
+  # current majors share the win32 ^6 dependency. file_picker 13's Windows
+  # implementation moved to win32 ^6 as well, so it no longer blocks them.
+  share_plus: ^13.3.1
   # File picker for importing a saved backup. User opens a picker,
   # chooses a .txt file, we read it locally. No network.
-  file_picker: ^11.0.2
+  file_picker: ^13.1.0
   # Launches external URLs from the About screen (source, privacy,
   # support/donate). Hands off to the OS browser; no network calls
   # from Signet itself.
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
-  # Pinned at ^9. v10 requires win32 ^6.0.0; see share_plus comment
-  # above — coupled blocker via file_picker upstream.
-  package_info_plus: ^9.0.1
-  # Pinned at ^11.x: 12.x uses `NSProcessInfo.isiOSAppOnVision`
-  # (iOS 17 / Xcode 15 SDK), which the macos-latest GitHub runner's
-  # default Xcode doesn't yet ship. v11.x supplies the same fields
-  # we consume (manufacturer/model/version) and builds clean on the
-  # runner. Bump back to ^12 once macos-latest defaults to Xcode 16+.
-  device_info_plus: ^11.0.0
+  package_info_plus: ^10.2.2
+  # 12.x+ needs the iOS 17 SDK (`NSProcessInfo.isiOSAppOnVision`); the
+  # macos-latest runner ships Xcode 26.x, so that hold is gone.
+  device_info_plus: ^13.3.0
 
 dev_dependencies:
   flutter_test:

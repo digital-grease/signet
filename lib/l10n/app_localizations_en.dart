@@ -893,12 +893,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupImportConfirmTitle => 'CONFIRM IMPORT';
 
   @override
-  String get backupImportFileReadError => 'Could not read the selected file.';
+  String get backupImportFileTooLargeError =>
+      'That file is too large to be a Signet backup. Pick the small text file you saved when you made the backup.';
 
   @override
-  String backupImportFileReadFailedError(String error) {
-    return 'Could not read the file: $error';
-  }
+  String get backupImportFileReadError =>
+      'Could not read the selected file. Try picking it again.';
 
   @override
   String backupImportInvalidFileError(String message) {

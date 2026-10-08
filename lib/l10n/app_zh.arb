@@ -503,9 +503,9 @@
 
   "backupImportConfirmTitle": "确认导入",
 
-  "backupImportFileReadError": "无法读取所选文件。",
+  "backupImportFileTooLargeError": "这个文件太大，不可能是 Signet 备份。请选择你创建备份时保存的那个小文本文件。",
 
-  "backupImportFileReadFailedError": "无法读取文件：{error}",
+  "backupImportFileReadError": "无法读取所选文件。请重新选择。",
 
   "backupImportInvalidFileError": "该文件不是有效的 Signet 备份：{message}",
 
