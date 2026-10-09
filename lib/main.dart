@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography/dart.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +23,7 @@ import 'core/prefs/settings_controller.dart';
 import 'core/providers.dart';
 import 'core/storage/secure_store.dart';
 import 'dev/mock_contacts.dart';
+import 'shared/share_text_file.dart';
 
 Future<void> main() async {
   // Wrap everything in runZonedGuarded so any uncaught error during boot —
@@ -42,6 +44,14 @@ Future<void> main() async {
     // 32-byte HMACs per pair + one per TOTP tick). Pin the pure-Dart impl.
     // This also matches the project's pinned crypto-is-pure-Dart convention.
     Cryptography.instance = DartCryptography.defaultInstance;
+
+    // Backup files handed to the share sheet are swept when the export
+    // screen closes, and the file picker's cache copy right after a
+    // restore reads it; this catches what was left behind when the app was
+    // killed in between. Best effort and not awaited: boot must not wait
+    // on it.
+    unawaited(sweepSharedExports());
+    unawaited(_clearFilePickerCache());
 
     // ---- Crash logging plumbing ----
     final cipher = CrashlogCipher();
@@ -156,4 +166,14 @@ Future<CrashContext> _buildCrashContext() async {
     device: device,
     dartVersion: Platform.version,
   );
+}
+
+/// Delete file_picker's cache copies of picked files (a backup's PACKAGE
+/// or WORDS file, or an old combined backup, in plaintext).
+Future<void> _clearFilePickerCache() async {
+  try {
+    await FilePicker.clearTemporaryFiles();
+  } catch (_) {
+    // Best effort; the OS clears the cache eventually.
+  }
 }

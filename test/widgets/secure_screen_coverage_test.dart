@@ -34,6 +34,8 @@ const _allowlist = <String, String>{
       'builds the printed card off-screen; the caller screen is wrapped',
   'lib/features/verify/word_input.dart':
       'input widget embedded in the wrapped verify screen',
+  'lib/features/inspect/two_step_backup.dart':
+      'save steps embedded in the wrapped single and bulk export screens',
   'lib/features/pairing/pair_complete_screen.dart':
       'reads the phrase only to bounce home when absent; shows none',
   'lib/features/home/home_screen.dart':
@@ -41,7 +43,7 @@ const _allowlist = <String, String>{
 };
 
 final _secretMarkers = RegExp(
-  r'TotpWords|pakeWords|PakeWords|BackupBundle|TransportPackage|'
+  r'TotpWords|pakeWords|PakeWords|BackupText|BackupFiles|TransportPackage|'
   r'ChallengeResponseGrid|derivePhrase|\.phrase\b|sharedSecret|totpSecret',
 );
 

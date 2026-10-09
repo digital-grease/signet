@@ -28,11 +28,52 @@
   "commonPackageCopiedSnackbar": "Package copied to clipboard",
   "@commonPackageCopiedSnackbar": {"description": "SnackBar after copying the package wire text."},
 
-  "commonSharePackage": "Share package",
-  "@commonSharePackage": {"description": "Text button with share icon on backup export and bulk backup export; opens the OS share sheet."},
 
-  "commonIveSavedIt": "I'VE SAVED IT",
-  "@commonIveSavedIt": {"description": "Filled button at the bottom of backup export / bulk export after the user has stored the paper backup."},
+
+  "backupStep1Header": "STEP 1 // SAVE THE PACKAGE",
+  "@backupStep1Header": {"description": "Two-step backup export: first step header. Keep the ' //' operator styling."},
+
+  "backupStep1Body": "Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.",
+  "@backupStep1Body": {"description": "Two-step backup export: what the package is and where to keep it."},
+  "backupStep1BodyNoQr": "Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.",
+  "@backupStep1BodyNoQr": {"description": "Step 1 text for a bulk backup, which has no QR code."},
+
+  "backupSavePackageFile": "Save package file",
+  "@backupSavePackageFile": {"description": "Opens the share sheet with the PACKAGE file (no words in it)."},
+
+  "backupSavedAnotherWay": "I saved it another way",
+  "@backupSavedAnotherWay": {"description": "Marks step 1 done when the user saved the package without the buttons (for example printed or photographed the QR)."},
+
+  "backupStep2Header": "STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE",
+  "@backupStep2Header": {"description": "Two-step backup export: second step header. Keep the ' //' operator styling."},
+
+  "backupStep2Locked": "Finish step 1 first. The 8 words appear here after the package is saved.",
+  "@backupStep2Locked": {"description": "Shown in step 2 until step 1 is done; the words stay hidden until then."},
+
+  "backupStep2Body": "Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.",
+  "@backupStep2Body": {"description": "Two-step backup export: paper is the main way to keep the words."},
+
+  "backupWroteOnPaper": "I wrote them on paper",
+  "@backupWroteOnPaper": {"description": "Primary button in step 2: marks the words as saved on paper."},
+
+  "backupSaveWordsFile": "Save words file instead",
+  "@backupSaveWordsFile": {"description": "Secondary button in step 2: opens the share sheet with the WORDS file (no package in it)."},
+
+  "backupWordsFileWarning": "If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.",
+  "@backupWordsFileWarning": {"description": "Shown under the words-file button."},
+
+  "backupFingerprintLine": "Fingerprint: {fingerprint} (the package and the words show the same one)",
+  "@backupFingerprintLine": {"description": "Six-digit fingerprint shared by the PACKAGE and WORDS files so they can be matched later.", "placeholders": {"fingerprint": {"type": "String"}}},
+
+  "backupStepDone": "DONE",
+  "@backupStepDone": {"description": "Marker next to a finished step header."},
+
+  "backupSavedBoth": "I'VE SAVED BOTH",
+  "@backupSavedBoth": {"description": "Final button, enabled once both steps are done."},
+  "backupShareFailed": "Could not open the share sheet. Try again.",
+  "@backupShareFailed": {"description": "Snackbar when writing or sharing a backup file fails."},
+  "backupPackageCopiedSnackbar": "Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".",
+  "@backupPackageCopiedSnackbar": {"description": "Snackbar after copying the backup package; copying alone does not finish step 1."},
 
   "commonStoreSeparatelyHeader": "STORE THESE SEPARATELY //",
   "@commonStoreSeparatelyHeader": {"description": "Red warning block headline on backup export and bulk export. Keep the ' //' structure."},
@@ -43,8 +84,6 @@
   "commonPakeSecretHeader": "PAKE SECRET //",
   "@commonPakeSecretHeader": {"description": "Section header above the 8-word PAKE secret on export, import and transport screens. Keep the ' //' structure; PAKE stays untranslated."},
 
-  "commonBackupPackageHeader": "BACKUP PACKAGE //",
-  "@commonBackupPackageHeader": {"description": "Section header above the package wire text / QR on backup export and import screens. Keep the ' //' structure."},
 
   "commonPairTimePhraseHeader": "PAIR-TIME PHRASE //",
   "@commonPairTimePhraseHeader": {"description": "Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure."},
@@ -376,8 +415,12 @@
   "faqQ6": "What if I lose my phone?",
   "@faqQ6": {"description": "FAQ question 6."},
 
-  "faqA6": "If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn't need to do anything, and doesn't even know a restore happened. If you didn't back up, the pairing is gone and you'd need to re-pair in person with that contact on the new device.",
+  "faqA6": "If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn't need to do anything, and doesn't even know a restore happened. If you didn't back up, the pairing is gone and you'd need to re-pair in person with that contact on the new device.",
   "@faqA6": {"description": "FAQ answer 6."},
+  "faqQ12": "How do I keep a backup safe?",
+  "@faqQ12": {"description": "FAQ question about storing the two backup parts."},
+  "faqA12": "A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.",
+  "@faqA12": {"description": "FAQ answer about storing the two backup parts."},
 
   "faqQ7": "Can I pair with more than one person?",
   "@faqQ7": {"description": "FAQ question 7."},
@@ -400,7 +443,7 @@
   "faqQ10": "Why no account? What if I need recovery?",
   "@faqQ10": {"description": "FAQ question 10."},
 
-  "faqA10": "An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.",
+  "faqA10": "An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.",
   "@faqA10": {"description": "FAQ answer 10."},
 
   "faqQ11": "Someone is asking me to skip the verify step.",
@@ -730,22 +773,16 @@
   "backupExportHeading": "Back up {label}",
   "@backupExportHeading": {"description": "Headline of the backup export content.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportIntro": "Writing this down lets you restore this pairing on a new phone if you lose this one. {label}'s phone won't know anything changed.",
+  "backupExportIntro": "A backup lets you restore this pairing on a new phone if you lose this one. {label}'s phone won't know anything changed.",
   "@backupExportIntro": {"description": "Explanatory body under the export headline.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "backupExportStoreSeparatelyBody": "This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.",
   "@backupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on single export."},
 
-  "backupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.",
-  "@backupExportWordsInstruction": {"description": "Instruction above the numbered PAKE word list on single export."},
 
-  "backupExportPackageInstruction": "Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.",
-  "@backupExportPackageInstruction": {"description": "Instruction above the package QR + text on single export."},
 
-  "backupExportShareSubject": "Signet backup - {label}",
-  "@backupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a single backup.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportRememberBody": "If this paper is ever found by someone else, UNPAIR {label} immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.",
+  "backupExportRememberBody": "If someone else ever finds both the package and the 8 words, unpair {label} right away and pair again in person. The backup holds the same secret your current pairing uses.",
   "@backupExportRememberBody": {"description": "Body of the REMEMBER warning on single export.", "placeholders": {"label": {"type": "String"}}},
 
   "backupImportRestoreTitle": "RESTORE BACKUP",
@@ -760,14 +797,30 @@
   "backupImportFileReadError": "Could not read the selected file. Try picking it again.",
   "@backupImportFileReadError": {"description": "Picking or reading the backup file failed. Never shows exception text (it can contain cache paths)."},
 
-  "backupImportInvalidFileError": "File is not a valid Signet backup: {message}",
-  "@backupImportInvalidFileError": {"description": "Error when the picked file fails bundle parsing.", "placeholders": {"message": {"type": "String"}}},
 
-  "backupImportPasteEmptyError": "Paste your backup package.",
+  "backupImportPasteEmptyError": "Load or paste your backup package first.",
   "@backupImportPasteEmptyError": {"description": "Validation error when unlocking with an empty package field."},
 
-  "backupImportWordsIncompleteError": "Enter the 8 PAKE words you stored separately.",
+  "backupImportWordsIncompleteError": "Enter all 8 backup words.",
   "@backupImportWordsIncompleteError": {"description": "Validation error when the 8 PAKE words aren't complete on backup import."},
+  "backupImportPackageHeader": "STEP 1 // THE PACKAGE",
+  "@backupImportPackageHeader": {"description": "Restore screen: header above the package input."},
+  "backupImportLoadPackageFile": "Load PACKAGE file",
+  "@backupImportLoadPackageFile": {"description": "Restore screen: opens the file picker for the PACKAGE file."},
+  "backupImportWordsHeader": "STEP 2 // THE 8 WORDS",
+  "@backupImportWordsHeader": {"description": "Restore screen: header above the 8-word input."},
+  "backupImportLoadWordsFile": "Load WORDS file",
+  "@backupImportLoadWordsFile": {"description": "Restore screen: opens the file picker for the WORDS file."},
+  "backupImportIsWordsError": "Those are the 8 words, not the package. Put them under step 2.",
+  "@backupImportIsWordsError": {"description": "The package input was given the words file."},
+  "backupImportIsPackageError": "That is the package, not the words. Put it under step 1.",
+  "@backupImportIsPackageError": {"description": "The words input was given the package file."},
+  "backupImportNoWordsError": "No backup words found there. Look for a line of 8 words.",
+  "@backupImportNoWordsError": {"description": "The words input was given text without 8 backup words."},
+  "backupImportFingerprintMismatchError": "These words belong to a different backup (package {package}, words {words}). Find the words with fingerprint {package}.",
+  "@backupImportFingerprintMismatchError": {"description": "The words file's fingerprint does not match the package. Fingerprints are 6 digits shown as \"123 456\".", "placeholders": {"package": {"type": "String"}, "words": {"type": "String"}}},
+  "backupImportLegacyNotice": "This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.",
+  "@backupImportLegacyNotice": {"description": "Shown when an old combined backup file is loaded."},
 
   "backupImportNotBackupError": "Not a valid Signet backup.",
   "@backupImportNotBackupError": {"description": "Error when the payload type can't be recognized."},
@@ -775,16 +828,14 @@
   "backupImportInvitationError": "That's a pairing invitation, not a backup. Use the pair flow from Home.",
   "@backupImportInvitationError": {"description": "Error when an LDP pairing package is pasted into the backup import."},
 
-  "backupImportClipboardEmptyError": "Clipboard is empty. Copy your backup package first.",
+  "backupImportClipboardEmptyError": "The clipboard is empty.",
   "@backupImportClipboardEmptyError": {"description": "Error when paste-from-clipboard finds nothing on backup import."},
 
-  "backupImportPasteInstruction": "Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.",
+  "backupImportPasteInstruction": "Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".",
   "@backupImportPasteInstruction": {"description": "Helper text above the package input on backup import; the wire prefix stays literal."},
 
-  "backupImportLoadFromFileButton": "Load from file",
-  "@backupImportLoadFromFileButton": {"description": "Button opening the file picker on backup import."},
 
-  "backupImportWordsInstruction": "The 8 words from your paper or password manager — stored separately from the package above.",
+  "backupImportWordsInstruction": "Type the 8 words you wrote down, or load the WORDS file if you saved one.",
   "@backupImportWordsInstruction": {"description": "Helper text above the PAKE word input on backup import."},
 
   "backupImportUnlockButton": "UNLOCK BACKUP",
@@ -847,28 +898,22 @@
   "bulkBackupExportDoneHeading": "{count, plural, =1{1 relationship backed up} other{{count} relationships backed up}}",
   "@bulkBackupExportDoneHeading": {"description": "Headline of the generated-bulk-backup pane.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "bulkBackupExportStoreSeparatelyBody": "This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.",
   "@bulkBackupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on bulk export (every-pairing variant)."},
 
   "bulkBackupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.",
   "@bulkBackupExportWordsInstruction": {"description": "Instruction above the PAKE word list on bulk export."},
 
-  "bulkBackupExportCopyPakeButton": "Copy PAKE",
-  "@bulkBackupExportCopyPakeButton": {"description": "Copy button next to the PAKE words on bulk export."},
 
-  "bulkBackupExportPakeCopiedSnackbar": "PAKE words copied to clipboard",
-  "@bulkBackupExportPakeCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on bulk export."},
 
   "bulkBackupExportPackageInstruction": "The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.",
   "@bulkBackupExportPackageInstruction": {"description": "Instruction above the bulk package text on bulk export."},
 
-  "bulkBackupExportShareLabel": "{count, plural, =1{1 relationship (bulk)} other{{count} relationships (bulk)}}",
-  "@bulkBackupExportShareLabel": {"description": "peerLabel embedded in the shared bulk-bundle text.", "placeholders": {"count": {"type": "int"}}},
 
   "bulkBackupExportShareSubject": "Signet bulk backup - {count} peers",
   "@bulkBackupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a bulk backup.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportRememberBody": "If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.",
+  "bulkBackupExportRememberBody": "If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.",
   "@bulkBackupExportRememberBody": {"description": "Body of the REMEMBER warning on bulk export."},
 
   "bulkBackupImportTitle": "BULK RESTORE",

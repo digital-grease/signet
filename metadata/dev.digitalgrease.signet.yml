@@ -113,7 +113,7 @@ Builds:
 
 # AllowedAPKSigningKeys intentionally omitted: F-Droid signs with their
 # own key. Cross-channel migration (Play <-> F-Droid) is handled by
-# the in-app BackupBundle export/import, not by signature compatibility.
+# the in-app backup export/restore, not by signature compatibility.
 
 # Auto-update via tag detection. F-Droid's daily checkupdates job:
 #   1. Detects new vX.Y.Z tags on digital-grease/signet (leading `v` is

@@ -36,10 +36,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonPackageCopiedSnackbar => 'Package copied to clipboard';
 
   @override
-  String get commonSharePackage => 'Share package';
+  String get backupStep1Header => 'STEP 1 // SAVE THE PACKAGE';
 
   @override
-  String get commonIveSavedIt => 'I\'VE SAVED IT';
+  String get backupStep1Body =>
+      'Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.';
+
+  @override
+  String get backupStep1BodyNoQr =>
+      'Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.';
+
+  @override
+  String get backupSavePackageFile => 'Save package file';
+
+  @override
+  String get backupSavedAnotherWay => 'I saved it another way';
+
+  @override
+  String get backupStep2Header => 'STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE';
+
+  @override
+  String get backupStep2Locked =>
+      'Finish step 1 first. The 8 words appear here after the package is saved.';
+
+  @override
+  String get backupStep2Body =>
+      'Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.';
+
+  @override
+  String get backupWroteOnPaper => 'I wrote them on paper';
+
+  @override
+  String get backupSaveWordsFile => 'Save words file instead';
+
+  @override
+  String get backupWordsFileWarning =>
+      'If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.';
+
+  @override
+  String backupFingerprintLine(String fingerprint) {
+    return 'Fingerprint: $fingerprint (the package and the words show the same one)';
+  }
+
+  @override
+  String get backupStepDone => 'DONE';
+
+  @override
+  String get backupSavedBoth => 'I\'VE SAVED BOTH';
+
+  @override
+  String get backupShareFailed => 'Could not open the share sheet. Try again.';
+
+  @override
+  String get backupPackageCopiedSnackbar =>
+      'Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".';
 
   @override
   String get commonStoreSeparatelyHeader => 'STORE THESE SEPARATELY //';
@@ -49,9 +99,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonPakeSecretHeader => 'PAKE SECRET //';
-
-  @override
-  String get commonBackupPackageHeader => 'BACKUP PACKAGE //';
 
   @override
   String get commonPairTimePhraseHeader => 'PAIR-TIME PHRASE //';
@@ -433,7 +480,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqA6 =>
-      'If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.';
+      'If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.';
+
+  @override
+  String get faqQ12 => 'How do I keep a backup safe?';
+
+  @override
+  String get faqA12 =>
+      'A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.';
 
   @override
   String get faqQ7 => 'Can I pair with more than one person?';
@@ -461,7 +515,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqA10 =>
-      'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.';
+      'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.';
 
   @override
   String get faqQ11 => 'Someone is asking me to skip the verify step.';
@@ -861,29 +915,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupExportIntro(String label) {
-    return 'Writing this down lets you restore this pairing on a new phone if you lose this one. $label\'s phone won\'t know anything changed.';
+    return 'A backup lets you restore this pairing on a new phone if you lose this one. $label\'s phone won\'t know anything changed.';
   }
 
   @override
   String get backupExportStoreSeparatelyBody =>
-      'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.';
-
-  @override
-  String get backupExportWordsInstruction =>
-      'Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.';
-
-  @override
-  String get backupExportPackageInstruction =>
-      'Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.';
-
-  @override
-  String backupExportShareSubject(String label) {
-    return 'Signet backup - $label';
-  }
+      'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.';
 
   @override
   String backupExportRememberBody(String label) {
-    return 'If this paper is ever found by someone else, UNPAIR $label immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.';
+    return 'If someone else ever finds both the package and the 8 words, unpair $label right away and pair again in person. The backup holds the same secret your current pairing uses.';
   }
 
   @override
@@ -901,16 +942,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not read the selected file. Try picking it again.';
 
   @override
-  String backupImportInvalidFileError(String message) {
-    return 'File is not a valid Signet backup: $message';
+  String get backupImportPasteEmptyError =>
+      'Load or paste your backup package first.';
+
+  @override
+  String get backupImportWordsIncompleteError => 'Enter all 8 backup words.';
+
+  @override
+  String get backupImportPackageHeader => 'STEP 1 // THE PACKAGE';
+
+  @override
+  String get backupImportLoadPackageFile => 'Load PACKAGE file';
+
+  @override
+  String get backupImportWordsHeader => 'STEP 2 // THE 8 WORDS';
+
+  @override
+  String get backupImportLoadWordsFile => 'Load WORDS file';
+
+  @override
+  String get backupImportIsWordsError =>
+      'Those are the 8 words, not the package. Put them under step 2.';
+
+  @override
+  String get backupImportIsPackageError =>
+      'That is the package, not the words. Put it under step 1.';
+
+  @override
+  String get backupImportNoWordsError =>
+      'No backup words found there. Look for a line of 8 words.';
+
+  @override
+  String backupImportFingerprintMismatchError(String package, String words) {
+    return 'These words belong to a different backup (package $package, words $words). Find the words with fingerprint $package.';
   }
 
   @override
-  String get backupImportPasteEmptyError => 'Paste your backup package.';
-
-  @override
-  String get backupImportWordsIncompleteError =>
-      'Enter the 8 PAKE words you stored separately.';
+  String get backupImportLegacyNotice =>
+      'This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.';
 
   @override
   String get backupImportNotBackupError => 'Not a valid Signet backup.';
@@ -920,19 +989,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'That\'s a pairing invitation, not a backup. Use the pair flow from Home.';
 
   @override
-  String get backupImportClipboardEmptyError =>
-      'Clipboard is empty. Copy your backup package first.';
+  String get backupImportClipboardEmptyError => 'The clipboard is empty.';
 
   @override
   String get backupImportPasteInstruction =>
-      'Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.';
-
-  @override
-  String get backupImportLoadFromFileButton => 'Load from file';
+      'Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".';
 
   @override
   String get backupImportWordsInstruction =>
-      'The 8 words from your paper or password manager — stored separately from the package above.';
+      'Type the 8 words you wrote down, or load the WORDS file if you saved one.';
 
   @override
   String get backupImportUnlockButton => 'UNLOCK BACKUP';
@@ -1019,33 +1084,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportStoreSeparatelyBody =>
-      'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.';
+      'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.';
 
   @override
   String get bulkBackupExportWordsInstruction =>
       'Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.';
 
   @override
-  String get bulkBackupExportCopyPakeButton => 'Copy PAKE';
-
-  @override
-  String get bulkBackupExportPakeCopiedSnackbar =>
-      'PAKE words copied to clipboard';
-
-  @override
   String get bulkBackupExportPackageInstruction =>
       'The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.';
-
-  @override
-  String bulkBackupExportShareLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count relationships (bulk)',
-      one: '1 relationship (bulk)',
-    );
-    return '$_temp0';
-  }
 
   @override
   String bulkBackupExportShareSubject(int count) {
@@ -1054,7 +1101,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportRememberBody =>
-      'If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.';
+      'If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.';
 
   @override
   String get bulkBackupImportTitle => 'BULK RESTORE';

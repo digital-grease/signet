@@ -253,7 +253,7 @@ The production keystore is the app signing key. Recovery is
 2. Publish a new app at a new package name (`dev.digitalgrease.signet2` or similar).
 3. Ask every user to uninstall the compromised app and install
    the new one. They will lose every paired relationship unless
-   they did a `BackupBundle` export (Phase 11.8).
+   they made a backup first (Settings → Back up all relationships).
 
 This is why Play App Signing is strongly recommended for any app
 with non-trivial installed base.

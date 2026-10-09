@@ -179,6 +179,16 @@ on *different* physical paths — paper vs. memorized password, two
 separate safety deposit boxes, a prior in-person exchange, etc. See
 `BackupExportScreen` UI copy and `docs/RELEASE.md`.
 
+Since v0.3.7 the app enforces the split rather than just advising it:
+export is two steps that produce two artifacts (a PACKAGE file or QR,
+then the 8 words on paper or in a separate WORDS file); the words are
+never offered on the clipboard; and files handed to the share sheet are
+deleted when the export screen closes and at app start. Both artifacts
+carry a 6-digit fingerprint (SHA-256 of the package's encrypted bytes)
+so the user can match them; it is derived from ciphertext, never from
+the words, so it tells an adversary nothing. Earlier versions wrote
+both into one file, which handed A₆ everything in a single intercept.
+
 ### 2.7 Physical-device compromise A₇
 
 **Capabilities:** has the user's unlocked paired device in-hand.
@@ -378,7 +388,7 @@ guarantee.
 
 | Layer | Mechanism | What it catches | What it misses |
 |---|---|---|---|
-| 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `LivenessPrompt`, `PairingKeyPair`, `BackupBundle`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
+| 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `LivenessPrompt`, `PairingKeyPair`, `BackupText`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
 | 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16, base64url≥16, `signet:tp1:` wire, BIP-39 4-tuple and 8-tuple clusters) have a 100% pass-or-fail-CI bar. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
 | 3. AES-GCM at rest | `lib/core/logging/crashlog_cipher.dart` — AES-256-GCM with 12-byte nonce + 16-byte tag. Key under `crashlog.aead_key.v1` in `flutter_secure_storage` (Android Keystore / iOS Keychain). Lazy-generated on first crash. | The ~5% the judgment scrubber misses, while the file sits on disk. | In-process attackers running with our keys; nothing post-decryption. |
 | 4. OS sandbox + FDE | Android app-private storage; iOS sandbox; full-disk encryption when the device is locked. | Other apps reading our private storage; lost-device-pre-unlock. | Forensic-level adversary with root + screen-lock bypass (§4 limit). |

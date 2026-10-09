@@ -79,26 +79,27 @@ Future<void> _enterPake(WidgetTester tester, List<String> words) async {
 void main() {
   final secret = List<int>.generate(32, (i) => i + 7);
 
-  testWidgets('unlock pane shows both Paste and Load-from-file actions',
+  testWidgets('package and words each offer Paste and Load-file actions',
       (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
-    expect(find.text('Paste from clipboard'), findsOneWidget);
-    expect(find.text('Load from file'), findsOneWidget);
+    expect(find.text('Paste from clipboard'), findsNWidgets(2));
+    expect(find.text('Load PACKAGE file'), findsOneWidget);
+    expect(find.text('Load WORDS file'), findsOneWidget);
   });
 
   testWidgets('unlock pane renders and blocks empty submit', (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
 
-    expect(find.text('BACKUP PACKAGE //'), findsOneWidget);
-    expect(find.text('PAKE SECRET //'), findsOneWidget);
+    expect(find.text('STEP 1 // THE PACKAGE'), findsOneWidget);
+    expect(find.text('STEP 2 // THE 8 WORDS'), findsOneWidget);
     expect(find.text('UNLOCK BACKUP'), findsOneWidget);
 
     await tester.ensureVisible(find.text('UNLOCK BACKUP'));
     await tester.tap(find.text('UNLOCK BACKUP'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Paste your backup'), findsOneWidget);
+    expect(find.textContaining('Load or paste your backup'), findsOneWidget);
   });
 
   testWidgets('successful unlock reveals the commit pane with peer preview',
@@ -236,12 +237,12 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Clipboard is empty'),
+        find.textContaining('clipboard is empty'),
         findsOneWidget,
         reason:
             'User in a crisis moment taps Paste with nothing on the clipboard; '
@@ -257,11 +258,11 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Clipboard is empty'), findsOneWidget);
+      expect(find.textContaining('clipboard is empty'), findsOneWidget);
     },
   );
 
@@ -272,13 +273,13 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
       final wireField = tester.widget<TextField>(find.byType(TextField).first);
       expect(wireField.controller!.text, 'signet:tp1:DEADBEEF');
-      expect(find.textContaining('Clipboard is empty'), findsNothing);
+      expect(find.textContaining('clipboard is empty'), findsNothing);
     },
   );
 

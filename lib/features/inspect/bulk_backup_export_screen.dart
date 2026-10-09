@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
@@ -10,6 +8,7 @@ import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import 'two_step_backup.dart';
 
 /// Bulk backup export — one bundle, one PAKE, every paired relationship.
 ///
@@ -19,11 +18,10 @@ import '../../shared/widgets/secure_screen.dart';
 /// The user runs this once when switching phones instead of N separate
 /// export flows.
 ///
-/// Wire shape at the [BackupBundle] layer is identical to a single-
-/// relationship export — one `signet:tp1:` line + one 8-word PAKE line —
-/// so the platform share-sheet handoff and file-parser on the receiving
-/// side don't need format-specific branches. Dispatch between single
-/// and bulk happens on the payload-type byte during import.
+/// The saved files have the same shape as a single-relationship export
+/// (a PACKAGE file and a WORDS file, see [BackupFiles]), so the restore
+/// screen reads both the same way. Single and bulk are told apart by the
+/// payload-type byte during import.
 class BulkBackupExportScreen extends ConsumerStatefulWidget {
   const BulkBackupExportScreen({super.key});
 
@@ -87,12 +85,15 @@ class _BulkBackupExportScreenState
         records: records,
         pakeWords: pakeWords,
       );
+      final fingerprint = await BackupFiles.fingerprint(wire);
       if (!mounted) return;
       setState(() {
         _generated = _Generated(
           recordCount: records.length,
           pakeWords: pakeWords,
           wire: wire,
+          fingerprint: fingerprint!,
+          generatedAt: DateTime.now(),
         );
         _busy = false;
       });
@@ -313,142 +314,7 @@ class _BulkBackupContent extends StatelessWidget {
           headline: l10n.commonStoreSeparatelyHeader,
           body: l10n.bulkBackupExportStoreSeparatelyBody,
         ),
-        const SizedBox(height: 24),
-        _SectionHeader(l10n.commonPakeSecretHeader),
-        const SizedBox(height: 6),
-        Text(
-          l10n.bulkBackupExportWordsInstruction,
-          style: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: scheme.surfaceContainerHighest,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (var i = 0; i < generated.pakeWords.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: <Widget>[
-                      SizedBox(
-                        width: 28,
-                        child: Text(
-                          '${i + 1}.',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          generated.pakeWords[i],
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton.icon(
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                await Clipboard.setData(
-                  ClipboardData(text: generated.pakeWords.join(' ')),
-                );
-                messenger.showSnackBar(
-                  SnackBar(
-                    content:
-                        Text(l10n.bulkBackupExportPakeCopiedSnackbar),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(l10n.bulkBackupExportCopyPakeButton),
-            ),
-          ],
-        ),
         const SizedBox(height: 16),
-        _SectionHeader(l10n.commonBackupPackageHeader),
-        const SizedBox(height: 6),
-        Text(
-          l10n.bulkBackupExportPackageInstruction,
-          style: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: scheme.surfaceContainerHighest,
-          child: SelectableText(
-            generated.wire,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton.icon(
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                await Clipboard.setData(ClipboardData(text: generated.wire));
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.commonPackageCopiedSnackbar),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(l10n.commonCopyPackage),
-            ),
-            TextButton.icon(
-              onPressed: () async {
-                final bundle = BackupBundle.format(
-                  peerLabel: l10n.bulkBackupExportShareLabel(
-                    generated.recordCount,
-                  ),
-                  wire: generated.wire,
-                  pakeWords: generated.pakeWords,
-                  generatedAt: DateTime.now(),
-                );
-                await SharePlus.instance.share(
-                  ShareParams(
-                    text: bundle,
-                    subject: l10n.bulkBackupExportShareSubject(
-                      generated.recordCount,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.ios_share),
-              label: Text(l10n.commonSharePackage),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
         _WarningBlock(
           color: scheme.secondary,
           bg: scheme.surfaceContainerHighest,
@@ -457,9 +323,16 @@ class _BulkBackupContent extends StatelessWidget {
           body: l10n.bulkBackupExportRememberBody,
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: () => context.go('/'),
-          child: Text(l10n.commonIveSavedIt),
+        // Package and words are saved in two separate steps and never
+        // travel together (plan Phase 2, bug S1). No copy button for the
+        // words (Task 2.4).
+        TwoStepBackupSaver(
+          wire: generated.wire,
+          pakeWords: generated.pakeWords,
+          fingerprint: generated.fingerprint,
+          generatedAt: generated.generatedAt,
+          showQr: false,
+          onDone: () => context.go('/'),
         ),
       ],
     );
@@ -513,33 +386,18 @@ class _WarningBlock extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 10,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-        letterSpacing: 2,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
 class _Generated {
   _Generated({
     required this.recordCount,
     required this.pakeWords,
     required this.wire,
+    required this.fingerprint,
+    required this.generatedAt,
   });
 
   final int recordCount;
   final List<String> pakeWords;
   final String wire;
+  final String fingerprint;
+  final DateTime generatedAt;
 }

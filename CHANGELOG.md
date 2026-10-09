@@ -5,6 +5,29 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [Unreleased]
+
+### Changed
+- **Backups are now two separate parts.** A backup used to be one file
+  holding both the encrypted package and the 8 words that unlock it, so
+  anyone who found that file had your pairings. Now you save the
+  package first (as a PACKAGE file, by copying it, or from the QR
+  code) and then keep the 8 words somewhere else: on paper, or in a
+  separate WORDS file. The words are never put on the clipboard. Both
+  parts carry the same 6-digit fingerprint so you can tell which words
+  go with which package. Temporary copies made for the share sheet are
+  deleted when you leave the screen.
+- **Restore takes the package and the words separately**, each by
+  file, paste or typing. If the words come from a different backup,
+  Signet says so instead of reporting wrong words. Old one-file backups
+  still restore, with a reminder to make a new backup and delete the
+  old file.
+
+### Fixed
+- Pasting a whole backup file's text into Restore no longer fails with
+  "not a valid Signet backup", and a package split across lines by an
+  email app is joined back together.
+
 ## [0.3.6] — 2026-06-12
 
 Opt-in debug logging: capture and export a scrubbed activity log to

@@ -36,10 +36,59 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonPackageCopiedSnackbar => '传输包已复制到剪贴板';
 
   @override
-  String get commonSharePackage => '分享传输包';
+  String get backupStep1Header => '第 1 步 // 保存传输包';
 
   @override
-  String get commonIveSavedIt => '已保存';
+  String get backupStep1Body =>
+      '把这个传输包保存到这部手机以外的地方，比如电脑或 U 盘，或者把二维码打印出来。手机丢失时，存在手机里的副本也会一起丢失。传输包不包含那 8 个单词，单独存在时无法恢复任何内容。';
+
+  @override
+  String get backupStep1BodyNoQr =>
+      '把这个传输包保存到这部手机以外的地方，比如电脑或 U 盘。手机丢失时，存在手机里的副本也会一起丢失。传输包不包含那 8 个单词，单独存在时无法恢复任何内容。';
+
+  @override
+  String get backupSavePackageFile => '保存传输包文件（PACKAGE）';
+
+  @override
+  String get backupSavedAnotherWay => '我已用其他方式保存';
+
+  @override
+  String get backupStep2Header => '第 2 步 // 把 8 个单词放在别处';
+
+  @override
+  String get backupStep2Locked => '请先完成第 1 步。保存传输包后，这里会显示 8 个单词。';
+
+  @override
+  String get backupStep2Body =>
+      '把这 8 个单词写在纸上，并写下下方的指纹，以便知道它们对应哪个传输包。把纸与传输包分开存放，例如放在钱包里。同时拥有两者的人可以恢复你的配对。';
+
+  @override
+  String get backupWroteOnPaper => '我已写在纸上';
+
+  @override
+  String get backupSaveWordsFile => '改为保存单词文件（WORDS）';
+
+  @override
+  String get backupWordsFileWarning =>
+      '如果把单词保存为文件，请放在与传输包不同的地方：不要放在同一个文件夹、同一部手机或同一个云账号里。';
+
+  @override
+  String backupFingerprintLine(String fingerprint) {
+    return '指纹：$fingerprint（传输包和单词显示同一个指纹）';
+  }
+
+  @override
+  String get backupStepDone => '已完成';
+
+  @override
+  String get backupSavedBoth => '两者都已保存';
+
+  @override
+  String get backupShareFailed => '无法打开分享面板。请重试。';
+
+  @override
+  String get backupPackageCopiedSnackbar =>
+      '传输包已复制。请把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。';
 
   @override
   String get commonStoreSeparatelyHeader => '分开存放 //';
@@ -49,9 +98,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonPakeSecretHeader => 'PAKE 密语 //';
-
-  @override
-  String get commonBackupPackageHeader => '备份包 //';
 
   @override
   String get commonPairTimePhraseHeader => '配对短语 //';
@@ -417,7 +463,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get faqA6 =>
-      '如果丢失前做过纸质备份，可以用“从备份恢复”流程把配对联系人恢复到新手机 — 对方什么都不用做，甚至不会察觉发生过恢复。如果没有备份，配对就丢失了，需要在新设备上与该联系人当面重新配对。';
+      '如果丢失前做过备份，可以用“从备份恢复”把配对联系人恢复到新手机。对方什么都不用做，甚至不会察觉发生过恢复。如果没有备份，配对就丢失了，需要在新设备上与该联系人当面重新配对。';
+
+  @override
+  String get faqQ12 => '怎样安全地保存备份？';
+
+  @override
+  String get faqA12 =>
+      '备份分两部分：传输包文件（PACKAGE，已加密）和用来解锁它的 8 个单词。两者要分开存放。把传输包文件存到手机以外的地方，比如电脑或 U 盘。把 8 个单词写在纸上，放在别处，比如钱包里。同时拿到两部分的人就能向你的联系人冒充你，所以不要把它们放在一起，也不要用消息发送这些单词。恢复时，点“从备份恢复”，载入传输包文件，再输入 8 个单词。';
 
   @override
   String get faqQ7 => '可以和多个人配对吗？';
@@ -444,7 +497,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get faqA10 =>
-      '账号意味着服务器、密码，以及攻击者（或传票）可以绕过你的手机触达配对数据的通路。Signet 的存在正是因为其他认证工具都有这样的通路。恢复是手动的：趁现在一切正常，导出纸质备份，放在手机丢失时你能拿到的地方。';
+      '账号意味着服务器、密码，以及攻击者（或传票）可以绕过你的手机触达配对数据的通路。Signet 的存在正是因为其他认证工具都有这样的通路。恢复是手动的：趁现在一切正常，做一份备份，放在手机丢失时你能拿到的地方。';
 
   @override
   String get faqQ11 => '有人要求我跳过验证步骤。';
@@ -827,29 +880,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String backupExportIntro(String label) {
-    return '把这些写下来，手机丢失后就能在新手机上恢复这段配对。$label 的手机不会察觉任何变化。';
+    return '有了备份，手机丢失后就能在新手机上恢复这段配对。$label 的手机不会察觉任何变化。';
   }
 
   @override
   String get backupExportStoreSeparatelyBody =>
-      'PAKE 密语和备份包必须存放在不同的物理载体上。如果有人同时拿到两者，就能在自己的手机上恢复这段配对。纸质分放两处（家里 + 保管箱）是合理的起点；同步到云端的密码管理器则不行。';
-
-  @override
-  String get backupExportWordsInstruction =>
-      '把这 8 个单词写到安全的地方。在新手机上输入它们即可解锁传输包。';
-
-  @override
-  String get backupExportPackageInstruction =>
-      '在新手机上扫描这个二维码，或复制粘贴下面的文本。它与上面的 PAKE 密语是不同的载体 — 不要存放在一起。';
-
-  @override
-  String backupExportShareSubject(String label) {
-    return 'Signet 备份 - $label';
-  }
+      '这份备份分两部分：传输包，以及解锁它的 8 个单词。请分开存放。如果有人同时拿到两者，就能在自己的手机上恢复这段配对。';
 
   @override
   String backupExportRememberBody(String label) {
-    return '如果这张纸被别人发现，请立即解除与 $label 的配对并当面重新配对。备份里包含与当前配对相同的共享密钥。';
+    return '如果有别人同时拿到了传输包和这 8 个单词，请立即解除与 $label 的配对并当面重新配对。备份里包含与当前配对相同的密钥。';
   }
 
   @override
@@ -866,15 +906,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportFileReadError => '无法读取所选文件。请重新选择。';
 
   @override
-  String backupImportInvalidFileError(String message) {
-    return '该文件不是有效的 Signet 备份：$message';
+  String get backupImportPasteEmptyError => '请先载入或粘贴你的备份传输包。';
+
+  @override
+  String get backupImportWordsIncompleteError => '请输入全部 8 个备份单词。';
+
+  @override
+  String get backupImportPackageHeader => '第 1 步 // 传输包';
+
+  @override
+  String get backupImportLoadPackageFile => '载入传输包文件（PACKAGE）';
+
+  @override
+  String get backupImportWordsHeader => '第 2 步 // 8 个单词';
+
+  @override
+  String get backupImportLoadWordsFile => '载入单词文件（WORDS）';
+
+  @override
+  String get backupImportIsWordsError => '这是 8 个单词，不是传输包。请放在第 2 步。';
+
+  @override
+  String get backupImportIsPackageError => '这是传输包，不是单词。请放在第 1 步。';
+
+  @override
+  String get backupImportNoWordsError => '那里没有找到备份单词。请找一行 8 个单词。';
+
+  @override
+  String backupImportFingerprintMismatchError(String package, String words) {
+    return '这些单词属于另一个备份（传输包 $package，单词 $words）。请找指纹为 $package 的单词。';
   }
 
   @override
-  String get backupImportPasteEmptyError => '请粘贴你的备份包。';
-
-  @override
-  String get backupImportWordsIncompleteError => '请输入你分开存放的 8 个 PAKE 单词。';
+  String get backupImportLegacyNotice =>
+      '这是旧版备份，单词和传输包保存在同一个文件里。恢复后，请重新备份并删除此文件。';
 
   @override
   String get backupImportNotBackupError => '不是有效的 Signet 备份。';
@@ -883,18 +948,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportInvitationError => '这是配对邀请，不是备份。请从主页使用配对流程。';
 
   @override
-  String get backupImportClipboardEmptyError => '剪贴板是空的。请先复制你的备份包。';
+  String get backupImportClipboardEmptyError => '剪贴板是空的。';
 
   @override
   String get backupImportPasteInstruction =>
-      '粘贴纸上的备份包。以“signet:tp1:”开头。如果扫的是二维码，请粘贴扫出的文本。';
+      '载入传输包文件（PACKAGE），或粘贴传输包文本。它以“signet:tp1:”开头。';
 
   @override
-  String get backupImportLoadFromFileButton => '从文件载入';
-
-  @override
-  String get backupImportWordsInstruction =>
-      '来自你纸质记录或密码管理器的 8 个单词 — 与上面的传输包分开存放。';
+  String get backupImportWordsInstruction => '输入你记下的 8 个单词，或载入你保存的单词文件（WORDS）。';
 
   @override
   String get backupImportUnlockButton => '解锁备份';
@@ -979,32 +1040,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportStoreSeparatelyBody =>
-      'PAKE 密语和备份包必须存放在不同的物理载体上。如果有人同时拿到两者，就能在自己的手机上恢复所有配对。纸质分放两处（家里 + 保管箱）是合理的起点；同步到云端的密码管理器则不行。';
+      '这份备份分两部分：传输包，以及解锁它的 8 个单词。请分开存放。如果有人同时拿到两者，就能在自己的手机上恢复所有配对。';
 
   @override
   String get bulkBackupExportWordsInstruction =>
       '把这 8 个单词写到安全的地方。在新手机上输入它们即可一次性解锁全部内容。';
 
   @override
-  String get bulkBackupExportCopyPakeButton => '复制 PAKE';
-
-  @override
-  String get bulkBackupExportPakeCopiedSnackbar => 'PAKE 单词已复制到剪贴板';
-
-  @override
   String get bulkBackupExportPackageInstruction =>
       '全部配对的集合，用上面的 8 个单词加密。可通过任何渠道分享 — 单词是它的封印。';
-
-  @override
-  String bulkBackupExportShareLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 个配对关系（批量）',
-      one: '1 个配对关系（批量）',
-    );
-    return '$_temp0';
-  }
 
   @override
   String bulkBackupExportShareSubject(int count) {
@@ -1013,7 +1057,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportRememberBody =>
-      '如果这个文件和这 8 个单词同时被别人发现，请解除其中所有配对关系并当面重新配对。备份包含与你当前配对相同的共享密钥。';
+      '如果有别人同时拿到了传输包和这 8 个单词，请解除其中所有联系人的配对并当面重新配对。备份里包含与你当前配对相同的密钥。';
 
   @override
   String get bulkBackupImportTitle => '批量恢复';

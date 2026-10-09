@@ -66,7 +66,7 @@ Signet is in Google Play closed testing, which is invite-only for now. A public 
 
 F-Droid signs the apps it builds with **its own key**, while the GitHub release APK (used by Obtainium and direct download) is signed with **the developer's key**. Android will not install one over the other. To switch, you have to uninstall first, and **uninstalling deletes your pairings**.
 
-If you need to switch, first make a backup: **Settings → Back up all relationships**. Write down the 8 words it shows, keep the backup file somewhere off the phone, then uninstall, install from the new source, and use **Restore from backup** on the home screen. Otherwise you will need to pair again in person with each contact.
+If you need to switch, first make a backup: **Settings → Back up all relationships**. A backup has two parts that you keep apart: a PACKAGE file (save it somewhere off the phone, such as your computer or a USB stick) and 8 words (write them on paper). Then uninstall, install from the new source, tap **Restore from backup** on the home screen, load the PACKAGE file and type the 8 words. Otherwise you will need to pair again in person with each contact.
 
 ### iPhone
 

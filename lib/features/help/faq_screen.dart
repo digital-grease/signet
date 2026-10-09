@@ -31,6 +31,7 @@ class FaqScreen extends StatelessWidget {
       _FaqEntry(question: l10n.faqQ4, answer: l10n.faqA4),
       _FaqEntry(question: l10n.faqQ5, answer: l10n.faqA5),
       _FaqEntry(question: l10n.faqQ6, answer: l10n.faqA6),
+      _FaqEntry(question: l10n.faqQ12, answer: l10n.faqA12),
       _FaqEntry(question: l10n.faqQ7, answer: l10n.faqA7),
       _FaqEntry(question: l10n.faqQ8, answer: l10n.faqA8),
       _FaqEntry(question: l10n.faqQ9, answer: l10n.faqA9),

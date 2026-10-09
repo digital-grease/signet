@@ -109,6 +109,11 @@ void main() {
       );
       expect(wire.data, isNotNull);
 
+      // The words appear only once step 1 is done.
+      await tester.ensureVisible(find.text('I saved it another way'));
+      await tester.tap(find.text('I saved it another way'));
+      await tester.pumpAndSettle();
+
       // Extract the 8 PAKE words — rendered as Text at 16sp monospace.
       final monoTexts = tester.widgetList<Text>(find.byType(Text)).where((t) {
         return t.style?.fontFamily == 'monospace' && t.style?.fontSize == 16;
@@ -118,19 +123,23 @@ void main() {
       final pakeWords =
           monoTexts.take(8).map((t) => t.data!).toList(growable: false);
 
-      // The wire + PAKE pair round-trips via the same BackupBundle wrapper
-      // used by single-relationship exports, and decodes via decodeBlk
-      // to yield all three records with correct labels + secrets + roles.
-      final formattedBundle = BackupBundle.format(
-        peerLabel: '3 relationships (bulk)',
+      // The package and words round-trip through the two backup files
+      // (PACKAGE + WORDS) and decode via decodeBlk to yield all three
+      // records with correct labels + secrets + roles.
+      final fp = (await BackupFiles.fingerprint(wire.data!))!;
+      final packageFile = BackupText.read(BackupFiles.formatPackage(
         wire: wire.data!,
-        pakeWords: pakeWords,
+        fingerprint: fp,
         generatedAt: DateTime.now(),
-      );
-      final parsed = BackupBundle.parse(formattedBundle);
+      ));
+      final wordsFile = BackupText.read(BackupFiles.formatWords(
+        pakeWords: pakeWords,
+        fingerprint: fp,
+        generatedAt: DateTime.now(),
+      ));
       final decoded = await TransportPackage.decodeBlk(
-        parsed.wire,
-        pakeWords: parsed.pakeWords,
+        packageFile.wire!,
+        pakeWords: wordsFile.pakeWords!,
       );
       expect(decoded.records, hasLength(3));
       final decodedLabels = decoded.records.map((r) => r.label).toSet();

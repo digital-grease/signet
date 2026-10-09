@@ -100,6 +100,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  # Test fakes for the share sheet and temporary directory (backup export
+  # tests). Already resolved transitively; listed so tests may import them.
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
+  share_plus_platform_interface: ^7.2.0
   # Generates the full iOS + Android icon asset set from a single source
   # image. Config lives in flutter_launcher_icons.yaml alongside this
   # file. Run: `dart run flutter_launcher_icons`.

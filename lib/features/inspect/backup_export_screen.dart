@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
@@ -11,6 +8,7 @@ import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import 'two_step_backup.dart';
 
 /// Paper-mnemonic export for lost-phone recovery. Mints a fresh 8-word
 /// PAKE secret, encodes the existing relationship as an LPR package, and
@@ -72,12 +70,15 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
         sharedSecret: secret,
         pakeWords: pakeWords,
       );
+      final fingerprint = await BackupFiles.fingerprint(wire);
       if (!mounted) return;
       setState(() {
         _generated = _Generated(
           relationship: relationship,
           pakeWords: pakeWords,
           wire: wire,
+          fingerprint: fingerprint!,
+          generatedAt: DateTime.now(),
         );
       });
     } catch (e) {
@@ -161,138 +162,7 @@ class _BackupContent extends StatelessWidget {
           headline: l10n.commonStoreSeparatelyHeader,
           body: l10n.backupExportStoreSeparatelyBody,
         ),
-        const SizedBox(height: 24),
-        _SectionHeader(l10n.commonPakeSecretHeader),
-        const SizedBox(height: 6),
-        Text(
-          l10n.backupExportWordsInstruction,
-          style: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: scheme.surfaceContainerHighest,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (var i = 0; i < generated.pakeWords.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: <Widget>[
-                      SizedBox(
-                        width: 28,
-                        child: Text(
-                          '${i + 1}.',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          generated.pakeWords[i],
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        _SectionHeader(l10n.commonBackupPackageHeader),
-        const SizedBox(height: 6),
-        Text(
-          l10n.backupExportPackageInstruction,
-          style: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.white,
-            child: QrImageView(
-              data: generated.wire,
-              size: 240,
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.all(8),
-              gapless: true,
-              errorCorrectionLevel: QrErrorCorrectLevel.M,
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: scheme.surfaceContainerHighest,
-          child: SelectableText(
-            generated.wire,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton.icon(
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                await Clipboard.setData(ClipboardData(text: generated.wire));
-                messenger.showSnackBar(
-                  SnackBar(
-                    content:
-                        Text(l10n.commonPackageCopiedSnackbar),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(l10n.commonCopyPackage),
-            ),
-            TextButton.icon(
-              onPressed: () async {
-                // Hand the whole bundle to the platform share sheet so
-                // the user can save it anywhere (Files, an encrypted
-                // note, Bluetooth to another device, etc.). We do NOT
-                // pick cloud destinations for them — the user does.
-                final bundle = BackupBundle.format(
-                  peerLabel: generated.relationship.label,
-                  wire: generated.wire,
-                  pakeWords: generated.pakeWords,
-                  generatedAt: DateTime.now(),
-                );
-                await SharePlus.instance.share(
-                  ShareParams(
-                    text: bundle,
-                    subject: l10n.backupExportShareSubject(
-                      generated.relationship.label,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.ios_share),
-              label: Text(l10n.commonSharePackage),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         _WarningBlock(
           color: scheme.secondary,
           bg: scheme.surfaceContainerHighest,
@@ -301,9 +171,14 @@ class _BackupContent extends StatelessWidget {
           body: l10n.backupExportRememberBody(generated.relationship.label),
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: () => context.go('/'),
-          child: Text(l10n.commonIveSavedIt),
+        // Package and words are saved in two separate steps and never
+        // travel together (plan Phase 2, bug S1).
+        TwoStepBackupSaver(
+          wire: generated.wire,
+          pakeWords: generated.pakeWords,
+          fingerprint: generated.fingerprint,
+          generatedAt: generated.generatedAt,
+          onDone: () => context.go('/'),
         ),
       ],
     );
@@ -362,28 +237,13 @@ class _Generated {
     required this.relationship,
     required this.pakeWords,
     required this.wire,
+    required this.fingerprint,
+    required this.generatedAt,
   });
 
   final Relationship relationship;
   final List<String> pakeWords;
   final String wire;
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 10,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-        letterSpacing: 2,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
+  final String fingerprint;
+  final DateTime generatedAt;
 }

@@ -152,17 +152,101 @@ abstract class AppLocalizations {
   /// **'Package copied to clipboard'**
   String get commonPackageCopiedSnackbar;
 
-  /// Text button with share icon on backup export and bulk backup export; opens the OS share sheet.
+  /// Two-step backup export: first step header. Keep the ' //' operator styling.
   ///
   /// In en, this message translates to:
-  /// **'Share package'**
-  String get commonSharePackage;
+  /// **'STEP 1 // SAVE THE PACKAGE'**
+  String get backupStep1Header;
 
-  /// Filled button at the bottom of backup export / bulk export after the user has stored the paper backup.
+  /// Two-step backup export: what the package is and where to keep it.
   ///
   /// In en, this message translates to:
-  /// **'I\'VE SAVED IT'**
-  String get commonIveSavedIt;
+  /// **'Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.'**
+  String get backupStep1Body;
+
+  /// Step 1 text for a bulk backup, which has no QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.'**
+  String get backupStep1BodyNoQr;
+
+  /// Opens the share sheet with the PACKAGE file (no words in it).
+  ///
+  /// In en, this message translates to:
+  /// **'Save package file'**
+  String get backupSavePackageFile;
+
+  /// Marks step 1 done when the user saved the package without the buttons (for example printed or photographed the QR).
+  ///
+  /// In en, this message translates to:
+  /// **'I saved it another way'**
+  String get backupSavedAnotherWay;
+
+  /// Two-step backup export: second step header. Keep the ' //' operator styling.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE'**
+  String get backupStep2Header;
+
+  /// Shown in step 2 until step 1 is done; the words stay hidden until then.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish step 1 first. The 8 words appear here after the package is saved.'**
+  String get backupStep2Locked;
+
+  /// Two-step backup export: paper is the main way to keep the words.
+  ///
+  /// In en, this message translates to:
+  /// **'Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.'**
+  String get backupStep2Body;
+
+  /// Primary button in step 2: marks the words as saved on paper.
+  ///
+  /// In en, this message translates to:
+  /// **'I wrote them on paper'**
+  String get backupWroteOnPaper;
+
+  /// Secondary button in step 2: opens the share sheet with the WORDS file (no package in it).
+  ///
+  /// In en, this message translates to:
+  /// **'Save words file instead'**
+  String get backupSaveWordsFile;
+
+  /// Shown under the words-file button.
+  ///
+  /// In en, this message translates to:
+  /// **'If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.'**
+  String get backupWordsFileWarning;
+
+  /// Six-digit fingerprint shared by the PACKAGE and WORDS files so they can be matched later.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint: {fingerprint} (the package and the words show the same one)'**
+  String backupFingerprintLine(String fingerprint);
+
+  /// Marker next to a finished step header.
+  ///
+  /// In en, this message translates to:
+  /// **'DONE'**
+  String get backupStepDone;
+
+  /// Final button, enabled once both steps are done.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'VE SAVED BOTH'**
+  String get backupSavedBoth;
+
+  /// Snackbar when writing or sharing a backup file fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the share sheet. Try again.'**
+  String get backupShareFailed;
+
+  /// Snackbar after copying the backup package; copying alone does not finish step 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".'**
+  String get backupPackageCopiedSnackbar;
 
   /// Red warning block headline on backup export and bulk export. Keep the ' //' structure.
   ///
@@ -181,12 +265,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PAKE SECRET //'**
   String get commonPakeSecretHeader;
-
-  /// Section header above the package wire text / QR on backup export and import screens. Keep the ' //' structure.
-  ///
-  /// In en, this message translates to:
-  /// **'BACKUP PACKAGE //'**
-  String get commonBackupPackageHeader;
 
   /// Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure.
   ///
@@ -851,8 +929,20 @@ abstract class AppLocalizations {
   /// FAQ answer 6.
   ///
   /// In en, this message translates to:
-  /// **'If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.'**
+  /// **'If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.'**
   String get faqA6;
+
+  /// FAQ question about storing the two backup parts.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I keep a backup safe?'**
+  String get faqQ12;
+
+  /// FAQ answer about storing the two backup parts.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.'**
+  String get faqA12;
 
   /// FAQ question 7.
   ///
@@ -899,7 +989,7 @@ abstract class AppLocalizations {
   /// FAQ answer 10.
   ///
   /// In en, this message translates to:
-  /// **'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.'**
+  /// **'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.'**
   String get faqA10;
 
   /// FAQ question 11.
@@ -1559,37 +1649,19 @@ abstract class AppLocalizations {
   /// Explanatory body under the export headline.
   ///
   /// In en, this message translates to:
-  /// **'Writing this down lets you restore this pairing on a new phone if you lose this one. {label}\'s phone won\'t know anything changed.'**
+  /// **'A backup lets you restore this pairing on a new phone if you lose this one. {label}\'s phone won\'t know anything changed.'**
   String backupExportIntro(String label);
 
   /// Body of the STORE THESE SEPARATELY warning on single export.
   ///
   /// In en, this message translates to:
-  /// **'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.'**
+  /// **'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.'**
   String get backupExportStoreSeparatelyBody;
-
-  /// Instruction above the numbered PAKE word list on single export.
-  ///
-  /// In en, this message translates to:
-  /// **'Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.'**
-  String get backupExportWordsInstruction;
-
-  /// Instruction above the package QR + text on single export.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.'**
-  String get backupExportPackageInstruction;
-
-  /// Subject line handed to the OS share sheet for a single backup.
-  ///
-  /// In en, this message translates to:
-  /// **'Signet backup - {label}'**
-  String backupExportShareSubject(String label);
 
   /// Body of the REMEMBER warning on single export.
   ///
   /// In en, this message translates to:
-  /// **'If this paper is ever found by someone else, UNPAIR {label} immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.'**
+  /// **'If someone else ever finds both the package and the 8 words, unpair {label} right away and pair again in person. The backup holds the same secret your current pairing uses.'**
   String backupExportRememberBody(String label);
 
   /// AppBar title of the backup-import unlock pane.
@@ -1616,23 +1688,71 @@ abstract class AppLocalizations {
   /// **'Could not read the selected file. Try picking it again.'**
   String get backupImportFileReadError;
 
-  /// Error when the picked file fails bundle parsing.
-  ///
-  /// In en, this message translates to:
-  /// **'File is not a valid Signet backup: {message}'**
-  String backupImportInvalidFileError(String message);
-
   /// Validation error when unlocking with an empty package field.
   ///
   /// In en, this message translates to:
-  /// **'Paste your backup package.'**
+  /// **'Load or paste your backup package first.'**
   String get backupImportPasteEmptyError;
 
   /// Validation error when the 8 PAKE words aren't complete on backup import.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 8 PAKE words you stored separately.'**
+  /// **'Enter all 8 backup words.'**
   String get backupImportWordsIncompleteError;
+
+  /// Restore screen: header above the package input.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 1 // THE PACKAGE'**
+  String get backupImportPackageHeader;
+
+  /// Restore screen: opens the file picker for the PACKAGE file.
+  ///
+  /// In en, this message translates to:
+  /// **'Load PACKAGE file'**
+  String get backupImportLoadPackageFile;
+
+  /// Restore screen: header above the 8-word input.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 2 // THE 8 WORDS'**
+  String get backupImportWordsHeader;
+
+  /// Restore screen: opens the file picker for the WORDS file.
+  ///
+  /// In en, this message translates to:
+  /// **'Load WORDS file'**
+  String get backupImportLoadWordsFile;
+
+  /// The package input was given the words file.
+  ///
+  /// In en, this message translates to:
+  /// **'Those are the 8 words, not the package. Put them under step 2.'**
+  String get backupImportIsWordsError;
+
+  /// The words input was given the package file.
+  ///
+  /// In en, this message translates to:
+  /// **'That is the package, not the words. Put it under step 1.'**
+  String get backupImportIsPackageError;
+
+  /// The words input was given text without 8 backup words.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup words found there. Look for a line of 8 words.'**
+  String get backupImportNoWordsError;
+
+  /// The words file's fingerprint does not match the package. Fingerprints are 6 digits shown as "123 456".
+  ///
+  /// In en, this message translates to:
+  /// **'These words belong to a different backup (package {package}, words {words}). Find the words with fingerprint {package}.'**
+  String backupImportFingerprintMismatchError(String package, String words);
+
+  /// Shown when an old combined backup file is loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.'**
+  String get backupImportLegacyNotice;
 
   /// Error when the payload type can't be recognized.
   ///
@@ -1649,25 +1769,19 @@ abstract class AppLocalizations {
   /// Error when paste-from-clipboard finds nothing on backup import.
   ///
   /// In en, this message translates to:
-  /// **'Clipboard is empty. Copy your backup package first.'**
+  /// **'The clipboard is empty.'**
   String get backupImportClipboardEmptyError;
 
   /// Helper text above the package input on backup import; the wire prefix stays literal.
   ///
   /// In en, this message translates to:
-  /// **'Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.'**
+  /// **'Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".'**
   String get backupImportPasteInstruction;
-
-  /// Button opening the file picker on backup import.
-  ///
-  /// In en, this message translates to:
-  /// **'Load from file'**
-  String get backupImportLoadFromFileButton;
 
   /// Helper text above the PAKE word input on backup import.
   ///
   /// In en, this message translates to:
-  /// **'The 8 words from your paper or password manager — stored separately from the package above.'**
+  /// **'Type the 8 words you wrote down, or load the WORDS file if you saved one.'**
   String get backupImportWordsInstruction;
 
   /// FilledButton unlocking the pasted backup.
@@ -1793,7 +1907,7 @@ abstract class AppLocalizations {
   /// Body of the STORE THESE SEPARATELY warning on bulk export (every-pairing variant).
   ///
   /// In en, this message translates to:
-  /// **'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.'**
+  /// **'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.'**
   String get bulkBackupExportStoreSeparatelyBody;
 
   /// Instruction above the PAKE word list on bulk export.
@@ -1802,29 +1916,11 @@ abstract class AppLocalizations {
   /// **'Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.'**
   String get bulkBackupExportWordsInstruction;
 
-  /// Copy button next to the PAKE words on bulk export.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy PAKE'**
-  String get bulkBackupExportCopyPakeButton;
-
-  /// SnackBar after copying the PAKE words on bulk export.
-  ///
-  /// In en, this message translates to:
-  /// **'PAKE words copied to clipboard'**
-  String get bulkBackupExportPakeCopiedSnackbar;
-
   /// Instruction above the bulk package text on bulk export.
   ///
   /// In en, this message translates to:
   /// **'The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.'**
   String get bulkBackupExportPackageInstruction;
-
-  /// peerLabel embedded in the shared bulk-bundle text.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 relationship (bulk)} other{{count} relationships (bulk)}}'**
-  String bulkBackupExportShareLabel(int count);
 
   /// Subject line handed to the OS share sheet for a bulk backup.
   ///
@@ -1835,7 +1931,7 @@ abstract class AppLocalizations {
   /// Body of the REMEMBER warning on bulk export.
   ///
   /// In en, this message translates to:
-  /// **'If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.'**
+  /// **'If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.'**
   String get bulkBackupExportRememberBody;
 
   /// AppBar title of the bulk-import preview pane.

@@ -1,9 +1,7 @@
 // Loading a backup from a file (plan Task 7.5 D2 + bug S11): file_picker 13
 // API, size cap before reading, UTF-8 decoding with BOM handling.
 
-import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -17,82 +15,13 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/features/inspect/backup_import_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
+import '../support/fake_file_picker.dart';
 import '../support/fake_secure_store.dart';
 
 const _pake = <String>[
   'abandon', 'ability', 'able', 'about',
   'above', 'absent', 'absorb', 'abstract',
 ];
-
-/// A picked file whose size may or may not be known up front, served as a
-/// stream of chunks. Records how many chunks were read.
-final class _FakeFile extends PlatformFile {
-  _FakeFile(this.chunks, {this.knownLength});
-
-  final List<List<int>> chunks;
-  final int? knownLength;
-  int chunksRead = 0;
-
-  @override
-  String get name => 'backup.txt';
-
-  @override
-  Uri get uri => Uri.parse('content://test/backup.txt');
-
-  @override
-  Never get xFile => throw UnimplementedError();
-
-  @override
-  int? lengthSync() => knownLength;
-
-  @override
-  Future<int?> length() async =>
-      chunks.fold<int>(0, (n, c) => n + c.length);
-
-  @override
-  Future<Uint8List> readAsBytes() async =>
-      Uint8List.fromList([for (final c in chunks) ...c]);
-
-  @override
-  Stream<Uint8List> readAsByteStream() async* {
-    for (final c in chunks) {
-      chunksRead++;
-      yield Uint8List.fromList(c);
-    }
-  }
-}
-
-/// Single-file picker that returns [result] (null = cancelled) or throws
-/// [error], and counts cache cleanups.
-class _FakePicker extends FilePickerPlatform {
-  _FakePicker(this.result, {this.error});
-
-  final PlatformFile? result;
-  final Object? error;
-  int cleared = 0;
-
-  @override
-  Future<PlatformFile?> pickFile({
-    String? dialogTitle,
-    String? initialDirectory,
-    FileType type = FileType.any,
-    List<String>? allowedExtensions,
-    dynamic Function(FilePickerStatus)? onFileLoading,
-    int compressionQuality = 0,
-    AndroidOptions androidOptions = const AndroidOptions(),
-    DarwinOptions darwinOptions = const DarwinOptions(),
-    WindowsOptions windowsOptions = const WindowsOptions(),
-    LinuxOptions linuxOptions = const LinuxOptions(),
-    WebOptions webOptions = const WebOptions(),
-  }) async {
-    final e = error;
-    if (e != null) throw e;
-    return result;
-  }
-
-  @override
-  Future<void> clearTemporaryFiles() async => cleared++;
-}
 
 Widget _wrap() {
   final router = GoRouter(
@@ -122,7 +51,7 @@ Future<String> _bundleText() async {
     sharedSecret: List<int>.generate(32, (i) => i),
     pakeWords: _pake,
   );
-  return BackupBundle.format(
+  return LegacyBackupBundle.format(
     peerLabel: 'Mom',
     wire: wire,
     pakeWords: _pake,
@@ -133,8 +62,8 @@ Future<String> _bundleText() async {
 Future<void> _loadFromFile(WidgetTester tester) async {
   await tester.pumpWidget(_wrap());
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('Load from file'));
-  await tester.tap(find.text('Load from file'));
+  await tester.ensureVisible(find.text('Load PACKAGE file'));
+  await tester.tap(find.text('Load PACKAGE file'));
   await tester.pumpAndSettle();
 }
 
@@ -161,7 +90,7 @@ void main() {
   testWidgets('a saved backup file loads, and the cached copy is cleared',
       (tester) async {
     final text = await _bundleText();
-    final picker = _FakePicker(_FakeFile([utf8.encode(text)]));
+    final picker = FakeFilePicker([FakePickedFile([utf8.encode(text)])]);
     FilePickerPlatform.instance = picker;
     await _loadFromFile(tester);
     expect(_fieldText(tester), startsWith('signet:tp1:'));
@@ -176,18 +105,20 @@ void main() {
     // not found. (A BOM before a "#" comment line was harmless either way.)
     final text = await _bundleText();
     final body = text.split('\n').where((l) => !l.startsWith('#')).join('\n');
-    FilePickerPlatform.instance = _FakePicker(_FakeFile([
-      [0xEF, 0xBB, 0xBF, ...utf8.encode(body)],
-    ]));
+    FilePickerPlatform.instance = FakeFilePicker([
+      FakePickedFile([
+        [0xEF, 0xBB, 0xBF, ...utf8.encode(body)],
+      ]),
+    ]);
     await _loadFromFile(tester);
     expect(_fieldText(tester), startsWith('signet:tp1:'));
   });
 
   testWidgets('an oversized file with a known size is refused unread',
       (tester) async {
-    final file = _FakeFile([List<int>.filled(16, 0x41)],
+    final file = FakePickedFile([List<int>.filled(16, 0x41)],
         knownLength: 10 * 1024 * 1024);
-    final picker = _FakePicker(file);
+    final picker = FakeFilePicker([file]);
     FilePickerPlatform.instance = picker;
     await _loadFromFile(tester);
     expect(find.textContaining('too large to be a Signet backup'),
@@ -199,10 +130,10 @@ void main() {
   testWidgets('an oversized file of unknown size stops reading at the cap',
       (tester) async {
     // 40 chunks of 64 KiB = 2.5 MiB, size not reported up front.
-    final file = _FakeFile(
+    final file = FakePickedFile(
       List<List<int>>.generate(40, (_) => List<int>.filled(64 * 1024, 0x41)),
     );
-    FilePickerPlatform.instance = _FakePicker(file);
+    FilePickerPlatform.instance = FakeFilePicker([file]);
     await _loadFromFile(tester);
     expect(find.textContaining('too large to be a Signet backup'),
         findsOneWidget);
@@ -212,7 +143,7 @@ void main() {
 
   testWidgets('a picker error shows a plain message and still cleans up',
       (tester) async {
-    final picker = _FakePicker(null,
+    final picker = FakeFilePicker([null],
         error: StateError('already_active /data/user/0/cache/file_picker'));
     FilePickerPlatform.instance = picker;
     await _loadFromFile(tester);
@@ -224,7 +155,7 @@ void main() {
   });
 
   testWidgets('cancelling the picker changes nothing', (tester) async {
-    FilePickerPlatform.instance = _FakePicker(null);
+    FilePickerPlatform.instance = FakeFilePicker([null]);
     await _loadFromFile(tester);
     expect(_fieldText(tester), isEmpty);
   });
