@@ -23,6 +23,7 @@ import 'core/prefs/settings_controller.dart';
 import 'core/providers.dart';
 import 'core/storage/secure_store.dart';
 import 'dev/mock_contacts.dart';
+import 'shared/secure_clipboard.dart';
 import 'shared/share_text_file.dart';
 
 Future<void> main() async {
@@ -52,6 +53,11 @@ Future<void> main() async {
     // on it.
     unawaited(sweepSharedExports());
     unawaited(_clearFilePickerCache());
+    // A package copied in a previous run that was killed before its
+    // clipboard clear ran. After the first frame, when the window is
+    // likely to have focus (Android hides the clipboard otherwise).
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(SecureClipboard.clearLeftovers()));
 
     // ---- Crash logging plumbing ----
     final cipher = CrashlogCipher();

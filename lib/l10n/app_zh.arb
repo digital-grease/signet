@@ -17,7 +17,6 @@
 
   "commonCopyPackage": "复制传输包",
 
-  "commonPackageCopiedSnackbar": "传输包已复制到剪贴板",
 
 
 
@@ -48,7 +47,10 @@
 
   "backupSavedBoth": "两者都已保存",
   "backupShareFailed": "无法打开分享面板。请重试。",
-  "backupPackageCopiedSnackbar": "传输包已复制。请把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。",
+  "commonCopiedProtected": "已复制。一分钟后，或你下次回到 Signet 时，Signet 会把它从剪贴板清除。",
+  "commonCopiedPlain": "已复制到剪贴板。",
+  "commonCopyFailed": "无法复制，请重试。",
+  "backupPackageCopiedSnackbar": "{copied}请现在把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。",
 
   "commonStoreSeparatelyHeader": "分开存放 //",
 
@@ -471,7 +473,6 @@
 
   "pairTransportInCopyResponseButton": "复制响应包",
 
-  "pairTransportInResponseCopiedSnackbar": "响应包已复制到剪贴板",
 
   "pairTransportOutNewPackageTitle": "新建传输包",
 
@@ -487,9 +488,7 @@
 
   "pairTransportOutOutgoingInstruction": "把这段文本发给 {label}。加密邮件、Signal、纸质信使、打印的二维码 — 任何渠道都可以。但只有同时拥有下面 8 个 PAKE 单词的人才能使用它。",
 
-  "pairTransportOutCopyWordsButton": "复制单词",
 
-  "pairTransportOutWordsCopiedSnackbar": "PAKE 单词已复制",
 
   "pairTransportOutChannelWarning": "这 8 个单词务必通过与传输包不同的渠道发送。绝不要使用别人提供的电话或号码。纸质、事先见面的约定，或另一段已配对的 Signet 关系，都比口头念出来更安全。",
 

@@ -146,12 +146,6 @@ abstract class AppLocalizations {
   /// **'Copy package'**
   String get commonCopyPackage;
 
-  /// SnackBar after copying the package wire text.
-  ///
-  /// In en, this message translates to:
-  /// **'Package copied to clipboard'**
-  String get commonPackageCopiedSnackbar;
-
   /// Two-step backup export: first step header. Keep the ' //' operator styling.
   ///
   /// In en, this message translates to:
@@ -242,11 +236,29 @@ abstract class AppLocalizations {
   /// **'Could not open the share sheet. Try again.'**
   String get backupShareFailed;
 
-  /// Snackbar after copying the backup package; copying alone does not finish step 1.
+  /// Snackbar after copying a package to the clipboard with timed clearing. On Android the clear runs only while Signet is open, hence the second clause.
   ///
   /// In en, this message translates to:
-  /// **'Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".'**
-  String get backupPackageCopiedSnackbar;
+  /// **'Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.'**
+  String get commonCopiedProtected;
+
+  /// Snackbar after a copy that Signet cannot clear later.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to the clipboard.'**
+  String get commonCopiedPlain;
+
+  /// Snackbar when copying to the clipboard failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Try again.'**
+  String get commonCopyFailed;
+
+  /// Snackbar after copying the backup package; copying alone does not finish step 1. {copied} is commonCopiedProtected or commonCopiedPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'{copied} Paste it somewhere off this phone now, then tap \"I saved it another way\".'**
+  String backupPackageCopiedSnackbar(String copied);
 
   /// Red warning block headline on backup export and bulk export. Keep the ' //' structure.
   ///
@@ -1514,12 +1526,6 @@ abstract class AppLocalizations {
   /// **'Copy response'**
   String get pairTransportInCopyResponseButton;
 
-  /// SnackBar after copying the response package.
-  ///
-  /// In en, this message translates to:
-  /// **'Response copied to clipboard'**
-  String get pairTransportInResponseCopiedSnackbar;
-
   /// AppBar title of the transport-out setup phase.
   ///
   /// In en, this message translates to:
@@ -1561,18 +1567,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send this text to {label}. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.'**
   String pairTransportOutOutgoingInstruction(String label);
-
-  /// Copy button next to the 8 PAKE words on transport out.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy words'**
-  String get pairTransportOutCopyWordsButton;
-
-  /// SnackBar after copying the PAKE words on transport out.
-  ///
-  /// In en, this message translates to:
-  /// **'PAKE words copied'**
-  String get pairTransportOutWordsCopiedSnackbar;
 
   /// Warning box about out-of-band PAKE delivery on transport out.
   ///

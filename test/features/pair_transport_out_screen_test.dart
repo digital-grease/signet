@@ -10,8 +10,10 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_out_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/secure_clipboard_recorder.dart';
 
 Widget _wrap({required FakeSecureStore store}) {
   final router = GoRouter(
@@ -133,6 +135,9 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Only the package can be copied; the 8 words cannot (bug R4).
+      expect(find.byIcon(Icons.copy), findsOneWidget);
+      expect(find.text('Copy package'), findsOneWidget);
     },
   );
 
@@ -273,4 +278,24 @@ void main() {
       );
     },
   );
+
+  testWidgets('Copy package uses the sensitive, timed clipboard',
+      (tester) async {
+    final clip = recordClipboard();
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Copy package'));
+    await tester.tap(find.text('Copy package'));
+    await tester.pumpAndSettle();
+
+    expect(clip.sensitive.single, startsWith('signet:tp1:'));
+    expect(clip.plain, isEmpty);
+    expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
+    SecureClipboard.resetForTesting();
+  });
 }

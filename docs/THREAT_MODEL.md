@@ -370,6 +370,28 @@ mode.
   HDMI mirror sessions (acknowledged limit; iOS offers no user-space
   override).
 
+Clipboard (v0.3.7): packages that can be copied (a backup package, a
+long-distance pairing package or response) go through
+`lib/shared/secure_clipboard.dart`. The 8 PAKE words are never offered
+for copying.
+
+- Android: the clip is marked sensitive
+  (`android.content.extra.IS_SENSITIVE`), a hint that the system copy
+  preview and most keyboards honour; a keyboard that ignores it, or that
+  already copied the clip into its own history, is outside Signet's
+  control. After 60 seconds the clip is cleared, but only if it is
+  still the newest clip, which is checked by timestamp from the clip
+  description without reading the content (no "pasted from your
+  clipboard" toast). Android hides the clipboard from apps without
+  focus, so a clear that falls due while the user is elsewhere runs
+  when Signet next has focus. The clip's timestamp is kept in app
+  preferences (no content), so this also works after the process was
+  killed. Until then the package stays on the clipboard (acknowledged
+  limit).
+- iOS: `localOnly` (no Universal Clipboard to other devices) with a
+  60-second `expirationDate`; cleared early only if the pasteboard's
+  change count shows nothing was copied since.
+
 ### 3.6 Crash-log shipping (in-app issue reporter)
 
 Signet runs an in-app crash detector that, on next launch after an

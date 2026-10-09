@@ -33,9 +33,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonCopyPackage => '复制传输包';
 
   @override
-  String get commonPackageCopiedSnackbar => '传输包已复制到剪贴板';
-
-  @override
   String get backupStep1Header => '第 1 步 // 保存传输包';
 
   @override
@@ -87,8 +84,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupShareFailed => '无法打开分享面板。请重试。';
 
   @override
-  String get backupPackageCopiedSnackbar =>
-      '传输包已复制。请把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。';
+  String get commonCopiedProtected =>
+      '已复制。一分钟后，或你下次回到 Signet 时，Signet 会把它从剪贴板清除。';
+
+  @override
+  String get commonCopiedPlain => '已复制到剪贴板。';
+
+  @override
+  String get commonCopyFailed => '无法复制，请重试。';
+
+  @override
+  String backupPackageCopiedSnackbar(String copied) {
+    return '$copied请现在把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。';
+  }
 
   @override
   String get commonStoreSeparatelyHeader => '分开存放 //';
@@ -795,9 +803,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairTransportInCopyResponseButton => '复制响应包';
 
   @override
-  String get pairTransportInResponseCopiedSnackbar => '响应包已复制到剪贴板';
-
-  @override
   String get pairTransportOutNewPackageTitle => '新建传输包';
 
   @override
@@ -822,12 +827,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String pairTransportOutOutgoingInstruction(String label) {
     return '把这段文本发给 $label。加密邮件、Signal、纸质信使、打印的二维码 — 任何渠道都可以。但只有同时拥有下面 8 个 PAKE 单词的人才能使用它。';
   }
-
-  @override
-  String get pairTransportOutCopyWordsButton => '复制单词';
-
-  @override
-  String get pairTransportOutWordsCopiedSnackbar => 'PAKE 单词已复制';
 
   @override
   String get pairTransportOutChannelWarning =>

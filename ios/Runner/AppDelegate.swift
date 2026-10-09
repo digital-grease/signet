@@ -29,6 +29,11 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var secureChannel: FlutterMethodChannel?
+  private var clipboardChannel: FlutterMethodChannel?
+  /// `UIPasteboard.changeCount` right after our last copy. Comparing it
+  /// tells whether the pasteboard still holds our copy without reading it
+  /// (reading would show iOS's paste-permission prompt).
+  private var ourChangeCount: Int?
   private var overlayView: UIVisualEffectView?
   private var isSecure = false
   private var willResignObserver: NSObjectProtocol?
@@ -51,7 +56,9 @@ import UIKit
     // declaration `- (NSObject<FlutterBinaryMessenger>*)messenger;`
     // imports into Swift as a zero-arg method, not a property — so
     // we invoke with `()`.
-    registerSecureChannel(with: engineBridge.applicationRegistrar.messenger())
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    registerSecureChannel(with: messenger)
+    registerClipboardChannel(with: messenger)
   }
 
   private func registerSecureChannel(with messenger: FlutterBinaryMessenger) {
@@ -76,6 +83,56 @@ import UIKit
       }
     }
     self.secureChannel = channel
+  }
+
+  /// Secret-bearing copies (Dart `SecureClipboard`): kept on this device
+  /// (no Universal Clipboard) and expiring on their own; `clearIfOurs`
+  /// removes them early only if nothing was copied since.
+  private func registerClipboardChannel(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "dev.digitalgrease.signet/clipboard",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+      let pasteboard = UIPasteboard.general
+      switch call.method {
+      case "copySensitive":
+        guard let args = call.arguments as? [String: Any],
+              let text = args["text"] as? String else {
+          result(FlutterError(code: "bad_args", message: "text is required", details: nil))
+          return
+        }
+        let expiresInMs = (args["expiresInMs"] as? Int) ?? 60_000
+        pasteboard.setItems(
+          [["public.utf8-plain-text": text]],
+          options: [
+            .localOnly: true,
+            .expirationDate: Date().addingTimeInterval(Double(expiresInMs) / 1000),
+          ]
+        )
+        self.ourChangeCount = pasteboard.changeCount
+        result("tracked")
+      case "clearIfOurs":
+        guard let ours = self.ourChangeCount else {
+          result("notOurs")
+          return
+        }
+        self.ourChangeCount = nil
+        if pasteboard.changeCount == ours {
+          pasteboard.setItems([], options: [:])
+          result("cleared")
+        } else {
+          result("notOurs")
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    self.clipboardChannel = channel
   }
 
   private func armSecureMode() {

@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signet/features/inspect/two_step_backup.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/secure_clipboard.dart';
 
 const _wire = 'signet:tp1:AQIDBAUGBwgJCgsMDQ4PEA';
 const _words = <String>[
@@ -21,6 +22,7 @@ const _words = <String>[
   'above', 'absent', 'absorb', 'abstract',
 ];
 const _fp = '123 456';
+const _secureClipboard = MethodChannel('dev.digitalgrease.signet/clipboard');
 
 void main() {
   late List<({String name, String content})> shared;
@@ -47,19 +49,28 @@ void main() {
     return true;
   }
 
-  /// Records every text Signet puts on the clipboard.
+  /// Records every text Signet puts on the clipboard, through the
+  /// sensitive-copy channel (prefixed "sensitive:") or the plain one.
   List<String> recordClipboard() {
     final copied = <String>[];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'Clipboard.setData') {
         copied.add((call.arguments as Map)['text'] as String);
       }
       return null;
     });
-    addTearDown(() => TestDefaultBinaryMessengerBinding
-        .instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform, null));
+    messenger.setMockMethodCallHandler(_secureClipboard, (call) async {
+      if (call.method == 'copySensitive') {
+        copied.add('sensitive:${(call.arguments as Map)['text']}');
+      }
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+      messenger.setMockMethodCallHandler(_secureClipboard, null);
+    });
     return copied;
   }
 
@@ -157,7 +168,8 @@ void main() {
     await tapAndSettle(tester, find.text('Copy package'));
     await tapAndSettle(tester, find.text('I saved it another way'));
     await tapAndSettle(tester, find.text('I wrote them on paper'));
-    expect(copied, <String>[_wire]);
+    expect(copied, <String>['sensitive:$_wire'],
+        reason: 'the package goes through the sensitive copy, nothing else');
     for (final text in copied) {
       for (final w in _words) {
         expect(text.split(RegExp(r'\W+')), isNot(contains(w)));
@@ -165,6 +177,7 @@ void main() {
     }
     expect(find.byIcon(Icons.copy), findsOneWidget,
         reason: 'a single copy action: the package');
+    SecureClipboard.resetForTesting();
   });
 
   testWidgets('copying the package does not finish step 1', (tester) async {
@@ -176,6 +189,7 @@ void main() {
         reason: 'the clipboard is not a place the package is saved');
     expect(find.textContaining('Paste it somewhere off this phone'),
         findsOneWidget);
+    SecureClipboard.resetForTesting();
   });
 
   testWidgets('backing out of the share sheet does not finish the step',

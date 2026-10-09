@@ -10,8 +10,10 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_in_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/secure_clipboard_recorder.dart';
 
 const goodPake = <String>[
   'abandon',
@@ -286,4 +288,32 @@ void main() {
       expect(decoded.version, version);
     });
   }
+
+  testWidgets('Copy response uses the sensitive, timed clipboard',
+      (tester) async {
+    final clip = recordClipboard();
+    final kp = await PairingHandshake.generateEphemeralKeyPair();
+    final wire = await TransportPackage.encodeLdp(
+      publicKey: kp.publicKey,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Copy response'));
+    await tester.tap(find.text('Copy response'));
+    await tester.pumpAndSettle();
+
+    expect(clip.sensitive.single, startsWith('signet:tp1:'));
+    expect(clip.plain, isEmpty);
+    expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
+    SecureClipboard.resetForTesting();
+  });
 }

@@ -33,9 +33,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCopyPackage => 'Copy package';
 
   @override
-  String get commonPackageCopiedSnackbar => 'Package copied to clipboard';
-
-  @override
   String get backupStep1Header => 'STEP 1 // SAVE THE PACKAGE';
 
   @override
@@ -88,8 +85,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupShareFailed => 'Could not open the share sheet. Try again.';
 
   @override
-  String get backupPackageCopiedSnackbar =>
-      'Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".';
+  String get commonCopiedProtected =>
+      'Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.';
+
+  @override
+  String get commonCopiedPlain => 'Copied to the clipboard.';
+
+  @override
+  String get commonCopyFailed => 'Could not copy. Try again.';
+
+  @override
+  String backupPackageCopiedSnackbar(String copied) {
+    return '$copied Paste it somewhere off this phone now, then tap \"I saved it another way\".';
+  }
 
   @override
   String get commonStoreSeparatelyHeader => 'STORE THESE SEPARATELY //';
@@ -828,10 +836,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairTransportInCopyResponseButton => 'Copy response';
 
   @override
-  String get pairTransportInResponseCopiedSnackbar =>
-      'Response copied to clipboard';
-
-  @override
   String get pairTransportOutNewPackageTitle => 'NEW PACKAGE';
 
   @override
@@ -856,12 +860,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String pairTransportOutOutgoingInstruction(String label) {
     return 'Send this text to $label. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.';
   }
-
-  @override
-  String get pairTransportOutCopyWordsButton => 'Copy words';
-
-  @override
-  String get pairTransportOutWordsCopiedSnackbar => 'PAKE words copied';
 
   @override
   String get pairTransportOutChannelWarning =>

@@ -12,6 +12,7 @@ import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
@@ -390,16 +391,14 @@ class _PairTransportInScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              final copied = l10n.pairTransportInResponseCopiedSnackbar;
-              await Clipboard.setData(
-                ClipboardData(text: unlocked.responseWire),
-              );
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(copied),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              final result = await SecureClipboard.copy(unlocked.responseWire);
+              messenger.showSnackBar(SnackBar(
+                content: Text(switch (result) {
+                  SecureCopyResult.protected => l10n.commonCopiedProtected,
+                  SecureCopyResult.plain => l10n.commonCopiedPlain,
+                  SecureCopyResult.failed => l10n.commonCopyFailed,
+                }),
+              ));
             },
             icon: const Icon(Icons.copy),
             label: Text(l10n.pairTransportInCopyResponseButton),

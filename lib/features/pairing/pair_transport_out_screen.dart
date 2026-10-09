@@ -10,6 +10,7 @@ import '../../core/crypto/verification.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 
@@ -307,16 +308,14 @@ class _PairTransportOutScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              final copied = l10n.commonPackageCopiedSnackbar;
-              await Clipboard.setData(
-                ClipboardData(text: gen.outgoingWire),
-              );
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(copied),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              final result = await SecureClipboard.copy(gen.outgoingWire);
+              messenger.showSnackBar(SnackBar(
+                content: Text(switch (result) {
+                  SecureCopyResult.protected => l10n.commonCopiedProtected,
+                  SecureCopyResult.plain => l10n.commonCopiedPlain,
+                  SecureCopyResult.failed => l10n.commonCopyFailed,
+                }),
+              ));
             },
             icon: const Icon(Icons.copy),
             label: Text(l10n.commonCopyPackage),
@@ -365,26 +364,9 @@ class _PairTransportOutScreenState
             ],
           ),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final copied = l10n.pairTransportOutWordsCopiedSnackbar;
-              await Clipboard.setData(
-                ClipboardData(text: gen.pakeWords.join(' ')),
-              );
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(copied),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-            icon: const Icon(Icons.copy),
-            label: Text(l10n.pairTransportOutCopyWordsButton),
-          ),
-        ),
+        // No copy button for the words (bug R4): they go to the other person
+        // on a different channel from the package, and a clipboard holding
+        // the words is one paste away from landing next to it.
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),

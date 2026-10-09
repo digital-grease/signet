@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/crypto/backup_bundle.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/secure_clipboard.dart';
 import '../../shared/share_text_file.dart';
 
 /// The two-step backup save used by the single and bulk export screens
@@ -105,9 +105,15 @@ class _TwoStepBackupSaverState extends State<TwoStepBackupSaver> {
   /// somewhere.
   Future<void> _copyPackage(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
-    await Clipboard.setData(ClipboardData(text: widget.wire));
+    final result = await SecureClipboard.copy(widget.wire);
     messenger.showSnackBar(SnackBar(
-      content: Text(l10n.backupPackageCopiedSnackbar),
+      content: Text(switch (result) {
+        SecureCopyResult.protected =>
+          l10n.backupPackageCopiedSnackbar(l10n.commonCopiedProtected),
+        SecureCopyResult.plain =>
+          l10n.backupPackageCopiedSnackbar(l10n.commonCopiedPlain),
+        SecureCopyResult.failed => l10n.commonCopyFailed,
+      }),
       duration: const Duration(seconds: 6),
     ));
   }

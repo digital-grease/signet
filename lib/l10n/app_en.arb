@@ -25,8 +25,6 @@
   "commonCopyPackage": "Copy package",
   "@commonCopyPackage": {"description": "Text button with copy icon: copies the backup/transport package wire text. Used on backup export, bulk export, transport out."},
 
-  "commonPackageCopiedSnackbar": "Package copied to clipboard",
-  "@commonPackageCopiedSnackbar": {"description": "SnackBar after copying the package wire text."},
 
 
 
@@ -72,8 +70,14 @@
   "@backupSavedBoth": {"description": "Final button, enabled once both steps are done."},
   "backupShareFailed": "Could not open the share sheet. Try again.",
   "@backupShareFailed": {"description": "Snackbar when writing or sharing a backup file fails."},
-  "backupPackageCopiedSnackbar": "Package copied. Paste it somewhere off this phone, then tap \"I saved it another way\".",
-  "@backupPackageCopiedSnackbar": {"description": "Snackbar after copying the backup package; copying alone does not finish step 1."},
+  "commonCopiedProtected": "Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.",
+  "@commonCopiedProtected": {"description": "Snackbar after copying a package to the clipboard with timed clearing. On Android the clear runs only while Signet is open, hence the second clause."},
+  "commonCopiedPlain": "Copied to the clipboard.",
+  "@commonCopiedPlain": {"description": "Snackbar after a copy that Signet cannot clear later."},
+  "commonCopyFailed": "Could not copy. Try again.",
+  "@commonCopyFailed": {"description": "Snackbar when copying to the clipboard failed."},
+  "backupPackageCopiedSnackbar": "{copied} Paste it somewhere off this phone now, then tap \"I saved it another way\".",
+  "@backupPackageCopiedSnackbar": {"description": "Snackbar after copying the backup package; copying alone does not finish step 1. {copied} is commonCopiedProtected or commonCopiedPlain.", "placeholders": {"copied": {"type": "String"}}},
 
   "commonStoreSeparatelyHeader": "STORE THESE SEPARATELY //",
   "@commonStoreSeparatelyHeader": {"description": "Red warning block headline on backup export and bulk export. Keep the ' //' structure."},
@@ -707,8 +711,6 @@
   "pairTransportInCopyResponseButton": "Copy response",
   "@pairTransportInCopyResponseButton": {"description": "Copy button next to the response package on transport in."},
 
-  "pairTransportInResponseCopiedSnackbar": "Response copied to clipboard",
-  "@pairTransportInResponseCopiedSnackbar": {"description": "SnackBar after copying the response package."},
 
   "pairTransportOutNewPackageTitle": "NEW PACKAGE",
   "@pairTransportOutNewPackageTitle": {"description": "AppBar title of the transport-out setup phase."},
@@ -731,11 +733,7 @@
   "pairTransportOutOutgoingInstruction": "Send this text to {label}. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.",
   "@pairTransportOutOutgoingInstruction": {"description": "Instruction above the outgoing wire text on transport out.", "placeholders": {"label": {"type": "String"}}},
 
-  "pairTransportOutCopyWordsButton": "Copy words",
-  "@pairTransportOutCopyWordsButton": {"description": "Copy button next to the 8 PAKE words on transport out."},
 
-  "pairTransportOutWordsCopiedSnackbar": "PAKE words copied",
-  "@pairTransportOutWordsCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on transport out."},
 
   "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
   "@pairTransportOutChannelWarning": {"description": "Warning box about out-of-band PAKE delivery on transport out."},

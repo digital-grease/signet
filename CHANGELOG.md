@@ -22,6 +22,13 @@ the surface is allowed to change between minor releases.
   Signet says so instead of reporting wrong words. Old one-file backups
   still restore, with a reminder to make a new backup and delete the
   old file.
+- **Copied packages are cleared from the clipboard.** On iOS they
+  expire after a minute and don't sync to your other devices. On
+  Android they are marked sensitive, so the copy preview and most
+  keyboards' clipboard history don't show them, and Signet removes
+  them a minute after copying, or when you next come back to Signet,
+  unless you have copied something else since. The long-distance
+  pairing screen no longer offers to copy the 8 words.
 
 ### Fixed
 - Pasting a whole backup file's text into Restore no longer fails with
