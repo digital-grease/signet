@@ -78,6 +78,11 @@ the surface is allowed to change between minor releases.
 - The debug-logging banner clears when its 24 hours are up.
 - The "not verified" help now has a button straight to the binding
   phrase it mentions.
+- Crash reports and debug logs remove more kinds of secret before they
+  are saved or shared: keys printed as lists of numbers, the storage
+  format of secrets, the input a parse error echoes, the 8 backup words
+  however they are separated or listed, and contacts' names after any
+  name-like field.
 
 ## [0.3.6] — 2026-06-12
 

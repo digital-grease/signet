@@ -411,7 +411,7 @@ guarantee.
 | Layer | Mechanism | What it catches | What it misses |
 |---|---|---|---|
 | 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `LivenessPrompt`, `PairingKeyPair`, `BackupText`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
-| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16, base64url≥16, `signet:tp1:` wire, BIP-39 4-tuple and 8-tuple clusters) have a 100% pass-or-fail-CI bar. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
+| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16; byte lists of 8+ bytes in decimal (signed too, wrapped across lines too), `0x`, colon/hyphen or hexdump form; base64url≥16; standard base64≥16 that looks random; `signet:tp1:` wire; the source a `FormatException` echoes; runs of 4+ BIP-39 words joined by spaces, tabs, newlines, hyphens, commas, periods, slashes, colons, semicolons, bars, plus signs, quotes, brackets, list numbers or a list-final "and", matched across lines; values after name-like keys such as `label`, `title`, `peer`, `displayName`, quoted or not) have a 100% pass-or-fail-CI bar on the test corpus. `package:<pkg>/<path>.dart` and `dart:<lib>` code paths are exempt so traces stay readable, but only for a match wholly inside the path; a secret glued onto a path is still redacted. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
 | 3. AES-GCM at rest | `lib/core/logging/crashlog_cipher.dart` — AES-256-GCM with 12-byte nonce + 16-byte tag. Key under `crashlog.aead_key.v1` in `flutter_secure_storage` (Android Keystore / iOS Keychain). Lazy-generated on first crash. | The ~5% the judgment scrubber misses, while the file sits on disk. | In-process attackers running with our keys; nothing post-decryption. |
 | 4. OS sandbox + FDE | Android app-private storage; iOS sandbox; full-disk encryption when the device is locked. | Other apps reading our private storage; lost-device-pre-unlock. | Forensic-level adversary with root + screen-lock bypass (§4 limit). |
 
@@ -419,8 +419,9 @@ guarantee.
 table):**
 
 - **Mechanical redacts: 100%, build-failing.** Any single miss on
-  hex≥16, base64url≥16, `signet:tp1:` wire, or BIP-39 4/8-tuple
-  clusters fails CI. Adding a new transport-package version or
+  any mechanical pattern above (hex, byte lists, base64url, standard
+  base64, `signet:tp1:` wire, `FormatException` echoes, BIP-39 runs, quoted
+  label values) fails CI. Adding a new transport-package version or
   secret-pattern shape requires matching scrubber-test entries in
   the same commit.
 - **Judgment redacts: ≥95%** on a 20-label curated corpus. Slip
@@ -651,8 +652,10 @@ Suggested scope for an external audit (Cure53-class firm or similar):
    defense:
    - `LogScrubber` deny-by-default against a custom adversarial
      corpus (not just the bundled tests). Mechanical patterns
-     should be exhaustive on hex / base64url / `signet:tp1:` /
-     BIP-39 cluster shapes.
+     should be exhaustive on every mechanical shape in §3.6 (hex,
+     byte lists, base64url, standard base64, `signet:tp1:`,
+     `FormatException` echoes, BIP-39 runs, name-key values), and
+     on the code-path exemption.
    - `CrashlogCipher` AES-256-GCM at-rest: nonce uniqueness across
      writes, auth-tag rejection on bit-flips, key lifecycle in
      `flutter_secure_storage` (re-install behaviour, key absence on

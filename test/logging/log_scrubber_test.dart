@@ -22,6 +22,7 @@
 // TransportPackage.encodeLdp with deterministic seeds, so the corpus stays
 // in sync with production output formats automatically.
 
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -373,6 +374,263 @@ void main() {
       }
     });
   });
+
+  // ===========================================================================
+  // GROUP E — Phase 6 leak corpus (100% bar). Each case is a leak that got
+  // through before plan Task 6.1; every one must be redacted.
+  // ===========================================================================
+
+  group('GROUP E: Phase 6 leak corpus (100% bar)', () {
+    List<int> bytes(int seed, [int n = 32]) {
+      final rng = Random(seed);
+      return List<int>.generate(n, (_) => rng.nextInt(256));
+    }
+
+    for (var seed = 0; seed < 10; seed++) {
+      final secret = bytes(seed);
+
+      test('decimal byte list, as List<int>.toString() prints it ($seed)', () {
+        final listed = secret.toString(); // [71, 55, 86, ...]
+        final out = LogScrubber.scrub('sharedSecret: $listed');
+        for (var i = 0; i + 8 <= secret.length; i += 8) {
+          expect(out, isNot(contains(secret.sublist(i, i + 8).join(', '))));
+        }
+        expect(out, contains('redacted:'));
+      });
+
+      test('0x byte list ($seed)', () {
+        final listed = secret
+            .map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}')
+            .join(', ');
+        final out = LogScrubber.scrub('key = {$listed}');
+        expect(out, isNot(contains(listed.substring(0, 40))));
+        expect(out, contains('redacted:'));
+      });
+
+      test('colon-separated hex bytes ($seed)', () {
+        final listed = secret
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join(':');
+        final out = LogScrubber.scrub('fingerprint $listed');
+        expect(out, isNot(contains(listed.substring(0, 23))));
+      });
+
+      test('standard base64 (+ / =), as SecureStore writes it ($seed)', () {
+        final b64 = base64Encode(secret);
+        final out = LogScrubber.scrub('value: $b64');
+        expect(out, isNot(contains(b64)));
+        expect(out, contains('[redacted:${b64.length}]'),
+            reason: 'redacted as one token by the base64 rule');
+        for (var i = 0; i + 12 <= b64.length; i += 12) {
+          expect(out, isNot(contains(b64.substring(i, i + 12))),
+              reason: 'no 12-char piece of the secret survives');
+        }
+      });
+
+      final pake = TransportPackage.mintPakeWords(random: Random(seed + 77));
+      for (final (name, joined) in <(String, String)>[
+        ('commas', pake.join(', ')),
+        ('periods', pake.join('. ')),
+        ('slashes', pake.join(' / ')),
+        ('one per line', pake.join('\n')),
+        ('numbered list',
+            [for (final (i, w) in pake.indexed) '${i + 1}. $w'].join('\n')),
+        ('numbered with parens',
+            [for (final (i, w) in pake.indexed) '${i + 1}) $w'].join('  ')),
+      ]) {
+        test('PAKE words separated by $name ($seed)', () {
+          final out = LogScrubber.scrub('words were:\n$joined\nend');
+          for (final w in pake) {
+            expect(RegExp('\\b$w\\b').hasMatch(out), isFalse,
+                reason: '"$w" survived ($name)');
+          }
+        });
+      }
+    }
+
+    test('a FormatException echoes the source it failed on', () {
+      const source = 'AQID+BAUGBwg=zz';
+      final echo = const FormatException('Invalid character', source, 4)
+          .toString();
+      expect(echo, contains(source), reason: 'fixture: Dart does echo it');
+      final out = LogScrubber.scrub(echo);
+      expect(out, isNot(contains(source)));
+      expect(out, contains('FormatException'));
+    });
+
+    test('single-quoted label values', () {
+      final out = LogScrubber.scrub(
+          "Relationship(id: x, label: 'Mom', labelHint='Dr Who')");
+      expect(out, isNot(contains("'Mom'")));
+      expect(out, isNot(contains('Dr Who')));
+      expect(out, contains('Relationship'));
+    });
+  });
+
+  group('GROUP E3: Phase 6 review leaks (100% bar)', () {
+    final secret = List<int>.generate(32, (i) => (i * 37 + 11) & 0xFF);
+    final b64 = base64Encode(secret);
+    final b64url = base64Url.encode(secret).replaceAll('=', '');
+
+    for (final (name, line, leaked) in <(String, String, String)>[
+      ('secret glued after a code path', 'package:x/y+$b64', b64.substring(8)),
+      ('secret after dart:', 'see dart:io+$b64', b64.substring(8)),
+      ('base64url straight after package:', 'tried package:$b64url',
+          b64url.substring(4)),
+      ('signed bytes', 'bytes ${secret.map((b) => b - 128).toList()}',
+          '${secret[0] - 128}, ${secret[1] - 128}, ${secret[2] - 128}'),
+      ('a byte list wrapped across lines',
+          'key [\n${[for (var i = 0; i < 32; i += 4) secret.sublist(i, i + 4).join(', ')].join(',\n')}\n]',
+          secret.sublist(0, 4).join(', ')),
+      ('a hexdump', secret.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' '),
+          secret.sublist(0, 4).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')),
+      ('0x bytes without commas',
+          secret.map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(' '),
+          secret.sublist(0, 3).map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(' ')),
+    ]) {
+      test(name, () {
+        final out = LogScrubber.scrub(line);
+        expect(out, isNot(contains(leaked)), reason: out);
+        // No 10-character piece of a base64 secret may survive either: a
+        // partial redaction can break the whole string while most of it
+        // still leaks.
+        for (final secretText in <String>[b64, b64url]) {
+          if (!line.contains(secretText)) continue;
+          for (var i = 0; i + 10 <= secretText.length; i++) {
+            expect(out, isNot(contains(secretText.substring(i, i + 10))),
+                reason: 'piece at $i survived: $out');
+          }
+        }
+      });
+    }
+
+    final pake = TransportPackage.mintPakeWords(random: Random(4242));
+    for (final (name, joined) in <(String, String)>[
+      ('single-quoted words', pake.map((w) => "'$w'").join(', ')),
+      ('colons', pake.join(':')),
+      ('plus signs', pake.join('+')),
+      ('"and" before the last word',
+          '${pake.take(7).join(', ')} and ${pake.last}'),
+      ('a Dart list', '[${pake.join(', ')}]'),
+    ]) {
+      test('PAKE words joined by $name', () {
+        final out = LogScrubber.scrub('got $joined here');
+        for (final w in pake) {
+          expect(RegExp('\\b$w\\b').hasMatch(out), isFalse,
+              reason: '"$w" survived ($name): $out');
+        }
+      });
+    }
+
+    for (final (line, name) in <(String, String)>[
+      ("title: 'Mom'", 'Mom'),
+      ("peer: 'Aunt May'", 'Aunt May'),
+      ("nickname: 'Granny'", 'Granny'),
+      ("labelText: 'Mom'", 'Mom'),
+      ("displayName='Granny'", 'Granny'),
+      ('label: "Bob from work"', 'Bob from work'),
+      ('Relationship(label: "Finance team")', 'Finance team'),
+      ('{id: x, label: Mom, role: a}', 'Mom'),
+      ('(label: Aunt May, id: 3)', 'Aunt May'),
+    ]) {
+      test('a name after a name-like key: $line', () {
+        final out = LogScrubber.scrub(line);
+        expect(out, isNot(contains(name)), reason: out);
+      });
+    }
+
+    test('a base64url secret with no - or _ straight after package:', () {
+      // Every character is a word character, so a loose path pattern
+      // would treat the whole secret as part of the path.
+      final plain = base64Url
+          .encode(List<int>.generate(32, (i) => (i + 11) & 0xFF))
+          .replaceAll('=', '');
+      expect(plain, isNot(contains(RegExp('[-_]'))), reason: 'fixture');
+      final out = LogScrubber.scrub('tried package:$plain');
+      for (var i = 0; i + 10 <= plain.length; i++) {
+        expect(out, isNot(contains(plain.substring(i, i + 10))),
+            reason: 'piece at $i survived: $out');
+      }
+    });
+
+    test('an export <peer-N> token after a name key survives', () {
+      expect(LogScrubber.scrub('label: <peer-1>'), 'label: <peer-1>');
+    });
+
+    test('a FormatException without an offset still hides its source', () {
+      final text = const FormatException('Bad input', 'Mom says abandon ability')
+          .toString();
+      final out = LogScrubber.scrub('$text\n#0      main (package:x/y.dart:1:1)');
+      expect(out, isNot(contains('Mom says')));
+      expect(out, contains('#0      main (package:x/y.dart:1:1)'));
+    });
+
+    test('a device file path is not mistaken for base64', () {
+      const line = 'FileSystemException: Cannot open file, path = '
+          "'/storage/emulated/0/Download/SignetBackup2.txt'";
+      expect(LogScrubber.scrub(line), contains('/storage/emulated/0/Download'));
+    });
+  });
+
+  group('GROUP E2: Phase 6 false-positive guards (traces stay useful)', () {
+    test('stack-frame line and column numbers survive', () {
+      const frame = '#3      Store.save '
+          '(package:signet/core/storage/secure_store.dart:412:7)';
+      expect(LogScrubber.scrub(frame), frame);
+    });
+
+    test('paths with digits survive', () {
+      const frame = '#0      lookup '
+          '(package:signet/l10n/app_localizations_zh.dart:12:3)';
+      expect(LogScrubber.scrub(frame), frame);
+    });
+
+    test('version strings, dates, IPs and MACs survive', () {
+      for (final line in <String>[
+        'Flutter 3.47.5 • Dart 3.13.0',
+        'built 2026-10-10T12:00:00Z',
+        'host 192.168.1.13 port 8080',
+        'mac aa:bb:cc:dd:ee:ff',
+        'short list [1, 2, 3]',
+        'seven bytes [1, 2, 3, 4, 5, 6, 7]',
+      ]) {
+        expect(LogScrubber.scrub(line), line, reason: line);
+      }
+    });
+
+    test('three common words in a list are still not a cluster', () {
+      const line = 'options: able, about, above';
+      expect(LogScrubber.scrub(line), line);
+    });
+
+    test('a package path whose segments are wordlist words survives', () {
+      // "abandon", "ability", "able", "about", "above" are all BIP-39 words;
+      // in a path they are code, not a secret.
+      const frame = '#4      Foo.bar '
+          '(package:abandon/ability/able/about/above.dart:10:2)';
+      expect(LogScrubber.scrub(frame), frame);
+    });
+
+    test('"dart:" glued to a word is not a code path', () {
+      final secret = base64Encode(List<int>.generate(24, (i) => i * 7 + 3));
+      final out = LogScrubber.scrub('xdart:$secret');
+      expect(out, isNot(contains(secret)));
+    });
+
+    test('a package path that looks like base64 survives', () {
+      // Digits, both cases and slashes: base64-shaped, but a path.
+      const frame = '#5      lookup '
+          '(package:signet/l10n/AppLocalizationsZh2.dart:40:1)';
+      expect(LogScrubber.scrub(frame), frame);
+    });
+
+    test('package paths made of wordlist words survive', () {
+      const frame = '#2      StatefulElement.build '
+          '(package:flutter/src/widgets/framework.dart:5567:55)';
+      expect(LogScrubber.scrub(frame), frame);
+    });
+  });
+
 
   // ===========================================================================
   // GROUP D — MUST preserve: real-trace shape (100%)
