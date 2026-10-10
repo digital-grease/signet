@@ -7,6 +7,7 @@ import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../shared/widgets/secure_screen.dart';
 import 'pairing_controller.dart';
@@ -213,7 +214,9 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        // Scrolls when large text or the keyboard leave too little room
+        // (plan Task 5.1).
+        child: FillOrScroll(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

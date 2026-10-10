@@ -846,7 +846,8 @@
 
   "verifyFailStep3": "如果 {label} 没有接听，联系能当面确认其情况的家人或亲近的人。真正的 {label} 绝不会因为你的核实而不快。",
 
-  "verifyFailStep4": "如果不确定是不是 Signet 本身出了问题：进入主页，点“查看绑定短语”，通过你信任的渠道与 {label} 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。",
+  "verifyFailStep4": "如果不确定是不是 Signet 本身出了问题：点下方的“核对绑定短语”，通过你信任的渠道与 {label} 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。",
+  "verifyFailCheckBindingButton": "核对绑定短语",
 
   "verifyStatusOk": "状态 // 200 正常",
 
@@ -885,6 +886,7 @@
   "verifyActionHeader": "动作 //",
 
   "verifyActionJudgmentPrompt": "单词 ✅。你看到 {label} 做出动作了吗：{action}？",
+  "verifyActionJudgmentAnnouncement": "单词相符。{label} 做了屏幕上显示的动作吗？请回答“看到了”或“没看到”。",
 
   "verifyActionNotSeenButton": "没看到",
 

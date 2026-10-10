@@ -69,6 +69,15 @@ the surface is allowed to change between minor releases.
   removed there; bulk backup says it skips them.
 - Bulk restore can no longer be left half-way, one contact that fails to
   save no longer stops the rest, and the summary says what happened.
+- Large text no longer pushes buttons off the first-run screens (empty
+  home screen, intro, pairing); they scroll instead, also with the
+  keyboard open.
+- Screen readers now speak every verify result, including a second
+  identical one, and the spoken prompt in video mode does not name the
+  gesture.
+- The debug-logging banner clears when its 24 hours are up.
+- The "not verified" help now has a button straight to the binding
+  phrase it mentions.
 
 ## [0.3.6] — 2026-06-12
 

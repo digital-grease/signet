@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/prefs/app_prefs.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 
 /// First-run walkthrough. Three pages of operator-styled copy explaining
 /// (1) what Signet is for, (2) how pairing works, (3) how to verify a
@@ -142,7 +143,7 @@ class _SlideView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
+    return FillOrScroll(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -480,7 +480,9 @@ runtime guarantees.
 user turns it on in Settings. The session is held encrypted at
 `<getApplicationSupportDirectory()>/debug/session.bin` (AES-256-GCM,
 key `debuglog.aead_key.v1` — distinct from the crash key so resetting
-one never wipes the other), auto-stops and erases after 24h, and is
+one never wipes the other), stops and is erased 24h after it was turned
+on, or the next time Signet opens after that (no background scheduler:
+while the app is closed the encrypted file stays until then), and is
 byte-capped at 2 MB (oldest-first prune). A persistent on-screen
 banner means it is never silently on. An always-on in-memory
 breadcrumb ring (never persisted on its own) is folded into a crash

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 import '../../core/models/label_policy.dart';
 import '../../shared/label_input.dart';
 import '../pairing/pairing_controller.dart';
@@ -550,7 +551,8 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
+    // Scrolls when large text does not fit (plan Task 5.1).
+    return FillOrScroll(child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const Spacer(),
@@ -614,7 +616,7 @@ class _EmptyState extends StatelessWidget {
               Text(AppLocalizations.of(context).homeEmptyRestoreBackupButton),
         ),
       ],
-    );
+    ));
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 
 /// Shown immediately after a successful pair commit. The paired peer
 /// just walked through a 30-second QR dance with you, and is standing
@@ -42,7 +43,9 @@ class PairCompleteScreen extends ConsumerWidget {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: Padding(
+        // Scrolls when large text or the keyboard leave too little room
+        // (plan Task 5.1).
+        child: FillOrScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

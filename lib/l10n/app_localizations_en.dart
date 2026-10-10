@@ -1659,8 +1659,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String verifyFailStep4(String label) {
-    return 'If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with $label on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.';
+    return 'If you are unsure whether Signet itself is broken: tap \"Check the binding phrase\" below and compare it with $label on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.';
   }
+
+  @override
+  String get verifyFailCheckBindingButton => 'Check the binding phrase';
 
   @override
   String get verifyStatusOk => 'STATUS // 200 OK';
@@ -1730,6 +1733,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String verifyActionJudgmentPrompt(String label, String action) {
     return 'Words ✅. Did you see $label: $action?';
+  }
+
+  @override
+  String verifyActionJudgmentAnnouncement(String label) {
+    return 'Words matched. Did $label do the action shown on screen? Answer SAW IT or DID NOT SEE.';
   }
 
   @override

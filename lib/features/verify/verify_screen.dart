@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -374,6 +375,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       // verification and guarantees every real attempt actually runs.
       _resetKey++;
     });
+    _announceResult();
     if (ok && _videoMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final panel = _judgmentPanelKey.currentContext;
@@ -399,6 +401,44 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         unawaited(HapticFeedback.lightImpact());
       }
     }
+  }
+
+  /// Speak the outcome of every attempt (plan Task 5.2). A live region only
+  /// speaks when its text changes, so two identical results in a row (two
+  /// failed tries, say) were silent the second time.
+  ///
+  /// One mechanism per platform, never both (VoiceOver would read it
+  /// twice): where announcements are supported (iOS), this; where they are
+  /// not (Android: Flutter reports no announce support there), the banner
+  /// and gesture panel are live regions keyed per attempt, so each result
+  /// is a new node that TalkBack reads.
+  void _announceResult() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final result = _lastResult;
+      final relationship = _relationship;
+      if (!mounted || result == null || relationship == null) return;
+      if (!MediaQuery.supportsAnnounceOf(context)) return;
+      final l10n = AppLocalizations.of(context);
+      final String message;
+      if (result.awaitingActionJudgment && result.judgedAction != null) {
+        // Never names the gesture: on a speakerphone video call the other
+        // side would hear it.
+        message = l10n.verifyActionJudgmentAnnouncement(relationship.label);
+      } else {
+        final ok = result.isOverallVerified;
+        message = <String>[
+          ok ? l10n.verifyBannerVerified : l10n.verifyBannerNotVerified,
+          _ResultBanner._sublineFor(result, ok, l10n),
+          if (result.matchedOldPairing)
+            l10n.verifyOldPairingNote(relationship.label),
+        ].join('. ');
+      }
+      unawaited(SemanticsService.sendAnnouncement(
+        View.of(context),
+        message,
+        Directionality.of(context),
+      ));
+    });
   }
 
   void _onTypingChanged(bool typing) {
@@ -439,6 +479,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       // The next attempt may already be under way in the slots.
       _freezeWatchFor(_inputNonEmpty);
     });
+    _announceResult();
     if (relationship != null && !relationship.silentHaptics) {
       final ok = status == _VerifyStatus.verified;
       unawaited(ok
@@ -544,8 +585,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           const SizedBox(height: 20),
           if (showBanner) ...<Widget>[
             _ResultBanner(
+              // A new node per attempt, so a repeated identical result is
+              // still a change for TalkBack (plan Task 5.2).
+              key: ValueKey<DateTime>(result.at),
               result: result,
               relationshipLabel: relationship.label,
+              relationshipId: relationship.id,
             ),
             const SizedBox(height: 20),
           ],
@@ -604,7 +649,14 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
 }
 
 class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.result, required this.relationshipLabel});
+  const _ResultBanner({
+    super.key,
+    required this.result,
+    required this.relationshipLabel,
+    required this.relationshipId,
+  });
+
+  final String relationshipId;
 
   final _VerifyResult result;
   final String relationshipLabel;
@@ -633,7 +685,9 @@ class _ResultBanner extends StatelessWidget {
     final subline = _sublineFor(result, isOk, l10n);
 
     return Semantics(
-      liveRegion: true,
+      // A live region only where the screen does not announce results
+      // itself (see _announceResult), so nothing is read twice.
+      liveRegion: !MediaQuery.supportsAnnounceOf(context),
       container: true,
       label: result.matchedOldPairing
           ? '$headline. $subline. '
@@ -693,7 +747,8 @@ class _ResultBanner extends StatelessWidget {
                 const SizedBox(height: 12),
                 Builder(builder: (ctx) {
                   return OutlinedButton(
-                    onPressed: () => _showEducation(ctx, relationshipLabel),
+                    onPressed: () => _showEducation(
+                        ctx, relationshipLabel, relationshipId),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: accent,
                       side: BorderSide(color: accent, width: 1),
@@ -730,6 +785,7 @@ class _ResultBanner extends StatelessWidget {
   static Future<void> _showEducation(
     BuildContext context,
     String label,
+    String relationshipId,
   ) async {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
@@ -784,6 +840,16 @@ class _ResultBanner extends StatelessWidget {
                   text: l10n.verifyFailStep4(label),
                 ),
                 const SizedBox(height: 16),
+                // Step 04 points here (plan Task 5.4): the binding phrase
+                // for this contact, one tap away.
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(sheetCtx).pop();
+                    context.push('/inspect/binding/$relationshipId');
+                  },
+                  child: Text(l10n.verifyFailCheckBindingButton),
+                ),
+                const SizedBox(height: 8),
                 FilledButton(
                   onPressed: () => Navigator.of(sheetCtx).pop(),
                   child: Text(l10n.commonGotIt),
@@ -1009,7 +1075,8 @@ class _ActionJudgmentPanel extends StatelessWidget {
     // doesn't know the UI has moved from "type words" to "judge action."
     return Semantics(
       container: true,
-      liveRegion: true,
+      // Announced by _announceResult where supported (never both).
+      liveRegion: !MediaQuery.supportsAnnounceOf(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

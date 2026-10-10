@@ -181,6 +181,11 @@ class DebugSession {
   // Internals
   // ===========================================================================
 
+  /// Wipe the session if its 24 hours are up (plan Task 5.3). Returns
+  /// whether a session is still active afterwards. Called by the UI when
+  /// the expiry time passes and when the app comes back to the foreground.
+  Future<bool> expireIfDue() => _ensureActive();
+
   /// True iff a session is active and within [maxAge]. An expired session is
   /// wiped here so callers don't have to special-case it.
   Future<bool> _ensureActive() async {

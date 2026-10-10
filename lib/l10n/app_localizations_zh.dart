@@ -1559,8 +1559,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String verifyFailStep4(String label) {
-    return '如果不确定是不是 Signet 本身出了问题：进入主页，点“查看绑定短语”，通过你信任的渠道与 $label 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。';
+    return '如果不确定是不是 Signet 本身出了问题：点下方的“核对绑定短语”，通过你信任的渠道与 $label 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。';
   }
+
+  @override
+  String get verifyFailCheckBindingButton => '核对绑定短语';
 
   @override
   String get verifyStatusOk => '状态 // 200 正常';
@@ -1623,6 +1626,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String verifyActionJudgmentPrompt(String label, String action) {
     return '单词 ✅。你看到 $label 做出动作了吗：$action？';
+  }
+
+  @override
+  String verifyActionJudgmentAnnouncement(String label) {
+    return '单词相符。$label 做了屏幕上显示的动作吗？请回答“看到了”或“没看到”。';
   }
 
   @override

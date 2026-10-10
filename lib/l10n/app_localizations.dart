@@ -2726,11 +2726,17 @@ abstract class AppLocalizations {
   /// **'If {label} does not answer, call a family member or someone close who can physically check on them. A real {label} will never be upset that you checked.'**
   String verifyFailStep3(String label);
 
-  /// Education sheet step 04; SHOW BINDING PHRASE refers to the Home row-menu item.
+  /// Education sheet step 04; refers to the verifyFailCheckBindingButton button right below it.
   ///
   /// In en, this message translates to:
-  /// **'If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.'**
+  /// **'If you are unsure whether Signet itself is broken: tap \"Check the binding phrase\" below and compare it with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.'**
   String verifyFailStep4(String label);
+
+  /// Button in the NOT VERIFIED help sheet that opens the binding phrase screen for this contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the binding phrase'**
+  String get verifyFailCheckBindingButton;
 
   /// Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure.
   ///
@@ -2845,6 +2851,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Words ✅. Did you see {label}: {action}?'**
   String verifyActionJudgmentPrompt(String label, String action);
+
+  /// Spoken by the screen reader when the words pass in video mode. Deliberately does not name the gesture: the phone may be on speaker during the video call, where the other side could hear it.
+  ///
+  /// In en, this message translates to:
+  /// **'Words matched. Did {label} do the action shown on screen? Answer SAW IT or DID NOT SEE.'**
+  String verifyActionJudgmentAnnouncement(String label);
 
   /// Destructive judgment button: the action was not performed.
   ///

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/label_input.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../core/models/label_policy.dart';
@@ -67,7 +68,9 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        // Scrolls when large text or the keyboard leave too little room
+        // (plan Task 5.1).
+        child: FillOrScroll(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
