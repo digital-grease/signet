@@ -117,7 +117,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -144,12 +144,12 @@ void main() {
   // The response uses the same LDP format and PAKE words as the outgoing
   // package, so anyone on the channel can echo the sender's own package back
   // as the "response". The self-key check must stop the sender pairing with
-  // herself; a low-order key must be rejected the same way.
+  // herself; a low-order key must be refused too.
   for (final scenario in ['own package echoed back', 'low-order key']) {
-    testWidgets('UNLOCK RESPONSE rejects $scenario as tampered', (tester) async {
+    testWidgets('UNLOCK RESPONSE refuses $scenario', (tester) async {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -169,7 +169,13 @@ void main() {
       await tester.tap(find.text('UNLOCK RESPONSE'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('not safe to use'), findsOneWidget);
+      // An echo is refused with what it is and what to do (plan Task 3.6,
+      // P8); a low-order key is refused as unsafe.
+      expect(
+          find.textContaining(scenario == 'own package echoed back'
+              ? 'This is the package you created'
+              : 'not safe to use'),
+          findsOneWidget);
       expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
       expect(find.text('COMMIT PAIR'), findsNothing);
     });
@@ -181,7 +187,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -214,7 +220,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: store));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -249,7 +255,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -284,7 +290,7 @@ void main() {
     final clip = recordClipboard();
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Alice');
+    await tester.enterText(find.byType(TextField).first, 'Alice');
     await tester.pumpAndSettle();
     await tester.tap(find.text('GENERATE PACKAGE'));
     await tester.pumpAndSettle();
@@ -297,5 +303,94 @@ void main() {
     expect(clip.plain, isEmpty);
     expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
     SecureClipboard.resetForTesting();
+  });
+
+  group('names (plan Task 3.6)', () {
+    Future<_Extracted> generate(WidgetTester tester,
+        {String contact = 'Alice', String? ownName}) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), contact);
+      if (ownName != null) {
+        await tester.enterText(find.byType(TextField).at(1), ownName);
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      return _extractOutgoing(tester);
+    }
+
+    testWidgets(
+        'the package carries the sender\'s own name, not the name they '
+        'chose for the contact (P6)', (tester) async {
+      final out = await generate(tester, contact: 'Bob', ownName: 'Alice');
+      final ldp = await TransportPackage.decodeLdp(out.outgoing,
+          pakeWords: out.pake);
+      expect(ldp.labelHint, 'Alice');
+    });
+
+    testWidgets('no own name: the package carries no name', (tester) async {
+      final out = await generate(tester, contact: 'Bob');
+      final ldp = await TransportPackage.decodeLdp(out.outgoing,
+          pakeWords: out.pake);
+      expect(ldp.labelHint, isEmpty);
+    });
+
+    testWidgets('the own-name field stops at the 32-byte package limit (P7)',
+        (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      final field = find.byType(TextField).at(1);
+      await tester.enterText(field, '\u5988' * 10); // 30 bytes: fits
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, '\u5988' * 10);
+      await tester.enterText(field, '\u5988' * 11); // 33 bytes
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, '\u5988' * 10,
+          reason: 'cut back to what fits');
+    });
+
+    testWidgets('an own name past the limit (e.g. from an input method) is '
+        'refused under its field, not as a raw error', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'Bob');
+      // Set directly, as an IME commit can, past the field's formatter.
+      tester
+          .widget<TextField>(find.byType(TextField).at(1))
+          .controller!
+          .text = '\u5988' * 12;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.text('That name is too long. Use a shorter one.'),
+          findsOneWidget);
+      expect(find.textContaining('Invalid argument'), findsNothing);
+      expect(find.text('OUTGOING PACKAGE //'), findsNothing);
+    });
+
+    testWidgets('a data-shaped contact name is refused in the user\'s words',
+        (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'signet:tp1:AAAA');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('looks like Signet data'), findsOneWidget);
+    });
+
+    testWidgets('pasting your own package as the response says so (P8)',
+        (tester) async {
+      final out = await generate(tester);
+      await tester.enterText(find.byType(TextField).first, out.outgoing);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('This is the package you created'),
+          findsOneWidget);
+      expect(find.text('COMMIT PAIR'), findsNothing);
+    });
   });
 }

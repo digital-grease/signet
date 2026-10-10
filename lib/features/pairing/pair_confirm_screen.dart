@@ -15,10 +15,37 @@ import 'pairing_controller.dart';
 /// the shared secret and ask the user to visually confirm it matches the
 /// phrase on the other device. A mismatch means either a bad scan or a
 /// man-in-the-middle — we abort and clear state rather than save.
-class PairConfirmScreen extends ConsumerWidget {
+///
+/// Stateful (plan Task 3.5): [_busy] blocks a second "It matches" tap
+/// while the first is saving (P3, duplicate relationships), and keeps the
+/// screen from bouncing home when the pairing state is reset right after
+/// the save, while this route is still on screen during its exit
+/// transition (P2, the bounce used to win over the move to the practice
+/// screen).
+class PairConfirmScreen extends ConsumerStatefulWidget {
   const PairConfirmScreen({super.key});
 
+  @override
+  ConsumerState<PairConfirmScreen> createState() => _PairConfirmScreenState();
+}
+
+class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
+  bool _busy = false;
+  bool _bounced = false;
+
+  /// The phrase last shown, kept on screen while the route animates out
+  /// after the pairing state is reset.
+  List<String>? _shownPhrase;
+
   Future<void> _onMatch(BuildContext context, WidgetRef ref) async {
+    if (_busy) return;
+    // Stays busy: every way out of _commit leaves this screen (to the
+    // practice screen, or home with a message).
+    setState(() => _busy = true);
+    await _commit(context, ref);
+  }
+
+  Future<void> _commit(BuildContext context, WidgetRef ref) async {
     final pair = ref.read(pairingControllerProvider);
     final label = pair.label;
     final secret = pair.totpSecret;
@@ -62,7 +89,14 @@ class PairConfirmScreen extends ConsumerWidget {
           role: role,
           pairedAt: DateTime.now().toUtc(),
         );
-        await store.saveRelationshipV2(relationship, sharedSecret: secret);
+        // Keep the old secret for a while: if the other phone does not
+        // finish the rekey, its words can then be recognised as "old
+        // pairing" instead of looking like a stranger's (plan Task 3.10).
+        await store.saveRelationshipV2(
+          relationship,
+          sharedSecret: secret,
+          keepPrevious: true,
+        );
       } else {
         relationship = Relationship.fresh(label: label, role: role);
         await store.saveRelationshipV2(relationship, sharedSecret: secret);
@@ -108,6 +142,7 @@ class PairConfirmScreen extends ConsumerWidget {
   }
 
   Future<void> _onMismatch(BuildContext context, WidgetRef ref) async {
+    if (_busy) return;
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -126,7 +161,8 @@ class PairConfirmScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
     ref.read(pairingControllerProvider.notifier).reset();
     if (!context.mounted) return;
     context.go('/');
@@ -142,21 +178,27 @@ class PairConfirmScreen extends ConsumerWidget {
   // screen (and keeps FLAG_SECURE held across the exchange → confirm
   // transition).
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
+  Widget build(BuildContext context) =>
       SecureScreen(child: _buildBody(context, ref));
 
   Widget _buildBody(BuildContext context, WidgetRef ref) {
     final pair = ref.watch(pairingControllerProvider);
-    final phrase = pair.phrase;
+    // While saving or leaving, the state may already be reset: keep
+    // showing the phrase the user confirmed.
+    final phrase = pair.phrase ?? (_busy ? _shownPhrase : null);
+    if (pair.phrase != null) _shownPhrase = pair.phrase;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context);
 
     if (phrase == null) {
-      // User got here without a derived phrase; bounce back home.
-      Future<void>.microtask(() {
-        if (context.mounted) context.go('/');
-      });
+      // User got here without a derived phrase; bounce back home, once.
+      if (!_bounced) {
+        _bounced = true;
+        Future<void>.microtask(() {
+          if (context.mounted) context.go('/');
+        });
+      }
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -167,7 +209,7 @@ class PairConfirmScreen extends ConsumerWidget {
             : l10n.pairConfirmTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => _onMismatch(context, ref),
+          onPressed: _busy ? null : () => _onMismatch(context, ref),
         ),
       ),
       body: SafeArea(
@@ -221,13 +263,13 @@ class PairConfirmScreen extends ConsumerWidget {
               BigButton(
                 label: l10n.pairConfirmMatchButton,
                 icon: Icons.check_circle,
-                onPressed: () => _onMatch(context, ref),
+                onPressed: _busy ? null : () => _onMatch(context, ref),
               ),
               const SizedBox(height: 12),
               BigButton(
                 tone: BigButtonTone.destructive,
                 label: l10n.pairConfirmMismatchButton,
-                onPressed: () => _onMismatch(context, ref),
+                onPressed: _busy ? null : () => _onMismatch(context, ref),
               ),
               const SizedBox(height: 8),
             ],

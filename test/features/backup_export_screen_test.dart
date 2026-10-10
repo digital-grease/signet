@@ -157,4 +157,21 @@ void main() {
           findsOneWidget);
     },
   );
+
+  testWidgets(
+      'a name saved before the 64-byte limit is cut to fit, not a failed '
+      'backup (plan Task 3.6 review)', (tester) async {
+    final longName = _mom.copyWith(label: '\u5988' * 30); // 90 bytes
+    await tester.pumpWidget(_wrap(
+      store: FakeSecureStore(seeded: longName, secret: _secret),
+      id: longName.id,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not generate backup'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is SelectableText && (w.data ?? '').startsWith('signet:tp1:')),
+      findsOneWidget,
+    );
+  });
 }

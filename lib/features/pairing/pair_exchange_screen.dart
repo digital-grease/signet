@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
-import 'package:camera/camera.dart' show CameraException;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/big_button.dart';
+import '../../shared/widgets/qr_scanner.dart';
 import '../../shared/widgets/secure_screen.dart';
 import 'pairing_codec.dart';
 import 'pairing_controller.dart';
@@ -101,14 +99,27 @@ class _PairExchangeScreenState extends ConsumerState<PairExchangeScreen> {
                 if (!mounted) return;
                 setState(() => _mode = _ExchangeMode.overview);
               },
+              // Back is not "done": the other phone may not have scanned
+              // yet (plan Task 3.5, P5).
+              onBack: () => setState(() => _mode = _ExchangeMode.overview),
             ),
-          _ExchangeMode.scanning => _ScanningPane(
+          _ExchangeMode.scanning => QrScannerView(
               onCancel: () => setState(() => _mode = _ExchangeMode.overview),
-              onDetected: (payload) async {
+              // Pasting a key is a debug-build path only.
+              onUsePaste: _debugPairing
+                  ? () => setState(() => _mode = _ExchangeMode.pasting)
+                  : null,
+              onCode: (text) async {
+                final Uint8List key;
+                try {
+                  key = PairingCodec.decodePublicKey(text);
+                } on FormatException catch (e) {
+                  return e.message;
+                }
                 final notifier = ref.read(pairingControllerProvider.notifier);
-                await notifier.recordTheirPublicKey(payload);
-                if (!mounted) return;
-                setState(() => _mode = _ExchangeMode.overview);
+                await notifier.recordTheirPublicKey(key);
+                if (mounted) setState(() => _mode = _ExchangeMode.overview);
+                return null;
               },
             ),
           _ExchangeMode.pasting => _PastingPane(
@@ -316,10 +327,15 @@ class _StepCard extends StatelessWidget {
 }
 
 class _ShowingPane extends StatelessWidget {
-  const _ShowingPane({required this.state, required this.onDone});
+  const _ShowingPane({
+    required this.state,
+    required this.onDone,
+    required this.onBack,
+  });
 
   final PairingState state;
   final VoidCallback onDone;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -374,163 +390,12 @@ class _ShowingPane extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: onDone,
+              onPressed: onBack,
               child: Text(l10n.commonBack),
             ),
             const SizedBox(height: 8),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ScanningPane extends StatefulWidget {
-  const _ScanningPane({required this.onCancel, required this.onDetected});
-
-  final VoidCallback onCancel;
-  final Future<void> Function(Uint8List publicKey) onDetected;
-
-  @override
-  State<_ScanningPane> createState() => _ScanningPaneState();
-}
-
-class _ScanningPaneState extends State<_ScanningPane> {
-  bool _handled = false;
-  bool _permissionDenied = false;
-  String? _error;
-
-  Future<void> _handleScan(Code code) async {
-    if (_handled) return;
-    final raw = code.text;
-    if (raw == null || raw.isEmpty) return;
-    try {
-      final key = PairingCodec.decodePublicKey(raw);
-      _handled = true;
-      await widget.onDetected(key);
-    } on FormatException catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.message);
-    }
-  }
-
-  // CameraException codes for permission denial vary slightly between
-  // platforms; both Android and iOS surface 'CameraAccessDenied' from
-  // package:camera when the user has refused the runtime prompt or
-  // toggled it off in OS settings.
-  void _handleControllerCreated(
-    CameraController? controller,
-    Exception? error,
-  ) {
-    if (error is CameraException &&
-        (error.code == 'CameraAccessDenied' ||
-            error.code == 'CameraAccessDeniedWithoutPrompt' ||
-            error.code == 'CameraAccessRestricted')) {
-      if (!mounted) return;
-      setState(() => _permissionDenied = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_permissionDenied) {
-      return _PermissionDeniedPane(onCancel: widget.onCancel);
-    }
-    return Stack(
-      children: <Widget>[
-        ReaderWidget(
-          codeFormat: Format.qrCode,
-          tryRotate: true,
-          showScannerOverlay: false,
-          showFlashlight: false,
-          showToggleCamera: false,
-          showGallery: false,
-          lensDirection: CameraLensDirection.back,
-          onScan: (code) => unawaited(_handleScan(code)),
-          onControllerCreated: _handleControllerCreated,
-        ),
-        Positioned.fill(
-          child: CustomPaint(painter: _ViewfinderPainter()),
-        ),
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 32,
-          child: Column(
-            children: <Widget>[
-              if (_error != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              FilledButton.tonal(
-                onPressed: widget.onCancel,
-                child: Text(AppLocalizations.of(context).commonCancel),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PermissionDeniedPane extends StatelessWidget {
-  const _PermissionDeniedPane({required this.onCancel});
-
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final l10n = AppLocalizations.of(context);
-    // The OS-native path to the per-app camera permission toggle.
-    // Android wraps it under Apps → the-app → Permissions; iOS exposes
-    // each app at the top level of Settings.
-    final settingsPath = Platform.isIOS
-        ? l10n.pairCameraSettingsPathIos
-        : l10n.pairCameraSettingsPathAndroid;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(
-            Icons.no_photography_outlined,
-            size: 64,
-            color: colors.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.pairExchangeCameraPermissionTitle,
-            style: textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.pairExchangeCameraPermissionBody(settingsPath),
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 24),
-          BigButton(
-            label: l10n.commonBack,
-            icon: Icons.arrow_back,
-            onPressed: onCancel,
-          ),
-        ],
       ),
     );
   }
@@ -678,27 +543,5 @@ class _PastingPaneState extends State<_PastingPane> {
       ),
     );
   }
-}
-
-class _ViewfinderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(
-      center: size.center(Offset.zero),
-      width: size.shortestSide * 0.7,
-      height: size.shortestSide * 0.7,
-    );
-    final border = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
-      border,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 

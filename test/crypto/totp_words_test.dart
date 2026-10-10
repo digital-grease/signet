@@ -538,4 +538,72 @@ void main() {
       expect(a, isNot(equals(b)));
     });
   });
+
+  group('TotpWords.verifyWindow (plan Task 3.1)', () {
+    final secret = List<int>.generate(32, (i) => i + 1);
+    const t = 1111111111;
+    final base = TotpWords.counterFor(t);
+
+    for (final dt in <int>[-30, 0, 30]) {
+      test('words from window ${dt ~/ 30} return that window\'s counter',
+          () async {
+        final words = await TotpWords.generate(
+          secret: secret,
+          unixTimeSeconds: t + dt,
+          senderRole: PairRole.b,
+        );
+        expect(
+          await TotpWords.verifyWindow(
+            secret: secret,
+            candidate: words,
+            unixTimeSeconds: t,
+            senderRole: PairRole.b,
+          ),
+          base + dt ~/ 30,
+        );
+      });
+    }
+
+    test('words two windows old return null', () async {
+      final words = await TotpWords.generate(
+        secret: secret,
+        unixTimeSeconds: t - 60,
+        senderRole: PairRole.b,
+      );
+      expect(
+        await TotpWords.verifyWindow(
+          secret: secret,
+          candidate: words,
+          unixTimeSeconds: t,
+          senderRole: PairRole.b,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('TotpWords.counterFor (plan Task 3.8)', () {
+    test('floors, so negative times fall in their own window', () {
+      expect(TotpWords.counterFor(0), 0);
+      expect(TotpWords.counterFor(29), 0);
+      expect(TotpWords.counterFor(30), 1);
+      expect(TotpWords.counterFor(-1), -1);
+      expect(TotpWords.counterFor(-29), -1);
+      expect(TotpWords.counterFor(-30), -1);
+      expect(TotpWords.counterFor(-31), -2);
+    });
+
+    test('-15 and 15 no longer share words', () async {
+      final secret = List<int>.generate(32, (i) => i + 1);
+      final before = await TotpWords.generate(
+          secret: secret, unixTimeSeconds: -15, senderRole: PairRole.a);
+      final after = await TotpWords.generate(
+          secret: secret, unixTimeSeconds: 15, senderRole: PairRole.a);
+      expect(before, isNot(after));
+    });
+
+    test('rejects a non-positive step', () {
+      expect(() => TotpWords.counterFor(10, 0), throwsArgumentError);
+    });
+  });
 }

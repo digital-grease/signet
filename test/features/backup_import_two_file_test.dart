@@ -422,4 +422,22 @@ void main() {
     await _unlock(tester);
     _expectRestored('Mom');
   });
+
+  testWidgets(
+      'a word edited after loading the WORDS file is the word used '
+      '(plan Task 3.3)', (tester) async {
+    final f = await _files(await _wire());
+    await tester.pumpWidget(_wrap());
+    await tester.pumpAndSettle();
+    await _loadPackageFile(tester, f.package);
+    await _loadWordsFile(tester, f.words);
+    // Slot 8 is TextField index 8 (index 0 is the package field).
+    await tester.enterText(find.byType(TextField).at(8), 'absurd');
+    await tester.pumpAndSettle();
+    await _unlock(tester);
+    expect(find.textContaining('Could not unlock'), findsOneWidget,
+        reason: 'the edited (wrong) word was used, not the loaded one');
+    expect(find.textContaining('belong to a different backup'), findsNothing,
+        reason: 'the loaded fingerprint no longer applies to edited words');
+  });
 }

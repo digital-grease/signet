@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../crypto/pair_role.dart';
 import '../models/relationship.dart';
 
 /// Wrapper around the platform secure enclave (Android Keystore / iOS Keychain).
@@ -145,6 +146,15 @@ class SecureStore {
 
   String _relationshipKey(String id) => '$_keyRelationshipPrefix$id';
   String _secretKey(String id) => '$_keySecretPrefix$id';
+  String _previousKey(String id) => '$_keyPreviousPrefix$id';
+
+  /// The secret and role a relationship had before its last rekey (plan
+  /// Task 3.10). Kept so words from a phone that did not finish the rekey
+  /// can be recognised. Never exported in a backup.
+  static const String _keyPreviousPrefix = 'signet.v2.prev.';
+
+  /// How long a previous pairing is kept after a rekey.
+  static const Duration previousPairingLifetime = Duration(days: 7);
 
   /// Instance-scoped guard so migration runs exactly once per `SecureStore`
   /// even under concurrent v2 reads. On first call the guard holds the
@@ -327,9 +337,14 @@ class SecureStore {
   ///
   /// This is the rekey path too, so an interrupted rekey can no longer
   /// make a paired contact disappear.
+  ///
+  /// [keepPrevious] (rekey): the secret and role being replaced are kept
+  /// as the previous pairing ([getPreviousPairing]). They go into the same
+  /// journal entry, so they are saved before the old secret is overwritten.
   Future<void> saveRelationshipV2(
     Relationship relationship, {
     required List<int> sharedSecret,
+    bool keepPrevious = false,
   }) async {
     await _ensureMigrated();
     if (sharedSecret.isEmpty) {
@@ -339,11 +354,68 @@ class SecureStore {
         'Shared secret must not be empty.',
       );
     }
+    String? previousJson;
+    if (keepPrevious) {
+      final oldSecret = await getSharedSecretById(relationship.id);
+      final oldRelationship = await getRelationshipById(relationship.id);
+      if (oldSecret != null && oldRelationship != null) {
+        previousJson = jsonEncode(<String, dynamic>{
+          'secret': base64Encode(oldSecret),
+          'role': oldRelationship.role.wireName,
+          'savedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
+        });
+      }
+    }
     await _journalAndApply(_JournalEntry.put(
       id: relationship.id,
       relJson: relationship.toJson(),
       secretB64: base64Encode(sharedSecret),
+      previousJson: previousJson,
     ));
+  }
+
+  /// The pairing [id] had before its last rekey, if one is kept and it is
+  /// younger than [previousPairingLifetime] (an older one is deleted here).
+  Future<PreviousPairing?> getPreviousPairing(String id) async {
+    await _ensureMigrated();
+    final String? raw;
+    try {
+      raw = await _storage.read(key: _previousKey(id));
+    } catch (_) {
+      return null;
+    }
+    if (raw == null) return null;
+    final previous = PreviousPairing._fromJson(raw);
+    final age = previous == null
+        ? Duration.zero
+        : DateTime.now().toUtc().difference(previous.savedAt);
+    // A clock that was far ahead at rekey time must not keep it alive.
+    if (previous == null ||
+        age > previousPairingLifetime ||
+        age < const Duration(days: -1)) {
+      await deletePreviousPairing(id);
+      return null;
+    }
+    return previous;
+  }
+
+  /// Forget the previous pairing of [id]: after the first verify on the
+  /// new secret, on expiry, and on unpair. A still-pending rekey for [id]
+  /// loses its copy too, so a later replay cannot bring it back.
+  Future<void> deletePreviousPairing(String id) async {
+    final journal = await _readJournal();
+    if (journal.any((e) => e.id == id && e.previousJson != null)) {
+      await _writeJournal(journal
+          .map((e) => e.id == id && e.previousJson != null
+              ? _JournalEntry.put(
+                  id: e.id,
+                  relJson: e.relJson!,
+                  secretB64: e.secretB64!,
+                )
+              : e)
+          .toList());
+    }
+    await _storage.delete(key: _previousKey(id));
   }
 
   /// Record [entry] (replacing any pending entry for its id), apply it, and
@@ -375,6 +447,18 @@ class SecureStore {
   Future<void> _applyJournalEntry(_JournalEntry entry) async {
     switch (entry.op) {
       case _JournalEntry.opPut:
+        final previousJson = entry.previousJson;
+        if (previousJson == null) {
+          // Not a rekey (a new pairing, or a restore that overwrites): an
+          // older secret kept from an earlier rekey no longer applies.
+          await _storage.delete(key: _previousKey(entry.id));
+        } else {
+          // The journal entry carries it, so a crash between these writes
+          // replays both: the old secret is never lost once the new one
+          // is in place.
+          await _storage.write(
+              key: _previousKey(entry.id), value: previousJson);
+        }
         await _storage.write(
             key: _secretKey(entry.id), value: entry.secretB64!);
         await _storage.write(
@@ -384,8 +468,9 @@ class SecureStore {
           await _writeIndex(<String>[...ids, entry.id]);
         }
       case _JournalEntry.opDelete:
-        // Secret first: if we die here, nothing secret is left behind.
+        // Secrets first: if we die here, nothing secret is left behind.
         await _storage.delete(key: _secretKey(entry.id));
+        await _storage.delete(key: _previousKey(entry.id));
         await _storage.delete(key: _relationshipKey(entry.id));
         final ids = await _readIndex();
         if (ids.contains(entry.id)) {
@@ -479,6 +564,7 @@ class SecureStore {
                   id: e.id,
                   relJson: relationship.toJson(),
                   secretB64: e.secretB64!,
+                  previousJson: e.previousJson,
                 )
               : e)
           .toList());
@@ -512,12 +598,14 @@ class _JournalEntry {
     required String id,
     required String relJson,
     required String secretB64,
+    String? previousJson,
   }) =>
       _JournalEntry._(<String, dynamic>{
         'op': opPut,
         'id': id,
         'rel': relJson,
         'secret': secretB64,
+        'prev': ?previousJson,
       });
 
   factory _JournalEntry.delete({required String id}) =>
@@ -544,6 +632,7 @@ class _JournalEntry {
 
   String? get relJson => raw['rel'] as String?;
   String? get secretB64 => raw['secret'] as String?;
+  String? get previousJson => raw['prev'] as String?;
 
   bool sameAs(_JournalEntry other) =>
       jsonEncode(raw) == jsonEncode(other.raw);
@@ -551,4 +640,47 @@ class _JournalEntry {
   // Never print secret material (toString reaches logs and crash traces).
   @override
   String toString() => '_JournalEntry(op: $op, id: $id, secret: [redacted])';
+}
+
+/// The secret and role a relationship had before its last rekey (see
+/// [SecureStore.getPreviousPairing]).
+class PreviousPairing {
+  PreviousPairing({
+    required this.secret,
+    required this.role,
+    required this.savedAt,
+  });
+
+  static PreviousPairing? _fromJson(String raw) {
+    try {
+      final map = jsonDecode(raw);
+      if (map is! Map<String, dynamic>) return null;
+      final secret = map['secret'];
+      final roleName = map['role'];
+      final role = roleName == 'a' || roleName == 'b'
+          ? PairRole.fromWireName(roleName as String)
+          : null;
+      final savedAt = map['savedAt'];
+      if (secret is! String || role == null || savedAt is! int) return null;
+      final bytes = base64Decode(secret);
+      if (bytes.length != 32) return null;
+      return PreviousPairing(
+        secret: Uint8List.fromList(bytes),
+        role: role,
+        savedAt: DateTime.fromMillisecondsSinceEpoch(savedAt, isUtc: true),
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
+  final Uint8List secret;
+
+  /// This device's role in the previous pairing.
+  final PairRole role;
+  final DateTime savedAt;
+
+  // Never print secret material.
+  @override
+  String toString() => 'PreviousPairing(role: $role, secret: [redacted])';
 }

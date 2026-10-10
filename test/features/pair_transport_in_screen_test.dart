@@ -316,4 +316,61 @@ void main() {
     expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
     SecureClipboard.resetForTesting();
   });
+
+  group('the suggested name (plan Task 3.6)', () {
+    Future<String> unlockWithHint(WidgetTester tester, String hint) async {
+      final kp = await PairingHandshake.generateEphemeralKeyPair();
+      final wire = await TransportPackage.encodeLdp(
+        publicKey: kp.publicKey,
+        labelHint: hint,
+        pakeWords: goodPake,
+      );
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+      return tester
+          .widget<TextField>(find.byType(TextField).last)
+          .controller!
+          .text;
+    }
+
+    testWidgets('direction-changing characters are removed', (tester) async {
+      expect(await unlockWithHint(tester, '\u202Eecila'), 'ecila');
+    });
+
+    testWidgets('a data-shaped hint is not suggested', (tester) async {
+      expect(await unlockWithHint(tester, '0123456789abcdef0123'), isEmpty);
+    });
+
+    testWidgets('a normal hint is suggested as is', (tester) async {
+      expect(await unlockWithHint(tester, 'Alice'), 'Alice');
+    });
+  });
+
+  testWidgets('a word corrected after all 8 were entered is the one used',
+      (tester) async {
+    final kp = await PairingHandshake.generateEphemeralKeyPair();
+    final wire = await TransportPackage.encodeLdp(
+      publicKey: kp.publicKey,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, <String>[...goodPake.take(7), 'absurd']);
+    // Fix the last word (slot 8 is TextField index 8).
+    await tester.enterText(find.byType(TextField).at(8), goodPake.last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+    expect(find.text('PAIR-TIME PHRASE //'), findsOneWidget);
+  });
 }

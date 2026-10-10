@@ -467,6 +467,150 @@ void main() {
       expect(storage.snapshot['signet.v2.rel.abc123'], newRel.toJson());
     },
   );
+
+  group('previous pairing on rekey (plan Task 3.10)', () {
+    test('a rekey keeps the old secret and role; a plain save does not',
+        () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await store.saveRelationshipV2(newRel,
+          sharedSecret: newSecret, keepPrevious: true);
+      final previous = await store.getPreviousPairing(oldRel.id);
+      expect(previous!.secret, oldSecret);
+      expect(previous.role, oldRel.role);
+
+      final other = await seededWithOld();
+      final plain = SecureStore(storage: other);
+      await plain.saveRelationshipV2(newRel, sharedSecret: newSecret);
+      expect(await plain.getPreviousPairing(oldRel.id), isNull);
+    });
+
+    test('killed at any point of a rekey: if the new secret is in place, '
+        'the old one is kept with its role', () async {
+      final probe = await seededWithOld();
+      await SecureStore(storage: probe).saveRelationshipV2(newRel,
+          sharedSecret: newSecret, keepPrevious: true);
+      final total = probe.mutations;
+      expect(total, greaterThan(0));
+      for (var at = 1; at <= total; at++) {
+        final storage = await seededWithOld();
+        storage
+          ..failAt = at
+          ..kill = true;
+        try {
+          await SecureStore(storage: storage).saveRelationshipV2(newRel,
+              sharedSecret: newSecret, keepPrevious: true);
+        } catch (_) {}
+        storage.relaunch();
+        final store = SecureStore(storage: storage);
+        final secret = await store.getSharedSecretById(oldRel.id);
+        if (_eq(secret, newSecret)) {
+          final previous = await store.getPreviousPairing(oldRel.id);
+          expect(previous, isNotNull, reason: 'killed at mutation $at');
+          expect(previous!.secret, oldSecret, reason: 'killed at $at');
+          expect(previous.role, oldRel.role, reason: 'killed at $at');
+        } else {
+          expect(secret, oldSecret, reason: 'killed at $at');
+        }
+      }
+    });
+
+    test('unpair deletes the old secret too', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await store.saveRelationshipV2(newRel,
+          sharedSecret: newSecret, keepPrevious: true);
+      await store.deleteRelationshipById(oldRel.id);
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+      expect(await storage.read(key: 'signet.v2.prev.${oldRel.id}'), isNull);
+    });
+
+    test('an old secret older than 7 days is deleted when read', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      final eightDaysAgo = DateTime.now()
+          .toUtc()
+          .subtract(const Duration(days: 8))
+          .millisecondsSinceEpoch;
+      await storage.write(
+        key: 'signet.v2.prev.${oldRel.id}',
+        value: jsonEncode(<String, dynamic>{
+          'secret': base64Encode(oldSecret),
+          'role': 'a',
+          'savedAt': eightDaysAgo,
+        }),
+      );
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+      expect(await storage.read(key: 'signet.v2.prev.${oldRel.id}'), isNull);
+    });
+
+    test('a corrupt record reads as none and is removed', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await storage.write(key: 'signet.v2.prev.${oldRel.id}', value: '{"x":1');
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+      expect(await storage.read(key: 'signet.v2.prev.${oldRel.id}'), isNull);
+    });
+
+    test('a later save that is not a rekey drops the old secret', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await store.saveRelationshipV2(newRel,
+          sharedSecret: newSecret, keepPrevious: true);
+      await store.saveRelationshipV2(newRel, sharedSecret: List<int>.filled(32, 3));
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+    });
+
+    test('forgetting the old secret also strips it from a pending rekey, '
+        'so a replay cannot bring it back', () async {
+      final storage = await seededWithOld();
+      // The rekey and its immediate retry both fail to write the secret.
+      storage.failWritesTo['signet.v2.secret.${oldRel.id}'] = 2;
+      try {
+        await SecureStore(storage: storage).saveRelationshipV2(newRel,
+            sharedSecret: newSecret, keepPrevious: true);
+      } catch (_) {}
+      final store = SecureStore(storage: storage);
+      await store.deletePreviousPairing(oldRel.id);
+      storage.relaunch();
+      final again = SecureStore(storage: storage);
+      expect(await again.getSharedSecretById(oldRel.id), newSecret,
+          reason: 'the rekey itself still rolls forward');
+      expect(await again.getPreviousPairing(oldRel.id), isNull);
+    });
+
+    test('an old secret dated in the future (clock was ahead) is deleted',
+        () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await storage.write(
+        key: 'signet.v2.prev.${oldRel.id}',
+        value: jsonEncode(<String, dynamic>{
+          'secret': base64Encode(oldSecret),
+          'role': 'a',
+          'savedAt': DateTime.now()
+              .toUtc()
+              .add(const Duration(days: 3))
+              .millisecondsSinceEpoch,
+        }),
+      );
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+    });
+
+    test('a stored old secret of the wrong length is ignored', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await storage.write(
+        key: 'signet.v2.prev.${oldRel.id}',
+        value: jsonEncode(<String, dynamic>{
+          'secret': '',
+          'role': 'a',
+          'savedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
+        }),
+      );
+      expect(await store.getPreviousPairing(oldRel.id), isNull);
+    });
+  });
 }
 
 bool _eq(List<int>? a, List<int> b) => a != null && listEquals(a, b);

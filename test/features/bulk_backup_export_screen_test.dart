@@ -183,4 +183,18 @@ void main() {
       expect(find.text('1 relationship backed up'), findsOneWidget);
     },
   );
+
+  testWidgets(
+      'one name saved before the 64-byte limit does not fail the whole '
+      'backup (plan Task 3.6 review)', (tester) async {
+    final store = await _storeWith(<_Pair>[
+      _pair(id: 'id-mom', label: 'Mom', secretSeed: 1),
+      _pair(id: 'id-long', label: '\u5988' * 30, secretSeed: 2), // 90 bytes
+    ]);
+    await tester.pumpWidget(_wrap(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE BULK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 relationships backed up'), findsOneWidget);
+  });
 }

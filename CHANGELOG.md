@@ -29,11 +29,38 @@ the surface is allowed to change between minor releases.
   them a minute after copying, or when you next come back to Signet,
   unless you have copied something else since. The long-distance
   pairing screen no longer offers to copy the 8 words.
+- **Checking the words is easier.** A large CHECK THE WORDS button
+  appears once all four words are filled in, a corrected typo is now
+  checked, and short words that are the start of longer ones ("act",
+  "car") no longer set off a false "not verified" while you are still
+  typing. After a result the keyboard stays out of the way.
+- **Video calls.** The gesture you are asked about is now always the one
+  that goes with the words you heard, the gesture shown under WATCH FOR
+  no longer changes while you type, and only one gesture is on screen.
+- **Names.** Long-distance pairing now sends your own name for the other
+  person's phone to suggest, rather than the name you chose for them.
+  Name limits count the space a name takes, so Chinese and other scripts
+  no longer fail later, and invisible or text-reversing characters are
+  removed from names.
+- **Restore can scan the backup QR code.**
 
 ### Fixed
 - Pasting a whole backup file's text into Restore no longer fails with
   "not a valid Signet backup", and a package split across lines by an
   email app is joined back together.
+- The verify words kept updating only while Signet had focus; they now
+  keep updating in split-screen beside a video call.
+- Back on the "show my QR" screen no longer counts as "they scanned it",
+  a new pairing goes to the practice screen instead of home, and a double
+  tap on "It matches" no longer adds the contact twice.
+- UNDO after unpairing works even after leaving the home screen.
+- A camera that fails or never starts offers Try again instead of an
+  endless spinner, including while the permission prompt is open.
+- If only one phone finishes a rekey, words from the old pairing are now
+  recognised: still NOT VERIFIED, with advice to redo the rekey in
+  person or treat the call as a scam.
+- A contact name saved before the length limit no longer makes a backup
+  fail.
 
 ## [0.3.6] — 2026-06-12
 

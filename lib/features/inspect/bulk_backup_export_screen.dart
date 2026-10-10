@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -72,7 +73,9 @@ class _BulkBackupExportScreenState
         records.add(BlkRelationshipRecord(
           sharedSecret: secret,
           role: r.role,
-          label: r.label,
+          // A name saved before the 64-byte limit is cut to fit; one long
+          // name must not fail the whole backup.
+          label: LabelPolicy.truncateToBytes(r.label, LabelPolicy.maxBytes),
           pairedAt: r.pairedAt,
           silentHaptics: r.silentHaptics,
         ));

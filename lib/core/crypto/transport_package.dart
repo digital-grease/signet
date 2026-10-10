@@ -98,6 +98,9 @@ class TransportPackage {
   static const int _x25519KeyLength = 32;
   static const int _sharedSecretLength = 32;
   static const int _maxLabelBytes = 32;
+
+  /// The longest LDP label hint, in UTF-8 bytes.
+  static const int maxLabelHintBytes = _maxLabelBytes;
   static const int _maxSubLabelBytes = 64;
   static const int _blkCountPrefixLength = 2;
   static const int _blkMaxRecords = 255;

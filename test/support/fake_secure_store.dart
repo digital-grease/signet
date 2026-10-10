@@ -94,6 +94,7 @@ class FakeSecureStore implements SecureStore {
   Future<void> saveRelationshipV2(
     Relationship relationship, {
     required List<int> sharedSecret,
+    bool keepPrevious = false,
   }) async {
     if (sharedSecret.isEmpty) {
       throw ArgumentError.value(
@@ -102,9 +103,43 @@ class FakeSecureStore implements SecureStore {
         'Shared secret must not be empty.',
       );
     }
+    final old = _relationships[relationship.id];
+    final oldSecret = _secrets[relationship.id];
+    if (keepPrevious && old != null && oldSecret != null) {
+      previous[relationship.id] = PreviousPairing(
+        secret: oldSecret,
+        role: old.role,
+        savedAt: now().toUtc(),
+      );
+    }
     _relationships[relationship.id] = relationship;
     _secrets[relationship.id] = Uint8List.fromList(sharedSecret);
   }
+
+  /// Previous pairings kept by rekeys; tests may seed it directly.
+  final Map<String, PreviousPairing> previous = <String, PreviousPairing>{};
+
+  /// Clock for previous-pairing expiry; tests may replace it.
+  DateTime Function() now = DateTime.now;
+
+  /// Makes [getPreviousPairing] throw, like a storage failure.
+  bool failPreviousPairing = false;
+
+  @override
+  Future<PreviousPairing?> getPreviousPairing(String id) async {
+    if (failPreviousPairing) throw StateError('storage failure');
+    final p = previous[id];
+    if (p == null) return null;
+    if (now().toUtc().difference(p.savedAt) >
+        SecureStore.previousPairingLifetime) {
+      previous.remove(id);
+      return null;
+    }
+    return p;
+  }
+
+  @override
+  Future<void> deletePreviousPairing(String id) async => previous.remove(id);
 
   @override
   Future<void> updateRelationshipMetadataV2(Relationship relationship) async {
@@ -116,5 +151,6 @@ class FakeSecureStore implements SecureStore {
   Future<void> deleteRelationshipById(String id) async {
     _relationships.remove(id);
     _secrets.remove(id);
+    previous.remove(id);
   }
 }

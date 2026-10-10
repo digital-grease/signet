@@ -12,6 +12,7 @@ import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/label_input.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
@@ -79,6 +80,8 @@ class _PairTransportInScreenState
               AppLocalizations.of(context).pairTransportInWordsIncompleteError);
       return;
     }
+    // The words as they are now: the slots stay editable while this runs.
+    final pakeWords = _pakeWords;
     setState(() {
       _unlocking = true;
       _unlockError = null;
@@ -86,7 +89,7 @@ class _PairTransportInScreenState
     try {
       final ldp = await TransportPackage.decodeLdp(
         wire,
-        pakeWords: _pakeWords,
+        pakeWords: pakeWords,
       );
       final ourKeyPair = await PairingHandshake.generateEphemeralKeyPair();
       final sharedSecret = await PairingHandshake.deriveSharedSecret(
@@ -101,7 +104,7 @@ class _PairTransportInScreenState
       final responseWire = await TransportPackage.encodeLdp(
         publicKey: ourKeyPair.publicKey,
         labelHint: '', // receiver hint is not useful to the sender
-        pakeWords: _pakeWords,
+        pakeWords: pakeWords,
         // Answer in the request's wire version so a sender on an older
         // build (which reads only version 1) can still open the response.
         version: ldp.version,
@@ -115,7 +118,11 @@ class _PairTransportInScreenState
           phrase: phrase,
           responseWire: responseWire,
         );
-        _labelController.text = ldp.labelHint;
+        // The sender's name for themselves (plan Task 3.6, P6), cleaned of
+        // invisible and direction-changing characters, and only if it is
+        // a usable name.
+        final hint = LabelPolicy.clean(ldp.labelHint);
+        _labelController.text = LabelPolicy.isValid(hint) ? hint : '';
         _unlocking = false;
       });
     } on InvalidPakeException catch (e) {
@@ -155,15 +162,13 @@ class _PairTransportInScreenState
   Future<void> _handleCommit() async {
     final unlocked = _unlocked;
     if (unlocked == null || _committing) return;
-    final label = _labelController.text.trim();
-    if (label.isEmpty) {
-      setState(() =>
-          _unlockError = AppLocalizations.of(context).commonGiveContactName);
-      return;
-    }
-    final labelReason = LabelPolicy.rejectionReason(label);
-    if (labelReason != null) {
-      setState(() => _unlockError = labelReason);
+    final label = LabelPolicy.clean(_labelController.text);
+    final l10n = AppLocalizations.of(context);
+    final rejection = LabelPolicy.check(label);
+    if (rejection != null) {
+      setState(() => _unlockError = rejection == LabelRejection.empty
+          ? l10n.commonGiveContactName
+          : labelRejectionText(rejection, l10n));
       return;
     }
     setState(() => _committing = true);
@@ -276,9 +281,8 @@ class _PairTransportInScreenState
           wordCount: 8,
           autofocus: false,
           resetKey: _pakeResetKey,
-          onSubmit: (words) async {
-            setState(() => _pakeWords = words);
-          },
+          onWordsChanged: (words) =>
+              setState(() => _pakeWords = words ?? const <String>[]),
         ),
         if (_unlockError != null) ...<Widget>[
           const SizedBox(height: 12),
@@ -409,7 +413,11 @@ class _PairTransportInScreenState
         const SizedBox(height: 8),
         TextField(
           controller: _labelController,
-          maxLength: 32,
+          inputFormatters: <TextInputFormatter>[
+            Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+          ],
+          buildCounter:
+              utf8ByteCounter(_labelController, LabelPolicy.maxBytes),
           decoration: InputDecoration(
             hintText: l10n.commonNameHintExample,
           ),

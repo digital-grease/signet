@@ -296,6 +296,120 @@ abstract class AppLocalizations {
   /// **'e.g. Alice'**
   String get commonNameHintExample;
 
+  /// A contact name was empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name for this contact.'**
+  String get labelRejectEmpty;
+
+  /// A contact name contained a signet:tp1: package.
+  ///
+  /// In en, this message translates to:
+  /// **'That looks like Signet data, not a name. Try something like \"Mom\".'**
+  String get labelRejectData;
+
+  /// A contact name was a long hex string.
+  ///
+  /// In en, this message translates to:
+  /// **'That looks like a key, not a name. Try something like \"Mom\".'**
+  String get labelRejectKey;
+
+  /// A contact name was over the byte limit.
+  ///
+  /// In en, this message translates to:
+  /// **'That name is too long. Use a shorter one.'**
+  String get labelRejectTooLong;
+
+  /// Name given to a restored contact whose saved name was empty or unusable. The user can rename it.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored contact'**
+  String get labelRestoredFallback;
+
+  /// Appended to a restored contact's name when a contact with that name already exists. Keep the leading space if your language uses one.
+  ///
+  /// In en, this message translates to:
+  /// **' (restored)'**
+  String get labelRestoredSuffix;
+
+  /// QR scanner: the camera failed for a reason other than permission, or never started.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera didn\'t start'**
+  String get scannerCameraErrorTitle;
+
+  /// QR scanner camera error help.
+  ///
+  /// In en, this message translates to:
+  /// **'Close any other app that is using the camera and try again.'**
+  String get scannerCameraErrorBody;
+
+  /// QR scanner camera error help when a paste path exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Close any other app that is using the camera and try again, or paste the text instead.'**
+  String get scannerCameraErrorBodyPaste;
+
+  /// QR scanner: restart the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get scannerRetry;
+
+  /// QR scanner: give up on the camera and paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste instead'**
+  String get scannerUsePaste;
+
+  /// Restore scanner: a QR code that is not a signet:tp1: package.
+  ///
+  /// In en, this message translates to:
+  /// **'That QR code isn\'t a Signet package. Scan the code from your backup.'**
+  String get scannerNotSignetPackage;
+
+  /// Title of the full-screen QR scanner page.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN QR'**
+  String get scannerTitle;
+
+  /// Restore screen: scan the backup package QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get backupImportScanQr;
+
+  /// Restore preview: the saved contact name was empty or looked like data and was replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'The name saved in this backup could not be used, so this contact is restored as \"{label}\". You can rename it afterwards.'**
+  String backupImportReplacedLabelNotice(String label);
+
+  /// Counter under a name field. Counts space used (UTF-8 bytes), not letters, since that is what the limit is.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {max}'**
+  String labelLengthCounter(int used, int max);
+
+  /// Optional field on the long-distance pairing send screen.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR NAME, AS THEY\'LL SEE IT //'**
+  String get pairTransportOutYourNameHeader;
+
+  /// Help text for the sender's own-name hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Their phone suggests this as the name for you; they can change it. Chinese, Arabic and some other scripts use more space per letter, so keep it short.'**
+  String get pairTransportOutYourNameDescription;
+
+  /// The sender pasted their own outgoing package as the response.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the package you created. Paste the one your contact sent back.'**
+  String get pairTransportOutOwnPackageError;
+
   /// Text button with paste icon that reads the clipboard into the package input. Used on backup import and both transport screens.
   ///
   /// In en, this message translates to:
@@ -1541,7 +1655,7 @@ abstract class AppLocalizations {
   /// Helper text under the NAME THIS CONTACT header on transport out.
   ///
   /// In en, this message translates to:
-  /// **'The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.'**
+  /// **'The name that will appear on your home screen for this contact. Only you see it.'**
   String get pairTransportOutNameDescription;
 
   /// FilledButton generating the outgoing package on transport out.
@@ -2048,12 +2162,6 @@ abstract class AppLocalizations {
   /// **'ALREADY PAIRED'**
   String get bulkBackupImportAlreadyPairedChip;
 
-  /// Placeholder shown when a bulk record has an empty label.
-  ///
-  /// In en, this message translates to:
-  /// **'(no label)'**
-  String get bulkBackupImportNoLabel;
-
   /// Monospace metadata line on each bulk-import row: wire role letter and pairing date.
   ///
   /// In en, this message translates to:
@@ -2069,7 +2177,7 @@ abstract class AppLocalizations {
   /// Conflict radio option: import under a suffixed label; the suffix is stored on the contact name.
   ///
   /// In en, this message translates to:
-  /// **'Rename restored copy to \"{label} (restored)\"'**
+  /// **'Restore it as \"{label}\"'**
   String bulkBackupImportRenameOption(String label);
 
   /// Conflict radio option: replace the existing pairing's secret.
@@ -2683,6 +2791,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SAW IT'**
   String get verifyActionSeenButton;
+
+  /// Under the SAW IT / DID NOT SEE question in video mode.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} should do exactly one gesture. If they did several, tap DID NOT SEE.'**
+  String verifyActionOneGesture(String label);
+
+  /// Video mode: the words matched a neighbouring 30-second window whose gesture differs from the WATCH FOR row the user saw while typing.
+  ///
+  /// In en, this message translates to:
+  /// **'The gesture to watch for has changed: the words {label} read were from the previous or next 30 seconds, and this is their gesture.'**
+  String verifyActionChangedNote(String label);
+
+  /// Large button under the 4 word slots on the verify screen; enabled once all 4 slots hold real words.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK THE WORDS'**
+  String get verifyCheckWordsButton;
+
+  /// Secondary note on a NOT VERIFIED result when the words match the secret replaced by a recent rekey. Must never sound reassuring: a thief with the old phone produces exactly these words.
+  ///
+  /// In en, this message translates to:
+  /// **'These words match the pairing you had with {label} before a rekey. If you and {label} just rekeyed, do it again together, in person. Otherwise treat this call as a scam.'**
+  String verifyOldPairingNote(String label);
 
   /// Collapsible section title: my own rotating words.
   ///

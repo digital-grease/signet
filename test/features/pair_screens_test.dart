@@ -37,6 +37,12 @@ GoRouter _routerFor({
         path: '/pair/confirm',
         builder: (context, _) => screen(context),
       ),
+      // Same flat route as app.dart. Without it, a commit that went to the
+      // practice screen looked like "returned home" (plan Task 3.5, P2).
+      GoRoute(
+        path: '/pair/complete/:id',
+        builder: (_, _) => const _NavTarget('COMPLETE'),
+      ),
     ],
   );
 }
@@ -132,7 +138,8 @@ void main() {
       expect(find.text('No match — start over'), findsOneWidget);
     });
 
-    testWidgets('match commits to storage and returns home', (tester) async {
+    testWidgets('match commits to storage and goes to the practice screen',
+        (tester) async {
       final store = FakeSecureStore();
       final container = ProviderContainer(overrides: [
         secureStoreProvider.overrideWithValue(store),
@@ -181,9 +188,47 @@ void main() {
             'commit must store the role derived from lexicographic compare '
             'of the two X25519 public keys (reflection-attack defense)',
       );
-      expect(find.text('HOME'), findsOneWidget);
+      expect(find.text('COMPLETE'), findsOneWidget,
+          reason: 'the reset after saving must not bounce the user home');
+      expect(find.text('HOME'), findsNothing);
       // Controller should be reset for the next pairing.
       expect(container.read(pairingControllerProvider).label, isNull);
+    });
+
+    testWidgets('a double tap on "It matches" saves one contact (P3)',
+        (tester) async {
+      final store = FakeSecureStore();
+      final container = ProviderContainer(overrides: [
+        secureStoreProvider.overrideWithValue(store),
+      ]);
+      addTearDown(container.dispose);
+      final ctrl = container.read(pairingControllerProvider.notifier);
+      ctrl.setLabel('Mom');
+      await ctrl.ensureOurKeyPair();
+      await ctrl.markQrShown();
+      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 2)));
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            routerConfig: _routerFor(
+              initialLocation: '/pair/confirm',
+              screen: (_) => const PairConfirmScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final match = find.widgetWithText(FilledButton, 'It matches');
+      await tester.tap(match);
+      await tester.tap(match, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(await store.listRelationships(), hasLength(1));
+      expect(find.text('COMPLETE'), findsOneWidget);
     });
 
     testWidgets(

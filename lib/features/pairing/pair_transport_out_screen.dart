@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +13,8 @@ import '../../core/crypto/verification.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/models/label_policy.dart';
+import '../../shared/label_input.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
@@ -40,6 +45,10 @@ enum _Phase { setup, shareAndWait, confirm }
 class _PairTransportOutScreenState
     extends ConsumerState<PairTransportOutScreen> {
   final TextEditingController _labelController = TextEditingController();
+  // Optional: the sender's own name, sent as the hint the receiver's phone
+  // suggests as the name for them (plan Task 3.6, P6).
+  final TextEditingController _ownNameController = TextEditingController();
+  String? _ownNameError;
   final TextEditingController _responseController = TextEditingController();
 
   _Phase _phase = _Phase.setup;
@@ -52,6 +61,7 @@ class _PairTransportOutScreenState
   @override
   void dispose() {
     _labelController.dispose();
+    _ownNameController.dispose();
     _responseController.dispose();
     super.dispose();
   }
@@ -62,22 +72,39 @@ class _PairTransportOutScreenState
 
   Future<void> _handleGenerate() async {
     if (_busy) return;
-    final label = _labelController.text.trim();
-    if (label.isEmpty) {
+    final label = LabelPolicy.clean(_labelController.text);
+    final l10n = AppLocalizations.of(context);
+    final rejection = LabelPolicy.check(label);
+    if (rejection != null) {
+      setState(() => _errorText = rejection == LabelRejection.empty
+          ? l10n.commonGiveContactName
+          : labelRejectionText(rejection, l10n));
+      return;
+    }
+    // Optional. Checked against the package limit here too: text still
+    // being composed in an input method can get past the field's cap.
+    final ownName = LabelPolicy.clean(_ownNameController.text);
+    final ownNameRejection = ownName.isEmpty
+        ? null
+        : utf8.encode(ownName).length > TransportPackage.maxLabelHintBytes
+            ? LabelRejection.tooLong
+            : LabelPolicy.check(ownName);
+    if (ownNameRejection != null) {
       setState(() =>
-          _errorText = AppLocalizations.of(context).commonGiveContactName);
+          _ownNameError = labelRejectionText(ownNameRejection, l10n));
       return;
     }
     setState(() {
       _busy = true;
       _errorText = null;
+      _ownNameError = null;
     });
     try {
       final keyPair = await PairingHandshake.generateEphemeralKeyPair();
       final pakeWords = TransportPackage.mintPakeWords();
       final outgoing = await TransportPackage.encodeLdp(
         publicKey: keyPair.publicKey,
-        labelHint: label,
+        labelHint: ownName,
         pakeWords: pakeWords,
       );
       if (!mounted) return;
@@ -123,6 +150,17 @@ class _PairTransportOutScreenState
         wire,
         pakeWords: gen.pakeWords,
       );
+      // Our own outgoing package decodes with the same words; it is not a
+      // response (plan Task 3.6, P8).
+      if (listEquals(ldp.publicKey, gen.ourKeyPair.publicKey)) {
+        if (!mounted) return;
+        setState(() {
+          _errorText =
+              AppLocalizations.of(context).pairTransportOutOwnPackageError;
+          _busy = false;
+        });
+        return;
+      }
       final sharedSecret = await PairingHandshake.deriveSharedSecret(
         ours: gen.ourKeyPair,
         theirPublicKey: ldp.publicKey,
@@ -258,9 +296,38 @@ class _PairTransportOutScreenState
         const SizedBox(height: 12),
         TextField(
           controller: _labelController,
-          maxLength: 32,
           autofocus: true,
+          inputFormatters: <TextInputFormatter>[
+            Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+          ],
+          buildCounter:
+              utf8ByteCounter(_labelController, LabelPolicy.maxBytes),
           decoration: InputDecoration(hintText: l10n.commonNameHintExample),
+        ),
+        const SizedBox(height: 12),
+        _SectionHeader(l10n.pairTransportOutYourNameHeader),
+        const SizedBox(height: 6),
+        Text(
+          l10n.pairTransportOutYourNameDescription,
+          style: TextStyle(
+            fontSize: 13,
+            color: scheme.onSurfaceVariant,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _ownNameController,
+          inputFormatters: <TextInputFormatter>[
+            Utf8LengthLimitingTextInputFormatter(
+                TransportPackage.maxLabelHintBytes),
+          ],
+          buildCounter: utf8ByteCounter(
+              _ownNameController, TransportPackage.maxLabelHintBytes),
+          decoration: InputDecoration(errorText: _ownNameError),
+          onChanged: (_) {
+            if (_ownNameError != null) setState(() => _ownNameError = null);
+          },
         ),
         if (_errorText != null) ...<Widget>[
           const SizedBox(height: 8),

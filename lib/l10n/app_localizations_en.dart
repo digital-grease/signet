@@ -118,6 +118,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonNameHintExample => 'e.g. Alice';
 
   @override
+  String get labelRejectEmpty => 'Enter a name for this contact.';
+
+  @override
+  String get labelRejectData =>
+      'That looks like Signet data, not a name. Try something like \"Mom\".';
+
+  @override
+  String get labelRejectKey =>
+      'That looks like a key, not a name. Try something like \"Mom\".';
+
+  @override
+  String get labelRejectTooLong => 'That name is too long. Use a shorter one.';
+
+  @override
+  String get labelRestoredFallback => 'Restored contact';
+
+  @override
+  String get labelRestoredSuffix => ' (restored)';
+
+  @override
+  String get scannerCameraErrorTitle => 'The camera didn\'t start';
+
+  @override
+  String get scannerCameraErrorBody =>
+      'Close any other app that is using the camera and try again.';
+
+  @override
+  String get scannerCameraErrorBodyPaste =>
+      'Close any other app that is using the camera and try again, or paste the text instead.';
+
+  @override
+  String get scannerRetry => 'Try again';
+
+  @override
+  String get scannerUsePaste => 'Paste instead';
+
+  @override
+  String get scannerNotSignetPackage =>
+      'That QR code isn\'t a Signet package. Scan the code from your backup.';
+
+  @override
+  String get scannerTitle => 'SCAN QR';
+
+  @override
+  String get backupImportScanQr => 'Scan QR';
+
+  @override
+  String backupImportReplacedLabelNotice(String label) {
+    return 'The name saved in this backup could not be used, so this contact is restored as \"$label\". You can rename it afterwards.';
+  }
+
+  @override
+  String labelLengthCounter(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get pairTransportOutYourNameHeader =>
+      'YOUR NAME, AS THEY\'LL SEE IT //';
+
+  @override
+  String get pairTransportOutYourNameDescription =>
+      'Optional. Their phone suggests this as the name for you; they can change it. Chinese, Arabic and some other scripts use more space per letter, so keep it short.';
+
+  @override
+  String get pairTransportOutOwnPackageError =>
+      'This is the package you created. Paste the one your contact sent back.';
+
+  @override
   String get commonPasteFromClipboard => 'Paste from clipboard';
 
   @override
@@ -843,7 +912,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportOutNameDescription =>
-      'The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.';
+      'The name that will appear on your home screen for this contact. Only you see it.';
 
   @override
   String get pairTransportOutGenerateButton => 'GENERATE PACKAGE';
@@ -1203,9 +1272,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkBackupImportAlreadyPairedChip => 'ALREADY PAIRED';
 
   @override
-  String get bulkBackupImportNoLabel => '(no label)';
-
-  @override
   String bulkBackupImportRecordMeta(String role, String date) {
     return 'ROLE $role · PAIRED $date';
   }
@@ -1216,7 +1282,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String bulkBackupImportRenameOption(String label) {
-    return 'Rename restored copy to \"$label (restored)\"';
+    return 'Restore it as \"$label\"';
   }
 
   @override
@@ -1594,6 +1660,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyActionSeenButton => 'SAW IT';
+
+  @override
+  String verifyActionOneGesture(String label) {
+    return '$label should do exactly one gesture. If they did several, tap DID NOT SEE.';
+  }
+
+  @override
+  String verifyActionChangedNote(String label) {
+    return 'The gesture to watch for has changed: the words $label read were from the previous or next 30 seconds, and this is their gesture.';
+  }
+
+  @override
+  String get verifyCheckWordsButton => 'CHECK THE WORDS';
+
+  @override
+  String verifyOldPairingNote(String label) {
+    return 'These words match the pairing you had with $label before a rekey. If you and $label just rekeyed, do it again together, in person. Otherwise treat this call as a scam.';
+  }
 
   @override
   String get verifyShowMyWords => 'Show my 4 words';

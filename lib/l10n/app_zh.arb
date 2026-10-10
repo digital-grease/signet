@@ -64,6 +64,25 @@
   "commonNameThisContactHeader": "为联系人命名 //",
 
   "commonNameHintExample": "例如：Alice",
+  "labelRejectEmpty": "请输入联系人名称。",
+  "labelRejectData": "这看起来像 Signet 数据，不像名字。试试“妈妈”这样的名称。",
+  "labelRejectKey": "这看起来像密钥，不像名字。试试“妈妈”这样的名称。",
+  "labelRejectTooLong": "名称太长了，请换一个短一点的。",
+  "labelRestoredFallback": "已恢复的联系人",
+  "labelRestoredSuffix": "（已恢复）",
+  "scannerCameraErrorTitle": "相机没有启动",
+  "scannerCameraErrorBody": "请关闭正在使用相机的其他应用，然后重试。",
+  "scannerCameraErrorBodyPaste": "请关闭正在使用相机的其他应用，然后重试，或者改为粘贴文本。",
+  "scannerRetry": "重试",
+  "scannerUsePaste": "改为粘贴",
+  "scannerNotSignetPackage": "这个二维码不是 Signet 传输包。请扫描备份中的二维码。",
+  "scannerTitle": "扫描二维码",
+  "backupImportScanQr": "扫描二维码",
+  "backupImportReplacedLabelNotice": "备份中保存的名称无法使用，因此该联系人将以“{label}”恢复。恢复后可以改名。",
+  "labelLengthCounter": "{used} / {max}",
+  "pairTransportOutYourNameHeader": "你的名字（对方看到的）//",
+  "pairTransportOutYourNameDescription": "可选。对方手机会把它建议为你的名字，对方可以修改。中文等文字每个字占用更多空间，请尽量简短。",
+  "pairTransportOutOwnPackageError": "这是你自己创建的传输包。请粘贴对方发回的那个。",
 
   "commonPasteFromClipboard": "从剪贴板粘贴",
 
@@ -478,7 +497,7 @@
 
   "pairTransportOutShareWaitTitle": "分享并等待",
 
-  "pairTransportOutNameDescription": "这是配对后显示在你主页上的名称。对方导入传输包时会看到它作为提示，但可以在其设备上改名。",
+  "pairTransportOutNameDescription": "这是配对后在你主页上显示的联系人名称，只有你能看到。",
 
   "pairTransportOutGenerateButton": "生成传输包",
 
@@ -649,13 +668,12 @@
 
   "bulkBackupImportAlreadyPairedChip": "已配对",
 
-  "bulkBackupImportNoLabel": "（无名称）",
 
   "bulkBackupImportRecordMeta": "角色 {role} · 配对于 {date}",
 
   "bulkBackupImportSkipOption": "跳过 — 保留现有配对不动",
 
-  "bulkBackupImportRenameOption": "将恢复的副本重命名为“{label}（已恢复）”",
+  "bulkBackupImportRenameOption": "恢复为“{label}”",
 
   "bulkBackupImportOverwriteOption": "覆盖现有配对",
 
@@ -860,6 +878,10 @@
   "verifyActionNotSeenButton": "没看到",
 
   "verifyActionSeenButton": "看到了",
+  "verifyActionOneGesture": "{label} 应该只做一个动作。如果对方做了好几个，请点“没看到”。",
+  "verifyActionChangedNote": "要观察的动作已更改：{label} 读出的单词来自前一个或后一个 30 秒，这是对应的动作。",
+  "verifyCheckWordsButton": "核对单词",
+  "verifyOldPairingNote": "这些单词与你和 {label} 重新配对之前的旧配对相符。如果你们刚刚重新配对过，请当面一起再做一次。否则请把这通电话当作诈骗。",
 
   "verifyShowMyWords": "显示我的 4 个单词",
 

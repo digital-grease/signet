@@ -10,10 +10,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/package_error_text.dart';
+import '../../shared/widgets/qr_scanner.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -126,6 +128,20 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       _wordsFingerprint = fingerprint;
       _error = null;
     });
+  }
+
+  /// Scan the package QR from a printout or another screen (plan Task
+  /// 3.9). Only `signet:tp1:` codes are taken.
+  Future<void> _scanPackage() async {
+    final l10n = AppLocalizations.of(context);
+    final text = await scanQrCode(
+      context,
+      accept: (t) => t.trim().startsWith('signet:tp1:')
+          ? null
+          : l10n.scannerNotSignetPackage,
+    );
+    if (!mounted || text == null) return;
+    _applyPackageText(text);
   }
 
   Future<void> _pasteInto(void Function(String text) apply) async {
@@ -257,6 +273,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       setState(() => _error = l10n.backupImportWordsIncompleteError);
       return;
     }
+    // The words as they are now: the slots stay editable while this runs.
+    final pakeWords = _pakeWords;
 
     // Match the words file to the package before decrypting, so a mix-up
     // between two backups says so instead of "wrong words". The package
@@ -277,8 +295,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         setState(() {
           _error = l10n.backupImportFingerprintMismatchError(
               packageFingerprint, wordsFingerprint);
-          // Clear the wrong words so the right ones can be typed or loaded
-          // in their place.
+          // These words belong to another backup: clear them for the right
+          // ones.
           _pakeWords = const <String>[];
           _loadedWords = null;
           _wordsFingerprint = null;
@@ -327,7 +345,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       try {
         final decoded = await _decodeFirst(
           candidates,
-          (wire) => TransportPackage.decodeBlk(wire, pakeWords: _pakeWords),
+          (wire) => TransportPackage.decodeBlk(wire, pakeWords: pakeWords),
         );
         if (!mounted) return;
         // Hand off to the bulk-import flow — the screen owns preview,
@@ -367,7 +385,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     try {
       final decoded = await _decodeFirst(
         candidates,
-        (wire) => TransportPackage.decodeLpr(wire, pakeWords: _pakeWords),
+        (wire) => TransportPackage.decodeLpr(wire, pakeWords: pakeWords),
       );
       if (!mounted) return;
       setState(() {
@@ -408,7 +426,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     setState(() => _busy = true);
     try {
       final fresh = Relationship.fresh(
-        label: decoded.label,
+        label: _restoredLabel(decoded),
         role: decoded.role,
         silentHaptics: decoded.silentHaptics,
       );
@@ -492,6 +510,11 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
               icon: const Icon(Icons.folder_open),
               label: Text(l10n.backupImportLoadPackageFile),
             ),
+            TextButton.icon(
+              onPressed: _scanPackage,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(l10n.backupImportScanQr),
+            ),
           ],
         ),
         if (_legacyBundle) ...<Widget>[
@@ -522,9 +545,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
           autofocus: false,
           resetKey: _pakeResetKey,
           prefillWords: _pakeWords.length == 8 ? _pakeWords : null,
-          onSubmit: (words) async {
+          onWordsChanged: (words) {
             setState(() {
-              _pakeWords = words;
+              _pakeWords = words ?? const <String>[];
               // A loaded file's fingerprint only describes the words it
               // came with.
               if (!listEquals(words, _loadedWords)) _wordsFingerprint = null;
@@ -583,7 +606,11 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         // Informational, not an alarm: the secret is intact. A live region
         // so TalkBack announces it when the commit pane appears.
         for (final notice in <String>[
-          if (decoded.labelRepaired) l10n.backupImportRepairedLabelNotice,
+          if (_labelReplaced(decoded))
+            l10n.backupImportReplacedLabelNotice(_restoredLabel(decoded))
+          else if (decoded.labelRepaired ||
+              LabelPolicy.clean(decoded.label) != decoded.label)
+            l10n.backupImportRepairedLabelNotice,
           if (decoded.pairedAtRepaired) l10n.backupImportRepairedDateNotice,
           if (_legacyBundle) l10n.backupImportLegacyNotice,
         ]) ...<Widget>[
@@ -603,7 +630,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                decoded.label,
+                _restoredLabel(decoded),
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
@@ -651,7 +678,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                l10n.backupImportWhatItDoesBody(decoded.label),
+                l10n.backupImportWhatItDoesBody(_restoredLabel(decoded)),
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onSurface,
@@ -678,6 +705,15 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       ],
     );
   }
+
+  /// The name the contact is restored under (plan Task 3.6, S12): the
+  /// saved one with invisible characters removed, or a fallback if it is
+  /// unusable.
+  String _restoredLabel(LprPackage decoded) => LabelPolicy.forRestore(
+      decoded.label, AppLocalizations.of(context).labelRestoredFallback);
+
+  bool _labelReplaced(LprPackage decoded) =>
+      !LabelPolicy.isValid(LabelPolicy.clean(decoded.label));
 
   static String _formatDate(DateTime dt) {
     final u = dt.toUtc();

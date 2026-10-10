@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -61,6 +62,9 @@ class _BulkBackupImportScreenState
   List<Relationship>? _existing;
   Map<int, _Disposition> _dispositions = <int, _Disposition>{};
   Set<int> _conflictIndexes = <int>{};
+  // Conflicts whose name matches more than one existing contact: Overwrite
+  // could not say which one it replaces, so it is not offered.
+  Set<int> _ambiguousIndexes = <int>{};
 
   bool _busy = false;
   int _committed = 0;
@@ -73,17 +77,36 @@ class _BulkBackupImportScreenState
     _loadExisting();
   }
 
+  /// The name a renamed copy of record [i] is saved under.
+  String _renamedLabel(int i) => LabelPolicy.withSuffix(
+      _label(i), AppLocalizations.of(context).labelRestoredSuffix);
+
+  /// The name record [i] is restored under (plan Task 3.6, S12): cleaned of
+  /// invisible characters, or a fallback when the saved one is unusable.
+  String _label(int i) => LabelPolicy.forRestore(
+      widget.decoded.records[i].label,
+      AppLocalizations.of(context).labelRestoredFallback);
+
   Future<void> _loadExisting() async {
     try {
       final store = ref.read(secureStoreProvider);
       final existing = await store.listRelationships();
       if (!mounted) return;
-      final existingLabels = <String>{for (final r in existing) r.label};
+      // Compared cleaned, as the restored names are: a saved "Mom" with an
+      // invisible mark is still the same Mom.
+      final existingCounts = <String, int>{};
+      for (final r in existing) {
+        final key = LabelPolicy.clean(r.label);
+        existingCounts[key] = (existingCounts[key] ?? 0) + 1;
+      }
       final initialDispositions = <int, _Disposition>{};
       final conflicts = <int>{};
+      final ambiguous = <int>{};
       for (var i = 0; i < widget.decoded.records.length; i++) {
-        if (existingLabels.contains(widget.decoded.records[i].label)) {
+        final matches = existingCounts[_label(i)] ?? 0;
+        if (matches > 0) {
           conflicts.add(i);
+          if (matches > 1) ambiguous.add(i);
           initialDispositions[i] = _Disposition.skip;
         } else {
           initialDispositions[i] = _Disposition.create;
@@ -93,6 +116,7 @@ class _BulkBackupImportScreenState
         _existing = existing;
         _dispositions = initialDispositions;
         _conflictIndexes = conflicts;
+        _ambiguousIndexes = ambiguous;
       });
     } catch (e) {
       if (!mounted) return;
@@ -105,7 +129,7 @@ class _BulkBackupImportScreenState
     final existing = _existing;
     if (existing == null) return;
     final byLabel = <String, Relationship>{
-      for (final r in existing) r.label: r,
+      for (final r in existing) LabelPolicy.clean(r.label): r,
     };
     setState(() {
       _busy = true;
@@ -128,7 +152,7 @@ class _BulkBackupImportScreenState
           case _Disposition.create:
             final fresh = Relationship(
               id: _mintId(),
-              label: record.label,
+              label: _label(i),
               pairedAt: record.pairedAt,
               role: record.role,
               silentHaptics: record.silentHaptics,
@@ -142,7 +166,7 @@ class _BulkBackupImportScreenState
           case _Disposition.rename:
             final fresh = Relationship(
               id: _mintId(),
-              label: '${record.label} (restored)',
+              label: _renamedLabel(i),
               pairedAt: record.pairedAt,
               role: record.role,
               silentHaptics: record.silentHaptics,
@@ -154,11 +178,16 @@ class _BulkBackupImportScreenState
             renamed++;
             break;
           case _Disposition.overwrite:
+            if (_ambiguousIndexes.contains(i)) {
+              // Not offered in the UI; never guess which contact to replace.
+              skipped++;
+              break;
+            }
             // Reuse the existing id so verify screens keyed by id keep
             // working after the restore. Label stays the existing one
             // (which matches the record's label anyway — that's how we
             // detected the conflict).
-            final existing = byLabel[record.label]!;
+            final existing = byLabel[_label(i)]!;
             final replacement = existing.copyWith(
               pairedAt: record.pairedAt,
               role: record.role,
@@ -277,6 +306,7 @@ class _BulkBackupImportScreenState
       skippedNeedsNewerVersion: widget.decoded.skippedNeedsNewerVersion,
       dispositions: _dispositions,
       conflictIndexes: _conflictIndexes,
+      ambiguousIndexes: _ambiguousIndexes,
       busy: _busy,
       committed: _committed,
       onChangeDisposition: (index, disposition) {
@@ -305,6 +335,7 @@ class _PreviewPane extends StatelessWidget {
     required this.skippedNeedsNewerVersion,
     required this.dispositions,
     required this.conflictIndexes,
+    required this.ambiguousIndexes,
     required this.busy,
     required this.committed,
     required this.onChangeDisposition,
@@ -316,6 +347,7 @@ class _PreviewPane extends StatelessWidget {
   final int skippedNeedsNewerVersion;
   final Map<int, _Disposition> dispositions;
   final Set<int> conflictIndexes;
+  final Set<int> ambiguousIndexes;
   final bool busy;
   final int committed;
   final void Function(int index, _Disposition next) onChangeDisposition;
@@ -371,6 +403,7 @@ class _PreviewPane extends StatelessWidget {
             index: i,
             record: records[i],
             isConflict: conflictIndexes.contains(i),
+            canOverwrite: !ambiguousIndexes.contains(i),
             disposition: dispositions[i] ?? _Disposition.skip,
             onChange: (next) => onChangeDisposition(i, next),
           ),
@@ -412,6 +445,7 @@ class _RecordRow extends StatelessWidget {
     required this.index,
     required this.record,
     required this.isConflict,
+    required this.canOverwrite,
     required this.disposition,
     required this.onChange,
   });
@@ -419,6 +453,7 @@ class _RecordRow extends StatelessWidget {
   final int index;
   final BlkRelationshipRecord record;
   final bool isConflict;
+  final bool canOverwrite;
   final _Disposition disposition;
   final ValueChanged<_Disposition> onChange;
 
@@ -469,9 +504,8 @@ class _RecordRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      record.label.isEmpty
-                          ? l10n.bulkBackupImportNoLabel
-                          : record.label,
+                      LabelPolicy.forRestore(
+                          record.label, l10n.labelRestoredFallback),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -528,15 +562,19 @@ class _RecordRow extends StatelessWidget {
             _ConflictRadio(
               value: _Disposition.rename,
               group: disposition,
-              label: l10n.bulkBackupImportRenameOption(record.label),
+              label: l10n.bulkBackupImportRenameOption(LabelPolicy.withSuffix(
+                  LabelPolicy.forRestore(
+                      record.label, l10n.labelRestoredFallback),
+                  l10n.labelRestoredSuffix)),
               onChanged: onChange,
             ),
-            _ConflictRadio(
-              value: _Disposition.overwrite,
-              group: disposition,
-              label: l10n.bulkBackupImportOverwriteOption,
-              onChanged: onChange,
-            ),
+            if (canOverwrite)
+              _ConflictRadio(
+                value: _Disposition.overwrite,
+                group: disposition,
+                label: l10n.bulkBackupImportOverwriteOption,
+                onChanged: onChange,
+              ),
           ],
         ],
       ),

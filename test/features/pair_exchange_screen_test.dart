@@ -45,4 +45,42 @@ void main() {
           reason: 'internal English error must not reach the UI');
     });
   }
+
+  group('showing the QR (plan Task 3.5, P5)', () {
+    Future<ProviderContainer> openQr(WidgetTester tester) async {
+      await tester.pumpWidget(wrap());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PairExchangeScreen)),
+      );
+      await tester.runAsync(() => container
+          .read(pairingControllerProvider.notifier)
+          .ensureOurKeyPair());
+      await tester.pumpAndSettle();
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      await tester.tap(find.text(l10n.pairExchangeStep1Title));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.pairExchangeShowHeading), findsOneWidget);
+      return container;
+    }
+
+    testWidgets('Back returns to the steps without marking the QR shown',
+        (tester) async {
+      final container = await openQr(tester);
+      await tester.tap(find.text('Back'));
+      await tester.pumpAndSettle();
+      expect(container.read(pairingControllerProvider).didShowQr, isFalse,
+          reason: 'the other phone may not have scanned yet');
+      expect(
+          find.text(lookupAppLocalizations(const Locale('en'))
+              .pairExchangeStep1Title),
+          findsOneWidget);
+    });
+
+    testWidgets('"They scanned" marks the QR shown', (tester) async {
+      final container = await openQr(tester);
+      await tester.tap(find.text("They scanned — I'm done"));
+      await tester.pumpAndSettle();
+      expect(container.read(pairingControllerProvider).didShowQr, isTrue);
+    });
+  });
 }

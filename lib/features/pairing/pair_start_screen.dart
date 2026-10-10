@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../shared/label_input.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../core/models/label_policy.dart';
 import 'pairing_controller.dart';
@@ -31,17 +33,13 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
   }
 
   void _continue() {
-    final label = _label.text.trim();
-    if (label.isEmpty) {
-      setState(
-        () => _error =
-            AppLocalizations.of(context).pairStartEmptyNameError,
-      );
-      return;
-    }
-    final reason = LabelPolicy.rejectionReason(label);
-    if (reason != null) {
-      setState(() => _error = reason);
+    final label = LabelPolicy.clean(_label.text);
+    final l10n = AppLocalizations.of(context);
+    final rejection = LabelPolicy.check(label);
+    if (rejection != null) {
+      setState(() => _error = rejection == LabelRejection.empty
+          ? l10n.pairStartEmptyNameError
+          : labelRejectionText(rejection, l10n));
       return;
     }
     ref.read(pairingControllerProvider.notifier).setLabel(label);
@@ -89,6 +87,10 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
               TextField(
                 controller: _label,
                 autofocus: true,
+                inputFormatters: <TextInputFormatter>[
+                  Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+                ],
+                buildCounter: utf8ByteCounter(_label, LabelPolicy.maxBytes),
                 textCapitalization: TextCapitalization.words,
                 style: textTheme.titleLarge,
                 decoration: InputDecoration(

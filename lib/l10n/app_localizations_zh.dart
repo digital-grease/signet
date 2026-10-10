@@ -117,6 +117,68 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonNameHintExample => '例如：Alice';
 
   @override
+  String get labelRejectEmpty => '请输入联系人名称。';
+
+  @override
+  String get labelRejectData => '这看起来像 Signet 数据，不像名字。试试“妈妈”这样的名称。';
+
+  @override
+  String get labelRejectKey => '这看起来像密钥，不像名字。试试“妈妈”这样的名称。';
+
+  @override
+  String get labelRejectTooLong => '名称太长了，请换一个短一点的。';
+
+  @override
+  String get labelRestoredFallback => '已恢复的联系人';
+
+  @override
+  String get labelRestoredSuffix => '（已恢复）';
+
+  @override
+  String get scannerCameraErrorTitle => '相机没有启动';
+
+  @override
+  String get scannerCameraErrorBody => '请关闭正在使用相机的其他应用，然后重试。';
+
+  @override
+  String get scannerCameraErrorBodyPaste => '请关闭正在使用相机的其他应用，然后重试，或者改为粘贴文本。';
+
+  @override
+  String get scannerRetry => '重试';
+
+  @override
+  String get scannerUsePaste => '改为粘贴';
+
+  @override
+  String get scannerNotSignetPackage => '这个二维码不是 Signet 传输包。请扫描备份中的二维码。';
+
+  @override
+  String get scannerTitle => '扫描二维码';
+
+  @override
+  String get backupImportScanQr => '扫描二维码';
+
+  @override
+  String backupImportReplacedLabelNotice(String label) {
+    return '备份中保存的名称无法使用，因此该联系人将以“$label”恢复。恢复后可以改名。';
+  }
+
+  @override
+  String labelLengthCounter(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get pairTransportOutYourNameHeader => '你的名字（对方看到的）//';
+
+  @override
+  String get pairTransportOutYourNameDescription =>
+      '可选。对方手机会把它建议为你的名字，对方可以修改。中文等文字每个字占用更多空间，请尽量简短。';
+
+  @override
+  String get pairTransportOutOwnPackageError => '这是你自己创建的传输包。请粘贴对方发回的那个。';
+
+  @override
   String get commonPasteFromClipboard => '从剪贴板粘贴';
 
   @override
@@ -809,8 +871,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairTransportOutShareWaitTitle => '分享并等待';
 
   @override
-  String get pairTransportOutNameDescription =>
-      '这是配对后显示在你主页上的名称。对方导入传输包时会看到它作为提示，但可以在其设备上改名。';
+  String get pairTransportOutNameDescription => '这是配对后在你主页上显示的联系人名称，只有你能看到。';
 
   @override
   String get pairTransportOutGenerateButton => '生成传输包';
@@ -1152,9 +1213,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkBackupImportAlreadyPairedChip => '已配对';
 
   @override
-  String get bulkBackupImportNoLabel => '（无名称）';
-
-  @override
   String bulkBackupImportRecordMeta(String role, String date) {
     return '角色 $role · 配对于 $date';
   }
@@ -1164,7 +1222,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String bulkBackupImportRenameOption(String label) {
-    return '将恢复的副本重命名为“$label（已恢复）”';
+    return '恢复为“$label”';
   }
 
   @override
@@ -1526,6 +1584,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get verifyActionSeenButton => '看到了';
+
+  @override
+  String verifyActionOneGesture(String label) {
+    return '$label 应该只做一个动作。如果对方做了好几个，请点“没看到”。';
+  }
+
+  @override
+  String verifyActionChangedNote(String label) {
+    return '要观察的动作已更改：$label 读出的单词来自前一个或后一个 30 秒，这是对应的动作。';
+  }
+
+  @override
+  String get verifyCheckWordsButton => '核对单词';
+
+  @override
+  String verifyOldPairingNote(String label) {
+    return '这些单词与你和 $label 重新配对之前的旧配对相符。如果你们刚刚重新配对过，请当面一起再做一次。否则请把这通电话当作诈骗。';
+  }
 
   @override
   String get verifyShowMyWords => '显示我的 4 个单词';

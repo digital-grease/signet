@@ -343,4 +343,202 @@ void main() {
       expect(submissions, <List<String>>[pake]);
     });
   });
+
+  group('submitting (plan Task 3.3)', () {
+    Widget host({
+      Future<void> Function(List<String>)? onSubmit,
+      ValueChanged<List<String>?>? onWordsChanged,
+      int wordCount = 4,
+      List<String>? prefill,
+    }) =>
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: WordInput(
+                onSubmit: onSubmit,
+                onWordsChanged: onWordsChanged,
+                submitLabel: onSubmit == null ? null : 'CHECK THE WORDS',
+                wordCount: wordCount,
+                prefillWords: prefill,
+                autofocus: false,
+              ),
+            ),
+          ),
+        );
+
+    Future<void> typeIn(WidgetTester tester, int slot, String text) async {
+      await tester.enterText(find.byType(TextField).at(slot), text);
+      await tester.pumpAndSettle();
+    }
+
+    ButtonStyleButton checkButton(WidgetTester tester) =>
+        tester.widget<ButtonStyleButton>(find.ancestor(
+            of: find.text('CHECK THE WORDS'),
+            matching: find.bySubtype<ButtonStyleButton>()));
+
+    testWidgets('correcting an earlier typo submits once it is unambiguous',
+        (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'abandon');
+      await typeIn(tester, 1, 'abilitz'); // typo
+      await typeIn(tester, 2, 'able');
+      await typeIn(tester, 3, 'about');
+      expect(submitted, isEmpty);
+      expect(checkButton(tester).onPressed, isNull);
+
+      await typeIn(tester, 1, 'ability');
+      expect(submitted, <List<String>>[
+        <String>['abandon', 'ability', 'able', 'about'],
+      ]);
+    });
+
+    testWidgets('"act" typed on the way to "action" never submits',
+        (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'abandon');
+      await typeIn(tester, 1, 'ability');
+      await typeIn(tester, 2, 'able');
+      await typeIn(tester, 3, 'act');
+      expect(submitted, isEmpty, reason: 'no false alarm mid-word');
+      expect(find.widgetWithText(ActionChip, 'act'), findsOneWidget,
+          reason: 'the prefix word itself is offered first');
+      expect(checkButton(tester).onPressed, isNotNull,
+          reason: '"act" is a real word, so it can be checked on purpose');
+
+      await typeIn(tester, 3, 'action');
+      expect(submitted.single.last, 'action');
+    });
+
+    testWidgets('"car" in the last slot: a chip tap submits', (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'abandon');
+      await typeIn(tester, 1, 'ability');
+      await typeIn(tester, 2, 'able');
+      await typeIn(tester, 3, 'car');
+      expect(submitted, isEmpty);
+      await tester.tap(find.widgetWithText(ActionChip, 'car'));
+      await tester.pumpAndSettle();
+      expect(submitted.single, <String>['abandon', 'ability', 'able', 'car']);
+    });
+
+    testWidgets('a prefix word in an earlier slot blocks auto-submit until '
+        'confirmed', (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'car');
+      await typeIn(tester, 1, 'ability');
+      await typeIn(tester, 2, 'able');
+      await typeIn(tester, 3, 'about');
+      expect(submitted, isEmpty);
+      await tester.tap(find.widgetWithText(ActionChip, 'car'));
+      await tester.pumpAndSettle();
+      expect(submitted, hasLength(1));
+    });
+
+    testWidgets('the check button submits a typed prefix word on purpose',
+        (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'abandon');
+      await typeIn(tester, 1, 'ability');
+      await typeIn(tester, 2, 'able');
+      await typeIn(tester, 3, 'act');
+      await tester.ensureVisible(find.text('CHECK THE WORDS'));
+      await tester.tap(find.text('CHECK THE WORDS'));
+      await tester.pumpAndSettle();
+      expect(submitted.single.last, 'act');
+    });
+
+    testWidgets('an edit that changes nothing does not check twice',
+        (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(host(onSubmit: (w) async => submitted.add(w)));
+      await typeIn(tester, 0, 'abandon ability able about');
+      expect(submitted, hasLength(1));
+      // Pressing the keyboard's Done key on a word already checked.
+      await tester.showKeyboard(find.byType(TextField).at(3));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(submitted, hasLength(1));
+    });
+
+    testWidgets('onWordsChanged follows every edit, including after a prefill',
+        (tester) async {
+      const pake = <String>[
+        'abandon', 'ability', 'able', 'about',
+        'above', 'absent', 'absorb', 'abstract',
+      ];
+      final reports = <List<String>?>[];
+      await tester.pumpWidget(host(
+        onWordsChanged: reports.add,
+        wordCount: 8,
+        prefill: pake,
+      ));
+      await tester.pumpAndSettle();
+      expect(reports.last, pake);
+
+      await typeIn(tester, 7, 'abstr');
+      expect(reports.last, isNull, reason: 'incomplete word');
+      await typeIn(tester, 7, 'absurd');
+      expect(reports.last, <String>[...pake.take(7), 'absurd'],
+          reason: 'the edited word is what the parent unlocks with');
+    });
+  });
+
+  group('review fixes', () {
+    testWidgets('Clear all empties prefilled slots for good', (tester) async {
+      const pake = <String>[
+        'abandon', 'ability', 'able', 'about',
+        'above', 'absent', 'absorb', 'abstract',
+      ];
+      List<String>? last = pake;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (context, setState) => WordInput(
+                wordCount: 8,
+                autofocus: false,
+                prefillWords: last?.length == 8 ? last : null,
+                onWordsChanged: (w) => setState(() => last = w),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Clear all'));
+      await tester.tap(find.text('Clear all'));
+      await tester.pumpAndSettle();
+      expect(last, isNull);
+      for (var i = 0; i < 8; i++) {
+        expect(
+            tester.widget<TextField>(find.byType(TextField).at(i))
+                .controller!
+                .text,
+            isEmpty);
+      }
+    });
+
+    testWidgets('a space after a prefix word confirms it', (tester) async {
+      final submitted = <List<String>>[];
+      await tester.pumpWidget(buildHost(onSubmit: (w) async => submitted.add(w)));
+      for (final (i, w) in <String>['abandon', 'ability', 'able'].indexed) {
+        await tester.enterText(slotField(i), w);
+        await tester.pumpAndSettle();
+      }
+      await tester.enterText(slotField(3), 'act');
+      await tester.pumpAndSettle();
+      expect(submitted, isEmpty);
+      await tester.enterText(slotField(3), 'act ');
+      await tester.pumpAndSettle();
+      expect(submitted.single.last, 'act');
+    });
+  });
 }

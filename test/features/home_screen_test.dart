@@ -251,6 +251,59 @@ void main() {
     );
 
     testWidgets(
+      'Rename: pressing Enter checks the name too (plan Task 3.6)',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Rename Mom'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), 'signet:tp1:AAAA');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('looks like Signet data'), findsOneWidget);
+        expect((await store.getRelationship())?.label, 'Mom');
+      },
+    );
+
+    testWidgets(
+      'UNDO works after leaving Home, and Home shows the contact again '
+      '(plan Task 3.7)',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Unpair from Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Unpair'),
+        ));
+        await tester.pumpAndSettle();
+
+        // Leave Home while the snackbar is still up.
+        final router = GoRouter.of(tester.element(find.byType(HomeScreen)));
+        router.go('/pair/start');
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsNothing);
+        await tester.tap(find.text('UNDO'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(await store.hasRelationship(), isTrue);
+
+        router.go('/');
+        await tester.pumpAndSettle();
+        expect(find.text('Mom'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'Haptics toggle from menu flips silentHaptics on and shows badge',
       (tester) async {
         final store = FakeSecureStore(seeded: mom, secret: secret);

@@ -45,6 +45,9 @@ dependencies:
   # @visibleForTesting for the pure-Dart crypto module (which must not
   # import Flutter). Version is pinned by the Flutter SDK.
   meta: ^1.17.0
+  # Grapheme clusters, so shortening a contact name never splits an emoji
+  # or an accented letter. Version is pinned by the Flutter SDK.
+  characters: ^1.4.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
