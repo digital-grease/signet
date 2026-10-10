@@ -186,10 +186,19 @@ void main() {
       expect(await store.listRelationshipIds(), <String>['abc', 'def']);
     });
 
-    test('returns empty list when index blob is malformed', () async {
+    test('a malformed index is rebuilt from the stored relationships '
+        '(plan Task 4.3)', () async {
       when(() => mockStorage.read(key: 'signet.v2.index'))
           .thenAnswer((_) async => '{not-json');
-      expect(await store.listRelationshipIds(), isEmpty);
+      when(() => mockStorage.readAll()).thenAnswer((_) async => <String, String>{
+            'signet.v2.rel.bbb': '{}',
+            'signet.v2.rel.aaa': '{}',
+            'signet.v2.secret.aaa': 'x',
+            'signet.v2.secret.bbb': 'y',
+            // A relationship without its secret is not a contact.
+            'signet.v2.rel.ccc': '{}',
+          });
+      expect(await store.listRelationshipIds(), <String>['aaa', 'bbb']);
     });
   });
 

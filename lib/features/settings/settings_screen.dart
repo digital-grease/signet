@@ -41,6 +41,10 @@ class SettingsScreen extends ConsumerWidget {
       data: (rels) => rels.length,
       orElse: () => 0,
     );
+    final unreadableIds = ref.watch(unreadableRelationshipsProvider).maybeWhen(
+          data: (ids) => ids,
+          orElse: () => const <String>[],
+        );
     final debugState = ref.watch(debugLoggingProvider);
     final debugAvailable = ref.read(debugLoggingProvider.notifier).available;
     final l10n = AppLocalizations.of(context);
@@ -77,6 +81,18 @@ class SettingsScreen extends ConsumerWidget {
                           relationshipCount,
                         ),
               ),
+              // Contacts kept but unreadable (plan Task 4.4). Removing them
+              // must stay one tap away: unpairing is the abuse mitigation.
+              if (unreadableIds.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 12),
+                _Section(
+                  title: l10n.settingsUnreadableSection,
+                  body: l10n.settingsUnreadableBody(unreadableIds.length),
+                  actionLabel: l10n.settingsUnreadableRemove,
+                  onAction: () =>
+                      _confirmAndRemoveUnreadable(context, ref, unreadableIds),
+                ),
+              ],
               if (debugAvailable) ...<Widget>[
                 const SizedBox(height: 12),
                 _Section(
@@ -142,6 +158,46 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Unpairs every unreadable contact after a confirm (plan Task 4.4).
+  Future<void> _confirmAndRemoveUnreadable(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> ids,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.settingsUnreadableConfirmTitle),
+        content: Text(l10n.settingsUnreadableConfirmBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.settingsUnreadableConfirmButton),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final store = ref.read(secureStoreProvider);
+    try {
+      for (final id in ids) {
+        await store.deleteRelationshipById(id);
+      }
+    } catch (_) {
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.settingsUnreadableRemoveFailed)));
+    } finally {
+      ref.invalidate(unreadableRelationshipsProvider);
+      ref.invalidate(relationshipsProvider);
+    }
   }
 
   /// One-tap confirm — friction-parity with a seed-phrase export (not a nag).

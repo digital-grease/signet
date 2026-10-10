@@ -77,15 +77,33 @@ class _BulkBackupImportScreenState
     _loadExisting();
   }
 
+  /// Records that may not offer Overwrite because another record already
+  /// overwrites the contact with the same name (plan Task 4.5).
+  Set<int> _overwriteClaimedElsewhere() {
+    final claimedBy = <String, int>{};
+    for (var i = 0; i < widget.decoded.records.length; i++) {
+      if (_dispositions[i] == _Disposition.overwrite) {
+        claimedBy.putIfAbsent(_label(i), () => i);
+      }
+    }
+    return <int>{
+      for (var i = 0; i < widget.decoded.records.length; i++)
+        if (claimedBy.containsKey(_label(i)) && claimedBy[_label(i)] != i) i,
+    };
+  }
+
   /// The name a renamed copy of record [i] is saved under.
   String _renamedLabel(int i) => LabelPolicy.withSuffix(
-      _label(i), AppLocalizations.of(context).labelRestoredSuffix);
+    _label(i),
+    AppLocalizations.of(context).labelRestoredSuffix,
+  );
 
   /// The name record [i] is restored under (plan Task 3.6, S12): cleaned of
   /// invisible characters, or a fallback when the saved one is unusable.
   String _label(int i) => LabelPolicy.forRestore(
-      widget.decoded.records[i].label,
-      AppLocalizations.of(context).labelRestoredFallback);
+    widget.decoded.records[i].label,
+    AppLocalizations.of(context).labelRestoredFallback,
+  );
 
   Future<void> _loadExisting() async {
     try {
@@ -137,73 +155,103 @@ class _BulkBackupImportScreenState
       _error = null;
     });
     final store = ref.read(secureStoreProvider);
+    // `ref` dies with this screen; the refresh in `finally` must not.
+    final container = ProviderScope.containerOf(context, listen: false);
     var created = 0;
     var renamed = 0;
     var overwrote = 0;
     var skipped = 0;
+    // Saves that threw, by the id they wrote under: a save that failed after
+    // it was journaled still completes, so these are re-checked below.
+    final failedSaves = <({_Disposition kind, String id})>[];
+    // Each existing contact is overwritten at most once (plan Task 4.5).
+    final overwrittenIds = <String>{};
     try {
       for (var i = 0; i < widget.decoded.records.length; i++) {
         final record = widget.decoded.records[i];
         final disposition = _dispositions[i] ?? _Disposition.skip;
-        switch (disposition) {
-          case _Disposition.skip:
-            skipped++;
-            break;
-          case _Disposition.create:
-            final fresh = Relationship(
-              id: _mintId(),
-              label: _label(i),
-              pairedAt: record.pairedAt,
-              role: record.role,
-              silentHaptics: record.silentHaptics,
-            );
-            await store.saveRelationshipV2(
-              fresh,
-              sharedSecret: record.sharedSecret,
-            );
-            created++;
-            break;
-          case _Disposition.rename:
-            final fresh = Relationship(
-              id: _mintId(),
-              label: _renamedLabel(i),
-              pairedAt: record.pairedAt,
-              role: record.role,
-              silentHaptics: record.silentHaptics,
-            );
-            await store.saveRelationshipV2(
-              fresh,
-              sharedSecret: record.sharedSecret,
-            );
-            renamed++;
-            break;
-          case _Disposition.overwrite:
-            if (_ambiguousIndexes.contains(i)) {
-              // Not offered in the UI; never guess which contact to replace.
+        // One record failing to save must not stop the rest, and the
+        // summary counts what actually happened.
+        String? writingId;
+        try {
+          switch (disposition) {
+            case _Disposition.skip:
               skipped++;
-              break;
-            }
-            // Reuse the existing id so verify screens keyed by id keep
-            // working after the restore. Label stays the existing one
-            // (which matches the record's label anyway — that's how we
-            // detected the conflict).
-            final existing = byLabel[_label(i)]!;
-            final replacement = existing.copyWith(
-              pairedAt: record.pairedAt,
-              role: record.role,
-              silentHaptics: record.silentHaptics,
-            );
-            await store.saveRelationshipV2(
-              replacement,
-              sharedSecret: record.sharedSecret,
-            );
-            overwrote++;
-            break;
+            case _Disposition.create:
+              writingId = _mintId();
+              await store.saveRelationshipV2(
+                Relationship(
+                  id: writingId,
+                  label: _label(i),
+                  pairedAt: record.pairedAt,
+                  role: record.role,
+                  silentHaptics: record.silentHaptics,
+                ),
+                sharedSecret: record.sharedSecret,
+              );
+              created++;
+            case _Disposition.rename:
+              writingId = _mintId();
+              await store.saveRelationshipV2(
+                Relationship(
+                  id: writingId,
+                  label: _renamedLabel(i),
+                  pairedAt: record.pairedAt,
+                  role: record.role,
+                  silentHaptics: record.silentHaptics,
+                ),
+                sharedSecret: record.sharedSecret,
+              );
+              renamed++;
+            case _Disposition.overwrite:
+              final target = byLabel[_label(i)];
+              if (_ambiguousIndexes.contains(i) ||
+                  target == null ||
+                  !overwrittenIds.add(target.id)) {
+                // Not offered in the UI: never guess which contact to
+                // replace, and never replace one twice.
+                skipped++;
+                break;
+              }
+              // Reuse the existing id so verify screens keyed by id keep
+              // working after the restore. Label stays the existing one.
+              writingId = target.id;
+              await store.saveRelationshipV2(
+                target.copyWith(
+                  pairedAt: record.pairedAt,
+                  role: record.role,
+                  silentHaptics: record.silentHaptics,
+                ),
+                sharedSecret: record.sharedSecret,
+              );
+              overwrote++;
+          }
+        } catch (_) {
+          if (writingId != null) {
+            failedSaves.add((kind: disposition, id: writingId));
+          }
         }
         if (!mounted) return;
         setState(() => _committed = i + 1);
       }
-      ref.invalidate(relationshipsProvider);
+      var failed = 0;
+      for (final f in failedSaves) {
+        Relationship? landed;
+        try {
+          landed = await store.getRelationshipById(f.id);
+        } catch (_) {
+          landed = null;
+        }
+        // An overwrite that "failed" still has the old contact; only a new
+        // or renamed one proves the save landed.
+        if (landed != null && f.kind == _Disposition.create) {
+          created++;
+        } else if (landed != null && f.kind == _Disposition.rename) {
+          renamed++;
+        } else {
+          failed++;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _summary = _Summary(
@@ -211,6 +259,7 @@ class _BulkBackupImportScreenState
           renamed: renamed,
           overwrote: overwrote,
           skipped: skipped,
+          failed: failed,
         );
         _busy = false;
       });
@@ -220,6 +269,9 @@ class _BulkBackupImportScreenState
         _error = e;
         _busy = false;
       });
+    } finally {
+      // Whatever was saved shows on Home, even if this screen is gone.
+      container.invalidate(relationshipsProvider);
     }
   }
 
@@ -228,23 +280,28 @@ class _BulkBackupImportScreenState
 
   @override
   Widget build(BuildContext context) {
-    return SecureScreen(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _summary == null
-                ? AppLocalizations.of(context).bulkBackupImportTitle
-                : AppLocalizations.of(context).bulkBackupImportDoneTitle,
+    // While saving, neither close nor system back can leave half a restore
+    // behind without its summary (plan Task 4.5).
+    return PopScope(
+      canPop: !_busy,
+      child: SecureScreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(
+              _summary == null
+                  ? AppLocalizations.of(context).bulkBackupImportTitle
+                  : AppLocalizations.of(context).bulkBackupImportDoneTitle,
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: _busy ? null : () => context.go('/'),
+            ),
           ),
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => context.go('/'),
-          ),
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            child: _buildBody(context),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              child: _buildBody(context),
+            ),
           ),
         ),
       ),
@@ -256,8 +313,9 @@ class _BulkBackupImportScreenState
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          AppLocalizations.of(context)
-              .bulkBackupImportGenericError(_error.toString()),
+          AppLocalizations.of(
+            context,
+          ).bulkBackupImportGenericError(_error.toString()),
         ),
       );
     }
@@ -306,7 +364,7 @@ class _BulkBackupImportScreenState
       skippedNeedsNewerVersion: widget.decoded.skippedNeedsNewerVersion,
       dispositions: _dispositions,
       conflictIndexes: _conflictIndexes,
-      ambiguousIndexes: _ambiguousIndexes,
+      ambiguousIndexes: <int>{..._ambiguousIndexes, ..._overwriteClaimedElsewhere()},
       busy: _busy,
       committed: _committed,
       onChangeDisposition: (index, disposition) {
@@ -383,7 +441,10 @@ class _PreviewPane extends StatelessWidget {
           Text(
             l10n.bulkBackupImportRepairedNotice(repairedCount),
             style: TextStyle(
-                fontSize: 13, color: scheme.onSurfaceVariant, height: 1.4),
+              fontSize: 13,
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 6),
         ],
@@ -426,8 +487,8 @@ class _PreviewPane extends StatelessWidget {
             busy
                 ? l10n.bulkBackupImportRestoringButton
                 : includedCount == 0
-                    ? l10n.bulkBackupImportNothingSelectedButton
-                    : l10n.bulkBackupImportRestoreButton(includedCount),
+                ? l10n.bulkBackupImportNothingSelectedButton
+                : l10n.bulkBackupImportRestoreButton(includedCount),
           ),
         ),
         const SizedBox(height: 8),
@@ -482,7 +543,9 @@ class _RecordRow extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.errorContainer,
                       border: Border.all(color: scheme.error),
@@ -505,7 +568,9 @@ class _RecordRow extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       LabelPolicy.forRestore(
-                          record.label, l10n.labelRestoredFallback),
+                        record.label,
+                        l10n.labelRestoredFallback,
+                      ),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -517,7 +582,9 @@ class _RecordRow extends StatelessWidget {
                       // Matches the "marked FIXED below" preview notice.
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: scheme.outline),
                         ),
@@ -562,10 +629,15 @@ class _RecordRow extends StatelessWidget {
             _ConflictRadio(
               value: _Disposition.rename,
               group: disposition,
-              label: l10n.bulkBackupImportRenameOption(LabelPolicy.withSuffix(
+              label: l10n.bulkBackupImportRenameOption(
+                LabelPolicy.withSuffix(
                   LabelPolicy.forRestore(
-                      record.label, l10n.labelRestoredFallback),
-                  l10n.labelRestoredSuffix)),
+                    record.label,
+                    l10n.labelRestoredFallback,
+                  ),
+                  l10n.labelRestoredSuffix,
+                ),
+              ),
               onChanged: onChange,
             ),
             if (canOverwrite)
@@ -574,6 +646,18 @@ class _RecordRow extends StatelessWidget {
                 group: disposition,
                 label: l10n.bulkBackupImportOverwriteOption,
                 onChanged: onChange,
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l10n.bulkBackupImportOverwriteUnavailable,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
               ),
           ],
         ],
@@ -644,12 +728,14 @@ class _Summary {
     required this.renamed,
     required this.overwrote,
     required this.skipped,
+    this.failed = 0,
   });
 
   final int created;
   final int renamed;
   final int overwrote;
   final int skipped;
+  final int failed;
 }
 
 class _SuccessPane extends StatelessWidget {
@@ -677,23 +763,40 @@ class _SuccessPane extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _SummaryRow(
-            label: l10n.bulkBackupImportSummaryRestored, value: summary.created),
+          label: l10n.bulkBackupImportSummaryRestored,
+          value: summary.created,
+        ),
         if (summary.renamed > 0)
           _SummaryRow(
-              label: l10n.bulkBackupImportSummaryRenamed,
-              value: summary.renamed),
+            label: l10n.bulkBackupImportSummaryRenamed,
+            value: summary.renamed,
+          ),
         if (summary.overwrote > 0)
           _SummaryRow(
-              label: l10n.bulkBackupImportSummaryOverwrote,
-              value: summary.overwrote),
+            label: l10n.bulkBackupImportSummaryOverwrote,
+            value: summary.overwrote,
+          ),
         if (summary.skipped > 0)
           _SummaryRow(
-              label: l10n.bulkBackupImportSummarySkipped,
-              value: summary.skipped),
+            label: l10n.bulkBackupImportSummarySkipped,
+            value: summary.skipped,
+          ),
+        if (summary.failed > 0) ...<Widget>[
+          _SummaryRow(
+            label: l10n.bulkBackupImportSummaryFailed,
+            value: summary.failed,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.bulkBackupImportFailedNote,
+            style: TextStyle(fontSize: 13, color: scheme.error, height: 1.4),
+          ),
+        ],
         if (skippedNeedsNewerVersion > 0) ...<Widget>[
           _SummaryRow(
-              label: l10n.bulkBackupImportSummarySkippedNewer,
-              value: skippedNeedsNewerVersion),
+            label: l10n.bulkBackupImportSummarySkippedNewer,
+            value: skippedNeedsNewerVersion,
+          ),
           const SizedBox(height: 12),
           // Repeated here so someone switching phones does not wipe the old
           // one before these are restored.

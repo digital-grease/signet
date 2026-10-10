@@ -163,6 +163,10 @@ class _BulkBackupExportScreenState
         busy: _busy,
         onGenerate: _handleGenerate,
         error: _error,
+        unreadableCount: ref.watch(unreadableRelationshipsProvider).maybeWhen(
+              data: (ids) => ids.length,
+              orElse: () => 0,
+            ),
       );
     }
     return _BulkBackupContent(generated: gen);
@@ -208,8 +212,11 @@ class _ReadyToGenerate extends StatelessWidget {
     required this.busy,
     required this.onGenerate,
     required this.error,
+    this.unreadableCount = 0,
   });
 
+  /// Stored contacts that cannot be read (plan Task 4.4); not backed up.
+  final int unreadableCount;
   final List<Relationship> relationships;
   final bool busy;
   final VoidCallback onGenerate;
@@ -275,6 +282,13 @@ class _ReadyToGenerate extends StatelessWidget {
             ],
           ),
         ),
+        if (unreadableCount > 0) ...<Widget>[
+          const SizedBox(height: 12),
+          Text(
+            l10n.bulkBackupExportSkipsUnreadable(unreadableCount),
+            style: TextStyle(color: scheme.error, height: 1.4),
+          ),
+        ],
         if (error != null) ...<Widget>[
           const SizedBox(height: 12),
           Text('$error', style: TextStyle(color: scheme.error)),

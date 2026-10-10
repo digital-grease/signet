@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -161,6 +162,33 @@ class SecureStore {
   /// actual migration future; subsequent callers await the same future.
   Future<void>? _migrationGuard;
 
+  /// Migration and journal replay have succeeded in this instance.
+  bool _migrated = false;
+
+  /// Tail of the mutation queue (plan Task 4.2). Every write path (save,
+  /// metadata update, delete, journal replay, sweep) runs one at a time:
+  /// the index and the journal are read-modify-write keys, and two
+  /// overlapping writers would each drop the other's entry.
+  Future<void> _lockTail = Future<void>.value();
+
+  /// Zone marker for "this code already holds the lock", so a write path
+  /// that reads through migration (which replays the journal under the
+  /// lock) does not wait on itself.
+  final Object _lockZoneKey = Object();
+
+  Future<T> _locked<T>(Future<T> Function() body) {
+    if (Zone.current[_lockZoneKey] == true) return body();
+    final previous = _lockTail;
+    final done = Completer<void>();
+    _lockTail = done.future;
+    return previous
+        .then((_) => runZoned(
+              body,
+              zoneValues: <Object, Object>{_lockZoneKey: true},
+            ))
+        .whenComplete(done.complete);
+  }
+
   /// Promote any v1 single-slot data to v2 keyed layout, exactly once.
   /// Called at the top of every v2 public method. Safe to call repeatedly.
   ///
@@ -180,19 +208,42 @@ class SecureStore {
   /// (a transient Keystore error must not wedge every v2 call until the app
   /// restarts). Migration and replay are idempotent.
   Future<void> _ensureMigrated() {
-    return _migrationGuard ??= () async {
-      try {
-        await _runMigration();
-        await _replayJournal();
-      } catch (_) {
-        _migrationGuard = null;
-        rethrow;
-      }
-    }();
+    if (_migrated) return Future<void>.value();
+    // Inside the lock, run it inline. A guard created by a reader outside
+    // the lock is queued behind the current holder: awaiting it from here
+    // would wait on ourselves forever (deadlock found in the Phase 4
+    // review). Inline is safe: the lock already serializes it.
+    if (Zone.current[_lockZoneKey] == true) return _migrateOnce();
+    return _migrationGuard ??= _locked(_migrateOnce);
+  }
+
+  Future<void> _migrateOnce() async {
+    if (_migrated) return;
+    try {
+      await _runMigration();
+      await _replayJournal();
+      _migrated = true;
+    } catch (_) {
+      _resetMigration();
+      rethrow;
+    }
+  }
+
+  /// Make the next store call migrate and replay again.
+  void _resetMigration() {
+    _migrated = false;
+    _migrationGuard = null;
   }
 
   Future<void> _runMigration() async {
-    final existingIndex = await _storage.read(key: _keyIndex);
+    String? existingIndex;
+    try {
+      existingIndex = await _storage.read(key: _keyIndex);
+    } catch (_) {
+      // An index exists but cannot be read: this store was migrated long
+      // ago. Never start over with an empty index; reading it rebuilds it.
+      return;
+    }
     if (existingIndex != null) return;
 
     final v1Raw = await _storage.read(key: _keyRelationship);
@@ -238,15 +289,84 @@ class SecureStore {
   }
 
   Future<List<String>> _readIndex() async {
-    final raw = await _storage.read(key: _keyIndex);
+    final String? raw;
+    try {
+      raw = await _storage.read(key: _keyIndex);
+    } catch (_) {
+      // Undecryptable: as good as corrupt.
+      return _locked(_rebuildIndex);
+    }
     if (raw == null) return const <String>[];
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const <String>[];
-      return decoded.whereType<String>().toList(growable: false);
+      if (decoded is List) {
+        return decoded.whereType<String>().toList(growable: false);
+      }
     } on FormatException {
-      return const <String>[];
+      // Rebuilt below.
     }
+    return _locked(_rebuildIndex);
+  }
+
+  /// A corrupt index used to read as empty, and the next save then wrote
+  /// an index holding only the new id, orphaning every other contact (plan
+  /// Task 4.3). Rebuild it from the relationship keys instead, leaving out
+  /// any id whose delete is still journaled.
+  Future<List<String>> _rebuildIndex() async {
+    // Another writer may have rebuilt it while this one waited.
+    String? current;
+    try {
+      current = await _storage.read(key: _keyIndex);
+    } catch (_) {
+      current = null;
+    }
+    if (current != null) {
+      try {
+        final decoded = jsonDecode(current);
+        if (decoded is List) {
+          return decoded.whereType<String>().toList(growable: false);
+        }
+      } on FormatException {
+        // Still corrupt: rebuild.
+      }
+    }
+    final deleting = <String>{
+      for (final e in await _readJournal())
+        if (e.op == _JournalEntry.opDelete) e.id,
+    };
+    // On Android, readAll fails outright if any one value cannot be
+    // decrypted. The index itself may be that value, and it is derivable:
+    // drop it and try again.
+    Map<String, String> all;
+    try {
+      all = await _storage.readAll();
+    } catch (_) {
+      try {
+        await _storage.delete(key: _keyIndex);
+        all = await _storage.readAll();
+      } catch (_) {
+        // Cannot enumerate storage. Work from the journal for now and do
+        // not write an index; the startup sweep re-adds the rest once
+        // storage can be listed again.
+        return <String>[
+          for (final e in await _readJournal())
+            if (e.op == _JournalEntry.opPut) e.id,
+        ];
+      }
+    }
+    // Same rule as the sweep: a contact needs its relationship and its
+    // secret.
+    final ids = all.keys
+        .where((k) => k.startsWith(_keyRelationshipPrefix))
+        .map((k) => k.substring(_keyRelationshipPrefix.length))
+        .where((id) =>
+            id.isNotEmpty &&
+            !deleting.contains(id) &&
+            all.containsKey(_secretKey(id)))
+        .toList()
+      ..sort();
+    await _writeIndex(ids);
+    return ids;
   }
 
   Future<void> _writeIndex(List<String> ids) async {
@@ -272,9 +392,16 @@ class SecureStore {
     final out = <Relationship>[];
     for (final id in ids) {
       final pending = await _pendingFor(id);
-      final raw = pending?.op == _JournalEntry.opPut
-          ? pending!.relJson
-          : await _storage.read(key: _relationshipKey(id));
+      String? raw;
+      try {
+        raw = pending?.op == _JournalEntry.opPut
+            ? pending!.relJson
+            : await _storage.read(key: _relationshipKey(id));
+      } catch (_) {
+        // Undecryptable: unreadable, like a blob that does not parse. It is
+        // left out here and counted by [listUnreadableRelationshipIds].
+        continue;
+      }
       if (raw == null) continue;
       try {
         out.add(Relationship.fromJson(raw));
@@ -293,9 +420,14 @@ class SecureStore {
     await _ensureMigrated();
     final pending = await _pendingFor(id);
     if (pending?.op == _JournalEntry.opDelete) return null;
-    final raw = pending?.op == _JournalEntry.opPut
-        ? pending!.relJson
-        : await _storage.read(key: _relationshipKey(id));
+    String? raw;
+    try {
+      raw = pending?.op == _JournalEntry.opPut
+          ? pending!.relJson
+          : await _storage.read(key: _relationshipKey(id));
+    } catch (_) {
+      return null; // Undecryptable: unreadable.
+    }
     if (raw == null) return null;
     try {
       return Relationship.fromJson(raw);
@@ -345,6 +477,17 @@ class SecureStore {
     Relationship relationship, {
     required List<int> sharedSecret,
     bool keepPrevious = false,
+  }) =>
+      _locked(() => _saveRelationshipV2Unlocked(
+            relationship,
+            sharedSecret: sharedSecret,
+            keepPrevious: keepPrevious,
+          ));
+
+  Future<void> _saveRelationshipV2Unlocked(
+    Relationship relationship, {
+    required List<int> sharedSecret,
+    required bool keepPrevious,
   }) async {
     await _ensureMigrated();
     if (sharedSecret.isEmpty) {
@@ -393,7 +536,16 @@ class SecureStore {
     if (previous == null ||
         age > previousPairingLifetime ||
         age < const Duration(days: -1)) {
-      await deletePreviousPairing(id);
+      // Re-check under the lock: a rekey may have just stored a fresh one.
+      await _locked(() async {
+        String? again;
+        try {
+          again = await _storage.read(key: _previousKey(id));
+        } catch (_) {
+          again = null;
+        }
+        if (again == raw) await _deletePreviousPairingUnlocked(id);
+      });
       return null;
     }
     return previous;
@@ -402,7 +554,10 @@ class SecureStore {
   /// Forget the previous pairing of [id]: after the first verify on the
   /// new secret, on expiry, and on unpair. A still-pending rekey for [id]
   /// loses its copy too, so a later replay cannot bring it back.
-  Future<void> deletePreviousPairing(String id) async {
+  Future<void> deletePreviousPairing(String id) =>
+      _locked(() => _deletePreviousPairingUnlocked(id));
+
+  Future<void> _deletePreviousPairingUnlocked(String id) async {
     final journal = await _readJournal();
     if (journal.any((e) => e.id == id && e.previousJson != null)) {
       await _writeJournal(journal
@@ -435,7 +590,7 @@ class SecureStore {
       } catch (_) {
         // Still journaled. Make the next v2 call replay before it reads
         // anything, so no caller sees a half-applied entry.
-        _migrationGuard = null;
+        _resetMigration();
         rethrow;
       }
     }
@@ -553,7 +708,11 @@ class SecureStore {
   /// stranger relationships). If a save for this id is still journaled,
   /// the journaled metadata is updated too, so a later replay does not
   /// revert the edit.
-  Future<void> updateRelationshipMetadataV2(Relationship relationship) async {
+  Future<void> updateRelationshipMetadataV2(Relationship relationship) =>
+      _locked(() => _updateRelationshipMetadataV2Unlocked(relationship));
+
+  Future<void> _updateRelationshipMetadataV2Unlocked(
+      Relationship relationship) async {
     final ids = await listRelationshipIds();
     if (!ids.contains(relationship.id)) return;
     final journal = await _readJournal();
@@ -575,16 +734,128 @@ class SecureStore {
     );
   }
 
+  /// Ids whose stored relationship cannot be read (plan Task 4.4): a blob
+  /// that fails to parse, perhaps written by a newer Signet before a
+  /// downgrade. They are kept, with their secret, never shown as contacts;
+  /// Settings offers to remove them ([deleteRelationshipById] works on
+  /// them), so one-tap unpair stays possible.
+  Future<List<String>> listUnreadableRelationshipIds() async {
+    final out = <String>[];
+    for (final id in await listRelationshipIds()) {
+      if (await getRelationshipById(id) == null) out.add(id);
+    }
+    return out;
+  }
+
+  /// Startup clean-up (plan Task 4.4). Removes only what can no longer
+  /// belong to anything, and never touches what might be valid:
+  ///
+  /// - a secret, or a kept previous secret, whose relationship key is gone
+  ///   (and that no pending journal entry is about to restore);
+  /// - the previous secret of a relationship that cannot be read (it could
+  ///   never be used: an unreadable contact cannot be opened to verify);
+  /// - leftover v1 single-slot keys once the v2 index is in place.
+  ///
+  /// A readable relationship missing from the index (lost by a crash or an
+  /// older bug) is put back. An unreadable one is quarantined, not deleted:
+  /// see [listUnreadableRelationshipIds]. The journal is replayed, never
+  /// swept. Best effort: an error stops the sweep where it is; whatever it
+  /// already removed was safe to remove, and the next launch carries on.
+  ///
+  /// Uses `readAll`, the only way to list keys, which also decrypts every
+  /// value (secrets included) into memory for the duration of the sweep.
+  Future<SweepReport> sweepOrphans() => _locked(() async {
+        var removed = 0;
+        var restored = 0;
+        try {
+          await _ensureMigrated();
+          final all = await _storage.readAll();
+          final pending = <String>{
+            for (final e in await _readJournal()) e.id,
+          };
+          final relIds = _idsWithPrefix(all.keys, _keyRelationshipPrefix);
+          final secretIds = _idsWithPrefix(all.keys, _keySecretPrefix);
+          final previousIds = _idsWithPrefix(all.keys, _keyPreviousPrefix);
+
+          for (final id in secretIds) {
+            if (!relIds.contains(id) && !pending.contains(id)) {
+              await _storage.delete(key: _secretKey(id));
+              removed++;
+            }
+          }
+          // A relationship left without its secret (a delete interrupted
+          // before the journal existed) can never verify: finish removing
+          // it, so unpairing leaves no trace.
+          final index = <String>[...await _readIndex()];
+          var indexChanged = false;
+          for (final id in relIds) {
+            if (!secretIds.contains(id) && !pending.contains(id)) {
+              await _storage.delete(key: _relationshipKey(id));
+              await _storage.delete(key: _previousKey(id));
+              if (index.remove(id)) indexChanged = true;
+              removed++;
+            }
+          }
+          for (final id in previousIds) {
+            if (pending.contains(id)) continue;
+            final raw = all[_relationshipKey(id)];
+            if (raw == null || _parseRelationship(raw) == null) {
+              await _storage.delete(key: _previousKey(id));
+              removed++;
+            }
+          }
+
+          for (final id in relIds.toList()..sort()) {
+            if (index.contains(id) || pending.contains(id)) continue;
+            final raw = all[_relationshipKey(id)];
+            if (raw != null &&
+                _parseRelationship(raw) != null &&
+                all.containsKey(_secretKey(id))) {
+              index.add(id);
+              restored++;
+            }
+          }
+          if (restored > 0 || indexChanged) await _writeIndex(index);
+
+          for (final key in <String>[_keyRelationship, _keySharedSecret]) {
+            if (all.containsKey(key)) {
+              await _storage.delete(key: key);
+              removed++;
+            }
+          }
+        } catch (_) {
+          // Best effort; the next launch tries again.
+        }
+        return SweepReport(removed: removed, restored: restored);
+      });
+
+  static Set<String> _idsWithPrefix(Iterable<String> keys, String prefix) =>
+      <String>{
+        for (final k in keys)
+          if (k.startsWith(prefix) && k.length > prefix.length)
+            k.substring(prefix.length),
+      };
+
+  static Relationship? _parseRelationship(String raw) {
+    try {
+      return Relationship.fromJson(raw);
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+  }
+
   /// Delete the relationship with [id]: its secret, its metadata, and its
   /// entry in the index. Journaled as a tombstone that replaces any pending
   /// save for [id] in one write, so a crash at any point either leaves the
   /// relationship untouched or finishes deleting it on the next store
   /// access ("unpairing leaves no trace"), and a failed earlier save can
   /// never be rolled forward afterwards.
-  Future<void> deleteRelationshipById(String id) async {
-    await _ensureMigrated();
-    await _journalAndApply(_JournalEntry.delete(id: id));
-  }
+  Future<void> deleteRelationshipById(String id) => _locked(() async {
+        await _ensureMigrated();
+        await _journalAndApply(_JournalEntry.delete(id: id));
+      });
 }
 
 /// One pending operation in the [SecureStore] roll-forward journal.
@@ -683,4 +954,15 @@ class PreviousPairing {
   // Never print secret material.
   @override
   String toString() => 'PreviousPairing(role: $role, secret: [redacted])';
+}
+
+/// What [SecureStore.sweepOrphans] did.
+class SweepReport {
+  const SweepReport({required this.removed, required this.restored});
+
+  /// Orphaned keys deleted.
+  final int removed;
+
+  /// Relationships put back into the index.
+  final int restored;
 }

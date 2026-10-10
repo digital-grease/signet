@@ -925,7 +925,7 @@
   "bulkBackupExportReadyHeading": "Back up {count, plural, =1{1 relationship} other{{count} relationships}}",
   "@bulkBackupExportReadyHeading": {"description": "Headline of the bulk-export pre-generation pane.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportReadyBody": "Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.",
+  "bulkBackupExportReadyBody": "Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.",
   "@bulkBackupExportReadyBody": {"description": "Body under the bulk-export pre-generation headline."},
 
   "bulkBackupExportGenerateButton": "GENERATE BULK BACKUP",
@@ -1024,6 +1024,8 @@
 
   "bulkBackupImportOverwriteOption": "Overwrite existing pairing",
   "@bulkBackupImportOverwriteOption": {"description": "Conflict radio option: replace the existing pairing's secret."},
+  "bulkBackupImportOverwriteUnavailable": "Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.",
+  "@bulkBackupImportOverwriteUnavailable": {"description": "Shown in place of the Overwrite option when it cannot be offered."},
 
   "bulkBackupImportCompleteHeading": "Restore complete.",
   "@bulkBackupImportCompleteHeading": {"description": "Headline of the bulk-import success pane."},
@@ -1039,6 +1041,10 @@
 
   "bulkBackupImportSummarySkipped": "SKIPPED //",
   "@bulkBackupImportSummarySkipped": {"description": "Summary row label: records skipped. Keep the ' //' structure."},
+  "bulkBackupImportSummaryFailed": "COULD NOT SAVE //",
+  "@bulkBackupImportSummaryFailed": {"description": "Summary row: records that failed to save during a bulk restore."},
+  "bulkBackupImportFailedNote": "Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.",
+  "@bulkBackupImportFailedNote": {"description": "Shown under the summary when some records failed to save."},
 
   "bulkBackupImportNothingChangedBody": "Nothing was changed on this phone.",
   "@bulkBackupImportNothingChangedBody": {"description": "Success-pane body when zero records were committed."},
@@ -1145,7 +1151,7 @@
   "settingsBulkBackupEmptyBody": "No relationships paired yet. Pair with someone first, then you can back up every pairing at once.",
   "@settingsBulkBackupEmptyBody": {"description": "Body of the bulk-backup section when no relationships exist."},
 
-  "settingsBulkBackupBody": "Back up all {count, plural, =1{1 relationship} other{{count} relationships}} into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.",
+  "settingsBulkBackupBody": "Back up {count, plural, =1{your 1 relationship} other{all {count} relationships}} in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.",
   "@settingsBulkBackupBody": {"description": "Body of the bulk-backup section when relationships exist.", "placeholders": {"count": {"type": "int"}}},
 
   "settingsBulkBackupAction": "BACK UP ALL {count}",
@@ -1201,8 +1207,24 @@
 
   "settingsBulkConfirmTitle": "BACK UP EVERYTHING?",
   "@settingsBulkConfirmTitle": {"description": "Title of the one-tap confirm dialog before bulk export."},
+  "settingsUnreadableSection": "CONTACTS THAT COULD NOT BE READ",
+  "@settingsUnreadableSection": {"description": "Settings section shown only when stored contacts cannot be read."},
+  "settingsUnreadableBody": "{count, plural, =1{1 paired contact} other{{count} paired contacts}} could not be read. A newer version of Signet may have saved {count, plural, =1{it} other{them}}; update Signet to see {count, plural, =1{it} other{them}} again. {count, plural, =1{It is} other{They are}} not shown on Home and not included in backups.",
+  "@settingsUnreadableBody": {"description": "Explains unreadable (quarantined) contacts.", "placeholders": {"count": {"type": "int"}}},
+  "settingsUnreadableRemove": "Remove unreadable contacts",
+  "@settingsUnreadableRemove": {"description": "Unpairs every unreadable contact."},
+  "settingsUnreadableConfirmTitle": "REMOVE THEM?",
+  "@settingsUnreadableConfirmTitle": {"description": "Confirm dialog title."},
+  "settingsUnreadableConfirmBody": "These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.",
+  "@settingsUnreadableConfirmBody": {"description": "Confirm dialog body."},
+  "settingsUnreadableConfirmButton": "Remove",
+  "@settingsUnreadableConfirmButton": {"description": "Confirm button."},
+  "settingsUnreadableRemoveFailed": "Some of them could not be removed. Try again.",
+  "@settingsUnreadableRemoveFailed": {"description": "Snackbar when removing unreadable contacts failed."},
+  "bulkBackupExportSkipsUnreadable": "{count, plural, =1{1 contact} other{{count} contacts}} could not be read and will not be in this backup. See Settings.",
+  "@bulkBackupExportSkipsUnreadable": {"description": "Warning on the bulk backup screen.", "placeholders": {"count": {"type": "int"}}},
 
-  "settingsBulkConfirmBody": "This exports the shared secret for all {count, plural, =1{1 relationship} other{{count} relationships}} into one file. Losing the 8-word PAKE means losing all {count} backups. The PAKE will be shown once — write it down before closing the screen.",
+  "settingsBulkConfirmBody": "This puts the shared secret for {count, plural, =1{your 1 relationship} other{all {count} relationships}} into one backup. Without its 8 words the backup cannot be opened, so losing them loses {count, plural, =1{the backup} other{all {count} backups}}. The words are shown once: write them down before leaving the screen.",
   "@settingsBulkConfirmBody": {"description": "Body of the bulk-export confirm dialog.", "placeholders": {"count": {"type": "int"}}},
 
   "settingsBulkConfirmContinue": "CONTINUE",

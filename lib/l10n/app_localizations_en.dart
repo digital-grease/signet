@@ -1133,7 +1133,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportReadyBody =>
-      'Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.';
+      'Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.';
 
   @override
   String get bulkBackupExportGenerateButton => 'GENERATE BULK BACKUP';
@@ -1289,6 +1289,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkBackupImportOverwriteOption => 'Overwrite existing pairing';
 
   @override
+  String get bulkBackupImportOverwriteUnavailable =>
+      'Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.';
+
+  @override
   String get bulkBackupImportCompleteHeading => 'Restore complete.';
 
   @override
@@ -1302,6 +1306,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupImportSummarySkipped => 'SKIPPED //';
+
+  @override
+  String get bulkBackupImportSummaryFailed => 'COULD NOT SAVE //';
+
+  @override
+  String get bulkBackupImportFailedNote =>
+      'Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.';
 
   @override
   String get bulkBackupImportNothingChangedBody =>
@@ -1432,10 +1443,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count relationships',
-      one: '1 relationship',
+      other: 'all $count relationships',
+      one: 'your 1 relationship',
     );
-    return 'Back up all $_temp0 into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.';
+    return 'Back up $_temp0 in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.';
   }
 
   @override
@@ -1503,14 +1514,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBulkConfirmTitle => 'BACK UP EVERYTHING?';
 
   @override
+  String get settingsUnreadableSection => 'CONTACTS THAT COULD NOT BE READ';
+
+  @override
+  String settingsUnreadableBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paired contacts',
+      one: '1 paired contact',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    String _temp3 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'They are',
+      one: 'It is',
+    );
+    return '$_temp0 could not be read. A newer version of Signet may have saved $_temp1; update Signet to see $_temp2 again. $_temp3 not shown on Home and not included in backups.';
+  }
+
+  @override
+  String get settingsUnreadableRemove => 'Remove unreadable contacts';
+
+  @override
+  String get settingsUnreadableConfirmTitle => 'REMOVE THEM?';
+
+  @override
+  String get settingsUnreadableConfirmBody =>
+      'These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.';
+
+  @override
+  String get settingsUnreadableConfirmButton => 'Remove';
+
+  @override
+  String get settingsUnreadableRemoveFailed =>
+      'Some of them could not be removed. Try again.';
+
+  @override
+  String bulkBackupExportSkipsUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count contacts',
+      one: '1 contact',
+    );
+    return '$_temp0 could not be read and will not be in this backup. See Settings.';
+  }
+
+  @override
   String settingsBulkConfirmBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count relationships',
-      one: '1 relationship',
+      other: 'all $count relationships',
+      one: 'your 1 relationship',
     );
-    return 'This exports the shared secret for all $_temp0 into one file. Losing the 8-word PAKE means losing all $count backups. The PAKE will be shown once — write it down before closing the screen.';
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'all $count backups',
+      one: 'the backup',
+    );
+    return 'This puts the shared secret for $_temp0 into one backup. Without its 8 words the backup cannot be opened, so losing them loses $_temp1. The words are shown once: write them down before leaving the screen.';
   }
 
   @override

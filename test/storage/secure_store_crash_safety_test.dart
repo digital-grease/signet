@@ -39,6 +39,9 @@ class _FaultyStorage extends InMemoryFlutterSecureStorage {
   /// Writes to these keys fail this many more times.
   final Map<String, int> failWritesTo = <String, int>{};
 
+  /// Deletes of these keys fail this many more times.
+  final Map<String, int> failDeletesTo = <String, int>{};
+
   /// Total mutations since the last [relaunch].
   int get mutations => _mutations;
 
@@ -77,6 +80,24 @@ class _FaultyStorage extends InMemoryFlutterSecureStorage {
   }
 
   @override
+  Future<Map<String, String>> readAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (_dead) throw _Killed();
+    final all = await super.readAll();
+    // Like Android: one value that cannot be decrypted fails the lot.
+    if (unreadableKey != null && all.containsKey(unreadableKey)) {
+      throw StateError('cannot decrypt $unreadableKey');
+    }
+    return all;
+  }
+
+  @override
   Future<void> write({
     required String key,
     required String? value,
@@ -107,6 +128,11 @@ class _FaultyStorage extends InMemoryFlutterSecureStorage {
     WindowsOptions? wOptions,
   }) {
     _mutate();
+    final left = failDeletesTo[key] ?? 0;
+    if (left > 0) {
+      failDeletesTo[key] = left - 1;
+      throw StateError('delete of $key failed');
+    }
     return super.delete(key: key);
   }
 }
@@ -278,14 +304,16 @@ void main() {
   // S3: a failed migration future used to be cached for the life of the
   // store, so one transient Keystore error wedged every v2 call.
   test(
-    'a transient failure during first access is retried next call',
+    'a transient failure during first access neither throws nor wipes',
     () async {
       final storage = await seededWithOld();
       storage.failReadOnceKey = 'signet.v2.index';
       final store = SecureStore(storage: storage);
-      await expectLater(store.listRelationships(), throwsStateError);
+      // Since the Phase 4 review an unreadable index counts as "already
+      // migrated" (never restarted empty), so the first call already works.
       final listed = await store.listRelationships();
       expect(listed.map((r) => r.id), ['abc123']);
+      expect(await storage.read(key: 'signet.v2.index'), contains('abc123'));
     },
   );
 
@@ -609,6 +637,268 @@ void main() {
         }),
       );
       expect(await store.getPreviousPairing(oldRel.id), isNull);
+    });
+  });
+
+  group('corrupt index (plan Task 4.3)', () {
+    test('a corrupt index is rebuilt, so the next save orphans nobody',
+        () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      final dad = Relationship(
+        id: 'dad1',
+        label: 'Dad',
+        pairedAt: DateTime.utc(2026, 1, 2),
+        role: PairRole.b,
+      );
+      await store.saveRelationshipV2(dad, sharedSecret: newSecret);
+      await storage.write(key: 'signet.v2.index', value: '[broken');
+
+      final fresh = SecureStore(storage: storage);
+      final third = dad.copyWith(id: 'kid1', label: 'Kid');
+      await fresh.saveRelationshipV2(third, sharedSecret: newSecret);
+      expect(
+        (await fresh.listRelationships()).map((r) => r.label).toSet(),
+        <String>{'Mom', 'Dad', 'Kid'},
+      );
+    });
+
+    test('an id whose delete is still journaled is not brought back',
+        () async {
+      final storage = await seededWithOld();
+      // The unpair is journaled, but removing the relationship key keeps
+      // failing (it stays on disk), and the index is then corrupted.
+      storage.failDeletesTo['signet.v2.rel.${oldRel.id}'] = 99;
+      try {
+        await SecureStore(storage: storage).deleteRelationshipById(oldRel.id);
+      } catch (_) {}
+      await storage.write(key: 'signet.v2.index', value: 'nope');
+      expect(await storage.read(key: 'signet.v2.rel.${oldRel.id}'), isNotNull,
+          reason: 'fixture: the key is still there');
+      final store = SecureStore(storage: storage);
+      expect(await store.listRelationshipIds(), isNot(contains(oldRel.id)));
+      expect(await store.getRelationshipById(oldRel.id), isNull);
+      // Nor is it written back into the rebuilt index.
+      expect(await storage.read(key: 'signet.v2.index'),
+          isNot(contains(oldRel.id)));
+    });
+  });
+
+  group('concurrent writes (plan Task 4.2)', () {
+    Relationship rel(int i) => Relationship(
+          id: 'id$i',
+          label: 'Contact $i',
+          pairedAt: DateTime.utc(2026, 1, 1),
+          role: PairRole.a,
+        );
+
+    test('reads and writes at the same first touch never deadlock '
+        '(Phase 4 review)', () async {
+      final storage = _FaultyStorage();
+      final store = SecureStore(storage: storage);
+      await Future.wait(<Future<Object?>>[
+        store.saveRelationshipV2(rel(1), sharedSecret: newSecret),
+        store.listRelationships(),
+        store.sweepOrphans(),
+        store.getSharedSecretById('id1'),
+        store.deleteRelationshipById('nobody'),
+        store.listRelationshipIds(),
+      ]).timeout(const Duration(seconds: 5));
+      expect(await store.listRelationshipIds(), <String>['id1']);
+    });
+
+    test('...nor after a failed save resets migration', () async {
+      final storage = await migratedEmpty();
+      final store = SecureStore(storage: storage);
+      storage.failWritesTo['signet.v2.secret.id1'] = 2;
+      try {
+        await store.saveRelationshipV2(rel(1), sharedSecret: newSecret);
+      } catch (_) {}
+      await Future.wait(<Future<Object?>>[
+        store.saveRelationshipV2(rel(2), sharedSecret: newSecret),
+        store.listRelationships(),
+        store.getRelationshipById('id1'),
+        store.saveRelationshipV2(rel(3), sharedSecret: newSecret),
+      ]).timeout(const Duration(seconds: 5));
+      expect((await store.listRelationshipIds()).toSet(),
+          <String>{'id1', 'id2', 'id3'});
+    });
+
+    test('twenty saves at once all land, and the journal ends empty',
+        () async {
+      final storage = await migratedEmpty();
+      final store = SecureStore(storage: storage);
+      await Future.wait(<Future<void>>[
+        for (var i = 0; i < 20; i++)
+          store.saveRelationshipV2(rel(i), sharedSecret: newSecret),
+      ]);
+      expect((await store.listRelationshipIds()).toSet(),
+          <String>{for (var i = 0; i < 20; i++) 'id$i'});
+      expect(await storage.read(key: 'signet.v2.journal'), isNull);
+      final fresh = SecureStore(storage: storage);
+      expect(await fresh.listRelationshipIds(), hasLength(20));
+    });
+
+    test('saves, edits and deletes at once leave a consistent store',
+        () async {
+      final storage = await migratedEmpty();
+      final store = SecureStore(storage: storage);
+      for (var i = 0; i < 10; i++) {
+        await store.saveRelationshipV2(rel(i), sharedSecret: newSecret);
+      }
+      await Future.wait(<Future<void>>[
+        for (var i = 0; i < 5; i++) store.deleteRelationshipById('id$i'),
+        for (var i = 5; i < 10; i++)
+          store.updateRelationshipMetadataV2(
+              rel(i).copyWith(label: 'Renamed $i')),
+        for (var i = 10; i < 15; i++)
+          store.saveRelationshipV2(rel(i), sharedSecret: newSecret),
+      ]);
+      final fresh = SecureStore(storage: storage);
+      final ids = (await fresh.listRelationshipIds()).toSet();
+      expect(ids, <String>{for (var i = 5; i < 15; i++) 'id$i'});
+      for (var i = 0; i < 5; i++) {
+        expect(await fresh.getSharedSecretById('id$i'), isNull);
+      }
+      expect((await fresh.getRelationshipById('id7'))!.label, 'Renamed 7');
+    });
+  });
+
+  group('startup sweep (plan Task 4.4)', () {
+    test('a secret with no relationship is removed; a good pair is kept',
+        () async {
+      final storage = await seededWithOld();
+      await storage.write(key: 'signet.v2.secret.ghost', value: 'AAAA');
+      final report = await SecureStore(storage: storage).sweepOrphans();
+      expect(report.removed, 1);
+      expect(await storage.read(key: 'signet.v2.secret.ghost'), isNull);
+      expect(await SecureStore(storage: storage).getSharedSecretById(oldRel.id),
+          oldSecret);
+    });
+
+    test('a secret whose save is still journaled is left alone', () async {
+      final storage = await seededWithOld();
+      // The save is journaled, but writing its relationship keeps failing.
+      final kid = oldRel.copyWith(id: 'kid1', label: 'Kid');
+      storage.failWritesTo['signet.v2.rel.kid1'] = 99;
+      try {
+        await SecureStore(storage: storage)
+            .saveRelationshipV2(kid, sharedSecret: newSecret);
+      } catch (_) {}
+      // Its secret is on disk with no relationship key, and the replay
+      // inside the sweep keeps failing too.
+      expect(await storage.read(key: 'signet.v2.rel.kid1'), isNull);
+      expect(await storage.read(key: 'signet.v2.secret.kid1'), isNotNull);
+      await SecureStore(storage: storage).sweepOrphans();
+      expect(await storage.read(key: 'signet.v2.secret.kid1'), isNotNull,
+          reason: 'the journal will finish this save');
+      storage.failWritesTo.clear();
+      expect(await SecureStore(storage: storage).getSharedSecretById('kid1'),
+          newSecret);
+    });
+
+    test('kept old secrets: removed without a readable contact, kept with one',
+        () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      await store.saveRelationshipV2(newRel,
+          sharedSecret: newSecret, keepPrevious: true);
+      await storage.write(key: 'signet.v2.prev.gone', value: '{}');
+      await storage.write(key: 'signet.v2.rel.broken', value: '{"newer":1');
+      await storage.write(key: 'signet.v2.secret.broken', value: 'AAAA');
+      await storage.write(key: 'signet.v2.prev.broken', value: '{}');
+      await SecureStore(storage: storage).sweepOrphans();
+      expect(await storage.read(key: 'signet.v2.prev.gone'), isNull);
+      expect(await storage.read(key: 'signet.v2.prev.broken'), isNull);
+      expect(await storage.read(key: 'signet.v2.prev.${oldRel.id}'),
+          isNotNull);
+    });
+
+    test('an unreadable contact is quarantined, not deleted, and can be '
+        'removed', () async {
+      final storage = await seededWithOld();
+      final store = SecureStore(storage: storage);
+      // A newer build wrote a shape this one cannot parse.
+      await storage.write(
+          key: 'signet.v2.rel.${oldRel.id}', value: '{"v":9,"x":[');
+      await store.sweepOrphans();
+      expect(await storage.read(key: 'signet.v2.rel.${oldRel.id}'), isNotNull);
+      expect(await storage.read(key: 'signet.v2.secret.${oldRel.id}'),
+          isNotNull);
+      expect(await store.listRelationships(), isEmpty);
+      expect(await store.listUnreadableRelationshipIds(), <String>[oldRel.id]);
+
+      await store.deleteRelationshipById(oldRel.id);
+      expect(await store.listUnreadableRelationshipIds(), isEmpty);
+      expect(await storage.read(key: 'signet.v2.secret.${oldRel.id}'), isNull);
+    });
+
+    test('a readable contact missing from the index is put back', () async {
+      final storage = await seededWithOld();
+      await storage.write(key: 'signet.v2.index', value: '[]');
+      final store = SecureStore(storage: storage);
+      expect(await store.listRelationshipIds(), isEmpty);
+      final report = await store.sweepOrphans();
+      expect(report.restored, 1);
+      expect(await store.listRelationshipIds(), <String>[oldRel.id]);
+    });
+
+    test('leftover v1 keys are removed once v2 is in place', () async {
+      final storage = await seededWithOld();
+      await storage.write(key: 'signet.v1.relationship', value: '{}');
+      await storage.write(key: 'signet.v1.shared_secret', value: 'AAAA');
+      await SecureStore(storage: storage).sweepOrphans();
+      expect(await storage.read(key: 'signet.v1.relationship'), isNull);
+      expect(await storage.read(key: 'signet.v1.shared_secret'), isNull);
+    });
+
+    test('a storage error stops the sweep without harming a good pair',
+        () async {
+      final storage = await seededWithOld();
+      await storage.write(key: 'signet.v2.secret.ghost', value: 'AAAA');
+      storage.failDeletesTo['signet.v2.secret.ghost'] = 1;
+      final report = await SecureStore(storage: storage).sweepOrphans();
+      expect(report.removed, 0);
+      expect(await SecureStore(storage: storage).getSharedSecretById(oldRel.id),
+          oldSecret);
+    });
+  });
+
+  group('undecryptable values (Phase 4 review)', () {
+    test('an undecryptable index is rebuilt', () async {
+      final storage = await seededWithOld();
+      storage.unreadableKey = 'signet.v2.index';
+      final store = SecureStore(storage: storage);
+      expect(await store.listRelationshipIds(), <String>[oldRel.id]);
+      storage.unreadableKey = null;
+      expect(await SecureStore(storage: storage).listRelationshipIds(),
+          <String>[oldRel.id]);
+    });
+
+    test('an undecryptable contact is quarantined, not fatal', () async {
+      final storage = await seededWithOld();
+      final dad = oldRel.copyWith(id: 'dad1', label: 'Dad');
+      await SecureStore(storage: storage)
+          .saveRelationshipV2(dad, sharedSecret: newSecret);
+      storage.unreadableKey = 'signet.v2.rel.${oldRel.id}';
+      final store = SecureStore(storage: storage);
+      expect((await store.listRelationships()).map((r) => r.label),
+          <String>['Dad']);
+      expect(await store.listUnreadableRelationshipIds(), <String>[oldRel.id]);
+      await store.deleteRelationshipById(oldRel.id);
+      expect(await store.listUnreadableRelationshipIds(), isEmpty);
+    });
+
+    test('a relationship left without its secret is finished off by the '
+        'sweep and never rebuilt into the index', () async {
+      final storage = await seededWithOld();
+      await storage.delete(key: 'signet.v2.secret.${oldRel.id}');
+      await storage.write(key: 'signet.v2.index', value: 'corrupt');
+      final store = SecureStore(storage: storage);
+      expect(await store.listRelationshipIds(), isEmpty,
+          reason: 'rebuild needs the secret too');
+      await store.sweepOrphans();
+      expect(await storage.read(key: 'signet.v2.rel.${oldRel.id}'), isNull);
     });
   });
 }

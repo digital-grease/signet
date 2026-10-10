@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:signet/core/models/relationship.dart';
@@ -96,6 +97,10 @@ class FakeSecureStore implements SecureStore {
     required List<int> sharedSecret,
     bool keepPrevious = false,
   }) async {
+    await saveGate?.future;
+    if (failSaveForLabel != null && relationship.label == failSaveForLabel) {
+      throw StateError('storage failure');
+    }
     if (sharedSecret.isEmpty) {
       throw ArgumentError.value(
         sharedSecret,
@@ -114,7 +119,23 @@ class FakeSecureStore implements SecureStore {
     }
     _relationships[relationship.id] = relationship;
     _secrets[relationship.id] = Uint8List.fromList(sharedSecret);
+    if (relationship.label == failAfterSaveForLabel) {
+      throw StateError('write failed after journaling');
+    }
   }
+
+  /// When set, every v2 save waits for it (to observe a save in progress).
+  Completer<void>? saveGate;
+
+  /// A v2 save of a relationship with this label throws.
+  String? failSaveForLabel;
+
+  /// A v2 save of a relationship with this label stores it, then throws
+  /// (a journaled save whose writes failed but which still completes).
+  String? failAfterSaveForLabel;
+
+  /// Deleting these ids throws.
+  final Set<String> failDeleteIds = <String>{};
 
   /// Previous pairings kept by rekeys; tests may seed it directly.
   final Map<String, PreviousPairing> previous = <String, PreviousPairing>{};
@@ -141,6 +162,22 @@ class FakeSecureStore implements SecureStore {
   @override
   Future<void> deletePreviousPairing(String id) async => previous.remove(id);
 
+  /// Ids reported as unreadable; tests may seed it.
+  final List<String> unreadable = <String>[];
+
+  @override
+  Future<List<String>> listUnreadableRelationshipIds() async =>
+      List<String>.of(unreadable);
+
+  /// Makes [sweepOrphans] never finish, like a stuck platform call.
+  bool sweepHangs = false;
+
+  @override
+  Future<SweepReport> sweepOrphans() async {
+    if (sweepHangs) await Completer<void>().future;
+    return const SweepReport(removed: 0, restored: 0);
+  }
+
   @override
   Future<void> updateRelationshipMetadataV2(Relationship relationship) async {
     if (!_relationships.containsKey(relationship.id)) return;
@@ -149,6 +186,8 @@ class FakeSecureStore implements SecureStore {
 
   @override
   Future<void> deleteRelationshipById(String id) async {
+    if (failDeleteIds.contains(id)) throw StateError('storage failure');
+    unreadable.remove(id);
     _relationships.remove(id);
     _secrets.remove(id);
     previous.remove(id);

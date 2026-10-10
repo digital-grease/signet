@@ -1082,7 +1082,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportReadyBody =>
-      '下面所有配对联系人会打包进一个加密文件，配一个 8 单词 PAKE。文件和单词分开存放，之后用它们把所有配对迁移到新手机。';
+      '下面所有配对联系人会放进同一份备份：一个传输包，以及解锁它的 8 个单词。两者分开存放，之后用它们把所有配对迁移到新手机。';
 
   @override
   String get bulkBackupExportGenerateButton => '生成批量备份';
@@ -1229,6 +1229,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkBackupImportOverwriteOption => '覆盖现有配对';
 
   @override
+  String get bulkBackupImportOverwriteUnavailable =>
+      '这里不提供替换：有多个联系人使用这个名称，或者这份备份中的另一条已经在替换它。';
+
+  @override
   String get bulkBackupImportCompleteHeading => '恢复完成。';
 
   @override
@@ -1242,6 +1246,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupImportSummarySkipped => '已跳过 //';
+
+  @override
+  String get bulkBackupImportSummaryFailed => '无法保存 //';
+
+  @override
+  String get bulkBackupImportFailedNote =>
+      '有些联系人无法保存到这部手机。请再次恢复同一份备份来重试；已恢复的联系人会显示为已配对。';
 
   @override
   String get bulkBackupImportNothingChangedBody => '本机没有任何改动。';
@@ -1370,9 +1381,9 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '全部 $count 个配对关系',
-      one: '1 个配对关系',
+      one: '你的 1 个配对关系',
     );
-    return '把$_temp0备份到一个加密文件，配一个 8 单词 PAKE。换手机时使用 — 新手机可一步解锁所有配对。';
+    return '一次备份$_temp0：一个传输包和一组 8 个单词。换手机时使用：新手机可一步恢复所有配对。';
   }
 
   @override
@@ -1437,14 +1448,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBulkConfirmTitle => '全部备份？';
 
   @override
+  String get settingsUnreadableSection => '无法读取的联系人';
+
+  @override
+  String settingsUnreadableBody(int count) {
+    return '有 $count 个配对联系人无法读取。可能是较新版本的 Signet 保存的，更新 Signet 后即可重新看到。它们不会显示在主页上，也不会包含在备份中。';
+  }
+
+  @override
+  String get settingsUnreadableRemove => '移除无法读取的联系人';
+
+  @override
+  String get settingsUnreadableConfirmTitle => '要移除吗？';
+
+  @override
+  String get settingsUnreadableConfirmBody =>
+      '这些联系人将在这部手机上解除配对，和在主页上解除配对一样。要再次与他们核验，需要重新配对。';
+
+  @override
+  String get settingsUnreadableConfirmButton => '移除';
+
+  @override
+  String get settingsUnreadableRemoveFailed => '有些无法移除，请重试。';
+
+  @override
+  String bulkBackupExportSkipsUnreadable(int count) {
+    return '有 $count 个联系人无法读取，不会包含在这份备份中。请查看设置。';
+  }
+
+  @override
   String settingsBulkConfirmBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '全部 $count 个配对关系',
-      one: '1 个配对关系',
+      one: '你的 1 个配对关系',
     );
-    return '这会把$_temp0的共享密钥导出到一个文件。丢失 8 单词 PAKE 就等于丢失全部 $count 份备份。PAKE 只会显示一次 — 关闭屏幕前请先抄写下来。';
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '全部 $count 份备份',
+      one: '这份备份',
+    );
+    return '这会把$_temp0的共享密钥放进同一份备份。没有那 8 个单词就无法打开备份，丢失它们就等于丢失$_temp1。单词只显示一次：离开屏幕前请先写下来。';
   }
 
   @override

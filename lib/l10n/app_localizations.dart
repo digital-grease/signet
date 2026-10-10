@@ -1997,7 +1997,7 @@ abstract class AppLocalizations {
   /// Body under the bulk-export pre-generation headline.
   ///
   /// In en, this message translates to:
-  /// **'Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.'**
+  /// **'Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.'**
   String get bulkBackupExportReadyBody;
 
   /// FilledButton generating the bulk backup.
@@ -2186,6 +2186,12 @@ abstract class AppLocalizations {
   /// **'Overwrite existing pairing'**
   String get bulkBackupImportOverwriteOption;
 
+  /// Shown in place of the Overwrite option when it cannot be offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.'**
+  String get bulkBackupImportOverwriteUnavailable;
+
   /// Headline of the bulk-import success pane.
   ///
   /// In en, this message translates to:
@@ -2215,6 +2221,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SKIPPED //'**
   String get bulkBackupImportSummarySkipped;
+
+  /// Summary row: records that failed to save during a bulk restore.
+  ///
+  /// In en, this message translates to:
+  /// **'COULD NOT SAVE //'**
+  String get bulkBackupImportSummaryFailed;
+
+  /// Shown under the summary when some records failed to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.'**
+  String get bulkBackupImportFailedNote;
 
   /// Success-pane body when zero records were committed.
   ///
@@ -2429,7 +2447,7 @@ abstract class AppLocalizations {
   /// Body of the bulk-backup section when relationships exist.
   ///
   /// In en, this message translates to:
-  /// **'Back up all {count, plural, =1{1 relationship} other{{count} relationships}} into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.'**
+  /// **'Back up {count, plural, =1{your 1 relationship} other{all {count} relationships}} in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.'**
   String settingsBulkBackupBody(int count);
 
   /// Outlined action button of the bulk-backup section.
@@ -2540,10 +2558,58 @@ abstract class AppLocalizations {
   /// **'BACK UP EVERYTHING?'**
   String get settingsBulkConfirmTitle;
 
+  /// Settings section shown only when stored contacts cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTACTS THAT COULD NOT BE READ'**
+  String get settingsUnreadableSection;
+
+  /// Explains unreadable (quarantined) contacts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 paired contact} other{{count} paired contacts}} could not be read. A newer version of Signet may have saved {count, plural, =1{it} other{them}}; update Signet to see {count, plural, =1{it} other{them}} again. {count, plural, =1{It is} other{They are}} not shown on Home and not included in backups.'**
+  String settingsUnreadableBody(int count);
+
+  /// Unpairs every unreadable contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove unreadable contacts'**
+  String get settingsUnreadableRemove;
+
+  /// Confirm dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE THEM?'**
+  String get settingsUnreadableConfirmTitle;
+
+  /// Confirm dialog body.
+  ///
+  /// In en, this message translates to:
+  /// **'These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.'**
+  String get settingsUnreadableConfirmBody;
+
+  /// Confirm button.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsUnreadableConfirmButton;
+
+  /// Snackbar when removing unreadable contacts failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some of them could not be removed. Try again.'**
+  String get settingsUnreadableRemoveFailed;
+
+  /// Warning on the bulk backup screen.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 contact} other{{count} contacts}} could not be read and will not be in this backup. See Settings.'**
+  String bulkBackupExportSkipsUnreadable(int count);
+
   /// Body of the bulk-export confirm dialog.
   ///
   /// In en, this message translates to:
-  /// **'This exports the shared secret for all {count, plural, =1{1 relationship} other{{count} relationships}} into one file. Losing the 8-word PAKE means losing all {count} backups. The PAKE will be shown once — write it down before closing the screen.'**
+  /// **'This puts the shared secret for {count, plural, =1{your 1 relationship} other{all {count} relationships}} into one backup. Without its 8 words the backup cannot be opened, so losing them loses {count, plural, =1{the backup} other{all {count} backups}}. The words are shown once: write them down before leaving the screen.'**
   String settingsBulkConfirmBody(int count);
 
   /// Filled confirm button of the bulk-export dialog.

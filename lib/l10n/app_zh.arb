@@ -609,7 +609,7 @@
 
   "bulkBackupExportReadyHeading": "备份 {count, plural, =1{1 个配对关系} other{{count} 个配对关系}}",
 
-  "bulkBackupExportReadyBody": "下面所有配对联系人会打包进一个加密文件，配一个 8 单词 PAKE。文件和单词分开存放，之后用它们把所有配对迁移到新手机。",
+  "bulkBackupExportReadyBody": "下面所有配对联系人会放进同一份备份：一个传输包，以及解锁它的 8 个单词。两者分开存放，之后用它们把所有配对迁移到新手机。",
 
   "bulkBackupExportGenerateButton": "生成批量备份",
 
@@ -676,6 +676,7 @@
   "bulkBackupImportRenameOption": "恢复为“{label}”",
 
   "bulkBackupImportOverwriteOption": "覆盖现有配对",
+  "bulkBackupImportOverwriteUnavailable": "这里不提供替换：有多个联系人使用这个名称，或者这份备份中的另一条已经在替换它。",
 
   "bulkBackupImportCompleteHeading": "恢复完成。",
 
@@ -686,6 +687,8 @@
   "bulkBackupImportSummaryOverwrote": "已覆盖 //",
 
   "bulkBackupImportSummarySkipped": "已跳过 //",
+  "bulkBackupImportSummaryFailed": "无法保存 //",
+  "bulkBackupImportFailedNote": "有些联系人无法保存到这部手机。请再次恢复同一份备份来重试；已恢复的联系人会显示为已配对。",
 
   "bulkBackupImportNothingChangedBody": "本机没有任何改动。",
 
@@ -757,7 +760,7 @@
 
   "settingsBulkBackupEmptyBody": "还没有配对关系。先与别人配对，之后即可一次性备份所有配对。",
 
-  "settingsBulkBackupBody": "把{count, plural, =1{1 个配对关系} other{全部 {count} 个配对关系}}备份到一个加密文件，配一个 8 单词 PAKE。换手机时使用 — 新手机可一步解锁所有配对。",
+  "settingsBulkBackupBody": "一次备份{count, plural, =1{你的 1 个配对关系} other{全部 {count} 个配对关系}}：一个传输包和一组 8 个单词。换手机时使用：新手机可一步恢复所有配对。",
 
   "settingsBulkBackupAction": "全部备份（{count}）",
 
@@ -794,8 +797,16 @@
   "settingsAboutOpenAction": "打开关于页",
 
   "settingsBulkConfirmTitle": "全部备份？",
+  "settingsUnreadableSection": "无法读取的联系人",
+  "settingsUnreadableBody": "有 {count} 个配对联系人无法读取。可能是较新版本的 Signet 保存的，更新 Signet 后即可重新看到。它们不会显示在主页上，也不会包含在备份中。",
+  "settingsUnreadableRemove": "移除无法读取的联系人",
+  "settingsUnreadableConfirmTitle": "要移除吗？",
+  "settingsUnreadableConfirmBody": "这些联系人将在这部手机上解除配对，和在主页上解除配对一样。要再次与他们核验，需要重新配对。",
+  "settingsUnreadableConfirmButton": "移除",
+  "settingsUnreadableRemoveFailed": "有些无法移除，请重试。",
+  "bulkBackupExportSkipsUnreadable": "有 {count} 个联系人无法读取，不会包含在这份备份中。请查看设置。",
 
-  "settingsBulkConfirmBody": "这会把{count, plural, =1{1 个配对关系} other{全部 {count} 个配对关系}}的共享密钥导出到一个文件。丢失 8 单词 PAKE 就等于丢失全部 {count} 份备份。PAKE 只会显示一次 — 关闭屏幕前请先抄写下来。",
+  "settingsBulkConfirmBody": "这会把{count, plural, =1{你的 1 个配对关系} other{全部 {count} 个配对关系}}的共享密钥放进同一份备份。没有那 8 个单词就无法打开备份，丢失它们就等于丢失{count, plural, =1{这份备份} other{全部 {count} 份备份}}。单词只显示一次：离开屏幕前请先写下来。",
 
   "settingsBulkConfirmContinue": "继续",
 

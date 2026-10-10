@@ -61,6 +61,14 @@ the surface is allowed to change between minor releases.
   person or treat the call as a scam.
 - A contact name saved before the length limit no longer makes a backup
   fail.
+- Saving several contacts at once (for example during a bulk restore)
+  can no longer lose one of them, and a damaged contact list is rebuilt
+  instead of being treated as empty.
+- Contacts that cannot be read (for example saved by a newer Signet)
+  are kept instead of disappearing, listed in Settings, and can be
+  removed there; bulk backup says it skips them.
+- Bulk restore can no longer be left half-way, one contact that fails to
+  save no longer stops the rest, and the summary says what happened.
 
 ## [0.3.6] — 2026-06-12
 

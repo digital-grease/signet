@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -420,5 +422,97 @@ void main() {
     expect(find.text('ALREADY PAIRED'), findsOneWidget);
     expect(find.textContaining('Restore it as'), findsOneWidget);
     expect(find.text('Overwrite existing pairing'), findsNothing);
+  });
+
+  group('robustness (plan Task 4.5)', () {
+    testWidgets('while saving, close and back are blocked', (tester) async {
+      final store = FakeSecureStore()..saveGate = Completer<void>();
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+          ])));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('RESTORE 1'));
+      await tester.pump();
+
+      final close = tester.widget<IconButton>(
+          find.widgetWithIcon(IconButton, Icons.close));
+      expect(close.onPressed, isNull);
+      final popScope = tester.widget<PopScope<dynamic>>(
+          find.byWidgetPredicate((w) => w is PopScope));
+      expect(popScope.canPop, isFalse);
+
+      store.saveGate!.complete();
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close))
+              .onPressed,
+          isNotNull);
+    });
+
+    testWidgets('one record that cannot be saved does not stop the others, '
+        'and the summary says so', (tester) async {
+      final store = FakeSecureStore()..failSaveForLabel = 'Dad';
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+            _record(seed: 2, label: 'Dad'),
+            _record(seed: 3, label: 'Kid'),
+          ])));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('RESTORE 3'));
+      await tester.pumpAndSettle();
+      expect((await store.listRelationships()).map((r) => r.label).toSet(),
+          <String>{'Mom', 'Kid'});
+      expect(find.textContaining('COULD NOT SAVE //', findRichText: true),
+          findsOneWidget);
+      expect(find.textContaining('Some contacts could not be saved'),
+          findsOneWidget);
+    });
+
+    testWidgets('two records cannot both overwrite the same contact',
+        (tester) async {
+      final store = FakeSecureStore(
+          seeded: Relationship(
+            id: 'existing-mom',
+            label: 'Mom',
+            pairedAt: DateTime.utc(2025, 1, 1),
+            role: PairRole.a,
+          ),
+          secret: List<int>.generate(32, (_) => 0xAA));
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+            _record(seed: 2, label: 'Mom'),
+          ])));
+      await tester.pumpAndSettle();
+      expect(find.text('Overwrite existing pairing'), findsNWidgets(2));
+      await tester.tap(find.text('Overwrite existing pairing').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Overwrite existing pairing'), findsOneWidget,
+          reason: 'only the record that claimed it still offers it');
+    });
+  });
+
+  testWidgets('a save that reported an error but landed counts as restored',
+      (tester) async {
+    final store = FakeSecureStore()..failAfterSaveForLabel = 'Dad';
+    await tester.pumpWidget(_wrap(
+        store: store,
+        decoded: _blk(<BlkRelationshipRecord>[
+          _record(seed: 1, label: 'Mom'),
+          _record(seed: 2, label: 'Dad'),
+        ])));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('RESTORE 2'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('COULD NOT SAVE //', findRichText: true),
+        findsNothing);
+    expect(find.textContaining('RESTORED //', findRichText: true),
+        findsOneWidget);
   });
 }

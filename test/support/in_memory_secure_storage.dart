@@ -6,8 +6,9 @@
 // abstraction — it fakes Signet's higher-level SecureStore which holds
 // Relationship + secret pairs. Don't conflate the two.
 //
-// Only the three methods our production logging code uses (read / write /
-// delete) are implemented. Everything else falls through to noSuchMethod
+// Only the methods production code uses (read / write / delete, and
+// readAll for SecureStore's index rebuild and orphan sweep) are
+// implemented. Everything else falls through to noSuchMethod
 // with an explicit UnimplementedError so unexpected coupling is loud, not
 // silent.
 
@@ -65,6 +66,17 @@ class InMemoryFlutterSecureStorage implements FlutterSecureStorage {
   }) async {
     _store.remove(key);
   }
+
+  @override
+  Future<Map<String, String>> readAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async =>
+      Map<String, String>.of(_store);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
