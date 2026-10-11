@@ -4,6 +4,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'bip39_english_wordlist.dart';
+import 'transport_package.dart';
 
 /// Decode the bytes of a backup file as UTF-8 text. Dart's UTF-8 decoder
 /// drops a leading byte order mark (some editors add one), and invalid
@@ -173,7 +174,9 @@ class BackupText {
         continue;
       }
       if (line.startsWith('#')) continue;
-      if (candidates.isEmpty && line.startsWith(BackupFiles._wirePrefix)) {
+      // Any scheme, so a package from a newer Signet reaches the decoder
+      // and its "update Signet" message (plan Task 1.7j).
+      if (candidates.isEmpty && TransportPackage.isTransportWire(line)) {
         // Rejoin continuation lines a mail client may have wrapped.
         final parts = <String>[line];
         var j = i + 1;

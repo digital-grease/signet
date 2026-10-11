@@ -130,6 +130,44 @@ String _packageField(WidgetTester tester) =>
     tester.widget<TextField>(find.byType(TextField).first).controller!.text;
 
 void main() {
+  // Plan Task 1.7j: a PACKAGE file from a newer Signet says so as soon as
+  // it is loaded, and still after the words: never "these words belong to
+  // another backup".
+  testWidgets('a PACKAGE file from a newer Signet asks to update at once',
+      (tester) async {
+    final f = await _files(await _wire());
+    final newer = f.package.replaceFirst('signet:tp1:', 'signet:tp2:');
+    await tester.pumpWidget(_wrap());
+    await tester.pumpAndSettle();
+    await _loadPackageFile(tester, newer);
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget, reason: 'before any words');
+    expect(_packageField(tester), startsWith('signet:tp2:'));
+    await _loadWordsFile(tester, f.words);
+    await _unlock(tester);
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget, reason: 'after the words');
+    expect(find.textContaining('belong to a different backup'), findsNothing);
+    expect(find.text('COMMIT IMPORT'), findsNothing);
+  });
+
+  testWidgets('loading a good PACKAGE file after a newer one clears the '
+      'notice', (tester) async {
+    final f = await _files(await _wire());
+    await tester.pumpWidget(_wrap());
+    await tester.pumpAndSettle();
+    await _loadPackageFile(
+        tester, f.package.replaceFirst('signet:tp1:', 'signet:tp2:'));
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    await _loadPackageFile(tester, f.package);
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsNothing);
+    await _loadWordsFile(tester, f.words);
+    await _unlock(tester);
+    _expectRestored('Mom');
+  });
+
   testWidgets('PACKAGE file + WORDS file restore', (tester) async {
     final f = await _files(await _wire());
     await tester.pumpWidget(_wrap());

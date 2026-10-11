@@ -90,7 +90,8 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       _packageCandidates = read.wireCandidates;
       _packageController.text = read.wireCandidates.first;
       _legacyBundle = read.isLegacyCombined;
-      _error = null;
+      // A package from a newer Signet says so now, not after the words.
+      _error = newerSignetPackageNotice(read.wireCandidates.first, l10n);
     });
     // An old combined backup carries its own words: they belong to this
     // package, so they replace any words (and fingerprint) loaded before.
@@ -131,12 +132,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   }
 
   /// Scan the package QR from a printout or another screen (plan Task
-  /// 3.9). Only `signet:tp1:` codes are taken.
+  /// 3.9). Only transport packages are taken, of any scheme, so one from
+  /// a newer Signet gets the "update Signet" message (plan Task 1.7j).
   Future<void> _scanPackage() async {
     final l10n = AppLocalizations.of(context);
     final text = await scanQrCode(
       context,
-      accept: (t) => t.trim().startsWith('signet:tp1:')
+      accept: (t) => TransportPackage.isTransportWire(t.trim())
           ? null
           : l10n.scannerNotSignetPackage,
     );

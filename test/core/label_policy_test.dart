@@ -31,6 +31,9 @@ void main() {
       expect(LabelPolicy.isValid('my signet:tp1: thing'), isFalse);
       // case-insensitive
       expect(LabelPolicy.isValid('SIGNET:TP1:xyz'), isFalse);
+      // A later scheme too (plan Task 1.7j).
+      expect(LabelPolicy.isValid('signet:tp2:AAAA'), isFalse);
+      expect(LabelPolicy.isValid('a SIGNET:TP12:x'), isFalse);
     });
 
     test('pure >=16-char hex string', () {

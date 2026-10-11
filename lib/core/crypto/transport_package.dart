@@ -79,6 +79,26 @@ class TransportPackage {
   const TransportPackage._();
 
   static const String _prefix = 'signet:tp1:';
+
+  /// Any transport-package scheme, this one or a later one
+  /// (`signet:tp2:` and up, canonical decimal). A later scheme is from a
+  /// newer Signet: decoders say "update Signet" instead of "not a Signet
+  /// package" (plan Task 1.7j).
+  static final RegExp _anySchemePrefix =
+      RegExp(r'^signet:tp[1-9][0-9]*:');
+
+  /// Whether [text] starts like a transport package of this or a later
+  /// scheme. For finding packages in files, QR codes and pasted text.
+  static bool isTransportWire(String text) =>
+      _anySchemePrefix.hasMatch(text);
+
+  /// Throws [UnsupportedPackageVersionException] when [wire] uses a later
+  /// scheme than `signet:tp1:`.
+  static void _refuseLaterScheme(String wire) {
+    if (!wire.startsWith(_prefix) && isTransportWire(wire)) {
+      throw const UnsupportedPackageVersionException();
+    }
+  }
   static const int _versionV1 = 0x01;
   static const int _versionV2 = 0x02;
 
@@ -146,12 +166,14 @@ class TransportPackage {
   /// decryption. Returns `null` if the wire is structurally malformed
   /// (wrong scheme, unparseable base64, too short, unknown payload type in
   /// a version this build reads). Throws [UnsupportedPackageVersionException]
-  /// for a package written by a newer Signet (a version above 2), so the
+  /// for a package written by a newer Signet (a later scheme prefix, a
+  /// version above 2, or an unknown payload type in version 2), so the
   /// UI can say "update the app" instead of "not a valid backup".
   ///
   /// The version + payload-type bytes precede the AEAD-sealed body, so
   /// this peek is safe without the PAKE secret.
   static TransportPayloadType? peekPayloadType(String wire) {
+    _refuseLaterScheme(wire);
     if (!wire.startsWith(_prefix)) return null;
     final encoded = wire.substring(_prefix.length);
     final List<int> body;
@@ -919,6 +941,7 @@ class TransportPackage {
     required int expectedPayloadType,
     required List<String> pakeWords,
   }) async {
+    _refuseLaterScheme(wire);
     if (!wire.startsWith(_prefix)) {
       throw const InvalidPackageException(
         'Not a Signet transport package (wrong scheme / version).',

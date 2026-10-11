@@ -215,6 +215,44 @@ void main() {
     await leave(tester);
   });
 
+  // Plan Task 1.7j: a code from a later or earlier Signet says which
+  // phone needs an update, never "not a pairing code".
+  for (final (name, code, notice) in [
+    (
+      'a newer code',
+      'signet:p3:C:AAAA',
+      (AppLocalizations l) => l.pairCodeThisNeedsUpdateNotice,
+    ),
+    (
+      'an older code',
+      'signet:p1:AAAA',
+      (AppLocalizations l) => l.pairCodePeerNeedsUpdateNotice,
+    ),
+  ]) {
+    testWidgets('$name, scanned or pasted, says which phone to update',
+        (tester) async {
+      await tester.pumpWidget(app());
+      await settle(tester);
+      await tester.tap(find.text('JOIN'));
+      await settle(tester);
+      camera.scan(code);
+      await settle(tester);
+      final text = notice(l10nOf(tester));
+      expect(find.text(text), findsOneWidget, reason: 'scanned');
+      expect(text, contains('only from the app store'));
+      expect(stateOf(phone).step, InPersonStep.joinScanCommit);
+
+      await tester.tap(find.text('Paste a code instead'));
+      await settle(tester);
+      await tester.enterText(find.byType(TextField), code);
+      await tester.tap(find.text('USE THIS CODE'));
+      await settle(tester);
+      expect(find.text(text), findsOneWidget, reason: 'pasted');
+      expect(stateOf(phone).step, InPersonStep.joinScanCommit);
+      await leave(tester);
+    });
+  }
+
   testWidgets('a code already used says so and keeps the camera running',
       (tester) async {
     await tester.pumpWidget(app());

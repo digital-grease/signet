@@ -240,6 +240,71 @@ void main() {
     },
   );
 
+  // Plan Task 1.7j: a response from a newer Signet asks to update.
+  Future<void> unlockResponse(
+      WidgetTester tester, Future<String> Function(List<String> pake) make) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+    final extracted = await _extractOutgoing(tester);
+    await tester.enterText(
+        find.byType(TextField).first, await make(extracted.pake));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+    await tester.tap(find.text('UNLOCK RESPONSE'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a pasted response from a newer Signet says so at once',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextField).first, 'signet:tp2:AQIDBAUGBwgJ');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsNothing);
+  });
+
+  testWidgets('UNLOCK RESPONSE: a later scheme asks to update',
+      (tester) async {
+    await unlockResponse(tester, (_) async => 'signet:tp2:AQIDBAUGBwgJ');
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
+
+  testWidgets('UNLOCK RESPONSE: an unknown field (unlocked) asks to update',
+      (tester) async {
+    await unlockResponse(
+      tester,
+      (pake) async => TransportPackage.encodeLdp(
+        publicKey: Uint8List(32)..[0] = 9,
+        labelHint: '',
+        pakeWords: pake,
+        version: 2,
+        extensions: const [
+          TransportExtension(TransportPackage.ldpStrongPhraseTag, [0x01]),
+          TransportExtension(0x8F, [1]),
+        ],
+      ),
+    );
+    expect(find.textContaining('made by a newer version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
+
   // Plan Task 1.7g: a response without the strong-phrase tag (an older
   // Signet, or the tag stripped by someone holding the words) is refused;
   // the requester never falls back to the weak 4-word phrase.

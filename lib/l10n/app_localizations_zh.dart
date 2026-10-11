@@ -577,6 +577,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '不要跳过。真实的配对联系人明白验证存在的意义，不会施压让你绕过它。制造紧迫感并要求跳过验证，正是骗子瓦解安全防线的惯用手法。如果你正被施压，在证明清白之前，默认这通电话是恶意的。';
 
   @override
+  String get faqQ13 => 'Signet says it needs an update.';
+
+  @override
+  String get faqA13 =>
+      'Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.';
+
+  @override
   String get faqStillStuckHeader => '仍未解决 //';
 
   @override

@@ -53,6 +53,10 @@ class _PairTransportOutScreenState
 
   _Phase _phase = _Phase.setup;
   String? _errorText;
+
+  /// The "update Signet" notice last shown for the response field, so a
+  /// later edit can clear it without clearing other errors.
+  String? _formatNotice;
   bool _busy = false;
 
   _GeneratedState? _generated;
@@ -131,6 +135,23 @@ class _PairTransportOutScreenState
   // ------------------------------------------------------------------
   // Phase 2: Unlock receiver's response
   // ------------------------------------------------------------------
+
+  /// Say "update Signet" as soon as a package from a newer Signet is
+  /// pasted, instead of after the 8 words (plan Task 1.7j); a later edit
+  /// clears only that notice.
+  void _checkResponseFormat(String text) {
+    final notice =
+        newerSignetPackageNotice(text, AppLocalizations.of(context));
+    if (notice == _formatNotice) return;
+    setState(() {
+      if (notice != null) {
+        _errorText = notice;
+      } else if (_errorText == _formatNotice) {
+        _errorText = null;
+      }
+      _formatNotice = notice;
+    });
+  }
 
   Future<void> _handleUnlockResponse() async {
     final gen = _generated;
@@ -483,6 +504,7 @@ class _PairTransportOutScreenState
         const SizedBox(height: 10),
         TextField(
           controller: _responseController,
+          onChanged: _checkResponseFormat,
           minLines: 3,
           maxLines: 5,
           style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
@@ -495,6 +517,7 @@ class _PairTransportOutScreenState
               final data = await Clipboard.getData(Clipboard.kTextPlain);
               if (data?.text == null) return;
               setState(() => _responseController.text = data!.text!);
+              _checkResponseFormat(data!.text!);
             },
             icon: const Icon(Icons.content_paste),
             label: Text(l10n.commonPasteFromClipboard),

@@ -44,6 +44,9 @@ class LabelPolicy {
 
   static final RegExp _pureHex16Plus = RegExp(r'^[0-9a-fA-F]{16,}$');
 
+  /// A transport package of any scheme, anywhere in the label.
+  static final RegExp _transportWire = RegExp(r'signet:tp[0-9]+:');
+
   /// Control characters (C0, DEL, C1), the bidirectional formatting
   /// characters that can reorder how a name displays (LRE..RLO, LRI..PDI,
   /// LRM/RLM, ALM), zero-width space and no-break characters, line and
@@ -87,7 +90,7 @@ class LabelPolicy {
   static LabelRejection? check(String label) {
     final cleaned = clean(label);
     if (cleaned.isEmpty) return LabelRejection.empty;
-    if (cleaned.toLowerCase().contains('signet:tp1:')) {
+    if (_transportWire.hasMatch(cleaned.toLowerCase())) {
       return LabelRejection.looksLikeData;
     }
     if (_pureHex16Plus.hasMatch(cleaned)) return LabelRejection.looksLikeKey;

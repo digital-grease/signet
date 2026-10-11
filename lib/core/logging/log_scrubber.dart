@@ -119,11 +119,11 @@ class LogScrubber {
   // Mechanical redact patterns (100% bar)
   // ===========================================================================
 
-  // signet:tp1: + base64url body — catastrophic if leaked. Order matters:
-  // run this before the base64 regex so the prefix and body are redacted as
-  // one unit with the recognizable length.
+  // signet:tp1: (or a later scheme) + base64url body — catastrophic if
+  // leaked. Order matters: run this before the base64 regex so the prefix
+  // and body are redacted as one unit with the recognizable length.
   static final _wirePrefixPattern =
-      RegExp(r'signet:tp1:[A-Za-z0-9+/_-]+={0,2}');
+      RegExp(r'signet:tp[0-9]+:[A-Za-z0-9+/_-]+={0,2}');
 
   // Hex run ≥ 16 chars — covers shared secrets, AEAD tags, HKDF outputs.
   static final _hexRunPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');

@@ -114,6 +114,14 @@ void main() {
         final out = LogScrubber.scrub(input);
         expect(out, isNot(contains('signet:tp1:')));
       });
+
+      test('a later scheme redacts too (plan Task 1.7j)', () async {
+        final wire = (await _generateLdpWire(seed: 7, label: 'x'))
+            .replaceFirst('signet:tp1:', 'signet:tp2:');
+        final out = LogScrubber.scrub('paste: $wire');
+        expect(out, isNot(contains('signet:tp2:')));
+        _expectRedacted(LogScrubber.scrub(wire), wire);
+      });
     });
 
     group('BIP-39 4-clusters (generated via TotpWords)', () {

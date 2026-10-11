@@ -57,6 +57,26 @@ abandon ability able about above absent absorb abstract
     expect(read.pakeWords, goodPake);
   });
 
+  // Plan Task 1.7j: a package from a newer Signet is still found, so the
+  // decoder can say "update Signet" instead of "no package in this file".
+  test('a later-scheme package is found', () {
+    const text = '''
+# Signet backup PACKAGE
+signet:tp2:ZZZ
+YYY
+# end of package
+''';
+    final read = BackupText.read(text);
+    expect(read.wire, 'signet:tp2:ZZZYYY');
+    expect(read.hasEndMarker, isTrue);
+  });
+
+  test('a later-scheme package without the end marker is found', () {
+    const text = 'signet:tp2:ZZZ\nYYY\n';
+    final read = BackupText.read(text);
+    expect(read.wireCandidates, ['signet:tp2:ZZZYYY', 'signet:tp2:ZZZ']);
+  });
+
   test('words are lowercased and trimmed', () {
     const text = '''
 signet:tp1:YYY

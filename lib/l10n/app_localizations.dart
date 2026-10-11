@@ -1130,6 +1130,18 @@ abstract class AppLocalizations {
   /// **'Do not skip it. A real paired contact understands why verification exists and won\'t pressure you to bypass it. Urgency plus a request to skip verification is the exact pattern a scammer uses to short-circuit the safety net. If you\'re being pressured, assume the call is hostile until proven otherwise.'**
   String get faqA11;
 
+  /// FAQ question about the 'needs a newer / older version of Signet' messages (plan Task 1.7j).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet says it needs an update.'**
+  String get faqQ13;
+
+  /// FAQ answer about update messages. Must not suggest any update source other than the store the app came from (scam lever).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.'**
+  String get faqA13;
+
   /// Monospace headline above the issue-filing block at the end of the FAQ. Keep the ' //' structure.
   ///
   /// In en, this message translates to:

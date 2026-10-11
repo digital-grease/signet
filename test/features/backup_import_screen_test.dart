@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:camera/camera.dart' show CameraController;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/inspect/backup_import_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/widgets/qr_scanner.dart';
 
 import '../support/fake_secure_store.dart';
 
@@ -334,6 +337,86 @@ void main() {
     await tester.tap(find.text('UNLOCK BACKUP'));
     await tester.pumpAndSettle();
     expect(find.textContaining('newer version of Signet'), findsOneWidget);
+  });
+
+  // Plan Task 1.7j: a later wire scheme, pasted, loaded from a file or
+  // scanned, asks to update instead of "not a backup".
+  Future<void> unlockWith(WidgetTester tester) async {
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+  }
+
+  void expectUpdateNotice() {
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    expect(find.textContaining('never sends updates as a link or file'),
+        findsOneWidget);
+  }
+
+  testWidgets('a later-scheme package pasted asks the user to update',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextField).first, 'signet:tp2:AQIDBAUGBwgJ');
+    await tester.pumpAndSettle();
+    await unlockWith(tester);
+    expectUpdateNotice();
+  });
+
+  testWidgets('a later-scheme package scanned is taken, then asks to update',
+      (tester) async {
+    void Function(String text)? scan;
+    qrReaderOverride = ({
+      required void Function(String text) onText,
+      required void Function(CameraController? c, Exception? e)
+          onControllerCreated,
+    }) {
+      scan = onText;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => onControllerCreated(null, null));
+      return const SizedBox.expand();
+    };
+    addTearDown(() => qrReaderOverride = null);
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Scan QR'));
+    await tester.tap(find.text('Scan QR'));
+    // The scanner screen animates: pump instead of settling.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    scan!('signet:tp2:AQIDBAUGBwgJ');
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.text('Scan QR'), findsOneWidget, reason: 'scanner closed');
+    expect(find.textContaining("isn't a Signet package"), findsNothing);
+    await unlockWith(tester);
+    expectUpdateNotice();
+  });
+
+  testWidgets('a backup with a field this build does not know (unlocked) '
+      'asks to update', (tester) async {
+    final wire = await TransportPackage.encodeLpr(
+      label: 'Mom',
+      role: PairRole.a,
+      pairedAt: DateTime.utc(2026, 1, 1),
+      silentHaptics: false,
+      sharedSecret: secret,
+      pakeWords: goodPake,
+      version: 2,
+      extensions: const [TransportExtension(0x8F, [1])],
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await unlockWith(tester);
+    expect(find.textContaining('made by a newer version of Signet'),
+        findsOneWidget);
   });
 
   testWidgets('a repaired backup says so before restoring', (tester) async {

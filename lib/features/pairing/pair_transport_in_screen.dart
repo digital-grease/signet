@@ -49,6 +49,10 @@ class _PairTransportInScreenState
   int _pakeResetKey = 0;
 
   String? _unlockError;
+
+  /// The "update Signet" notice last shown for the package field, so a
+  /// later edit can clear it without clearing other errors.
+  String? _formatNotice;
   bool _unlocking = false;
 
   _UnlockedState? _unlocked;
@@ -64,6 +68,23 @@ class _PairTransportInScreenState
   // ------------------------------------------------------------------
   // Unlock phase
   // ------------------------------------------------------------------
+
+  /// Say "update Signet" as soon as a package from a newer Signet is
+  /// pasted, instead of after the 8 words (plan Task 1.7j); a later edit
+  /// clears only that notice.
+  void _checkPackageFormat(String text) {
+    final notice =
+        newerSignetPackageNotice(text, AppLocalizations.of(context));
+    if (notice == _formatNotice) return;
+    setState(() {
+      if (notice != null) {
+        _unlockError = notice;
+      } else if (_unlockError == _formatNotice) {
+        _unlockError = null;
+      }
+      _formatNotice = notice;
+    });
+  }
 
   Future<void> _handleUnlock() async {
     if (_unlocking) return;
@@ -248,6 +269,7 @@ class _PairTransportInScreenState
         const SizedBox(height: 10),
         TextField(
           controller: _packageController,
+          onChanged: _checkPackageFormat,
           minLines: 3,
           maxLines: 5,
           style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
@@ -262,6 +284,7 @@ class _PairTransportInScreenState
               final data = await Clipboard.getData(Clipboard.kTextPlain);
               if (data?.text == null) return;
               setState(() => _packageController.text = data!.text!);
+              _checkPackageFormat(data!.text!);
             },
             icon: const Icon(Icons.content_paste),
             label: Text(l10n.commonPasteFromClipboard),

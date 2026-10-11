@@ -828,6 +828,55 @@ void main() {
       }
     });
 
+    // Plan Task 1.7j: a later wire scheme (signet:tp2: and up) is from a
+    // newer Signet, never "not a Signet package".
+    test('a later scheme prefix asks to update, on every decoder', () async {
+      for (final wire in [
+        'signet:tp2:AQIDBA',
+        'signet:tp17:',
+        'signet:tp2:',
+        'signet:tp99999:AQ',
+        'signet:tp123456789012345678901234567890:AQ',
+      ]) {
+        expect(TransportPackage.isTransportWire(wire), isTrue, reason: wire);
+        expect(() => TransportPackage.peekPayloadType(wire),
+            throwsA(isA<UnsupportedPackageVersionException>()
+                .having((e) => e.authenticated, 'authenticated', isFalse)),
+            reason: wire);
+        await expectLater(
+            TransportPackage.decodeLdp(wire, pakeWords: goodPake),
+            throwsA(isA<UnsupportedPackageVersionException>()));
+        await expectLater(
+            TransportPackage.decodeLpr(wire, pakeWords: goodPake),
+            throwsA(isA<UnsupportedPackageVersionException>()));
+        await expectLater(
+            TransportPackage.decodeBlk(wire, pakeWords: goodPake),
+            throwsA(isA<UnsupportedPackageVersionException>()));
+      }
+    });
+
+    test('other near-miss prefixes are not Signet packages', () async {
+      for (final wire in [
+        'signet:tp0:AQ',
+        'signet:tp01:AQ',
+        'signet:tp:AQ',
+        'signet:tpx:AQ',
+        'signet:p2:K:AQ',
+        'Signet:tp2:AQ',
+        ' signet:tp2:AQ',
+      ]) {
+        expect(TransportPackage.isTransportWire(wire), isFalse, reason: wire);
+        expect(TransportPackage.peekPayloadType(wire), isNull, reason: wire);
+        await expectLater(
+          TransportPackage.decodeLpr(wire, pakeWords: goodPake),
+          throwsA(isA<InvalidPackageException>().having((e) => e,
+              'not newer', isNot(isA<UnsupportedPackageVersionException>()))),
+          reason: wire,
+        );
+      }
+      expect(TransportPackage.isTransportWire('signet:tp1:AQ'), isTrue);
+    });
+
     test('a truncated package from a newer Signet still asks to update',
         () async {
       // Reviewer finding: the length check used to run first, so a short

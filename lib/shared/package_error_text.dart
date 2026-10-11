@@ -21,3 +21,16 @@ String packageErrorText(InvalidPackageException e, AppLocalizations l10n) {
   }
   return l10n.packageDamagedError;
 }
+
+/// The "update Signet" text when [text] is a package from a newer Signet,
+/// else null. Reads only the unencrypted header, so screens can say so as
+/// soon as a package is pasted or loaded, before the user types 8 words
+/// for nothing (plan Task 1.7j).
+String? newerSignetPackageNotice(String text, AppLocalizations l10n) {
+  try {
+    TransportPackage.peekPayloadType(text.trim());
+  } on UnsupportedPackageVersionException catch (e) {
+    return packageErrorText(e, l10n);
+  }
+  return null;
+}

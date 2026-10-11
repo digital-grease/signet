@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -295,6 +296,74 @@ void main() {
     );
   });
 
+  // Plan Task 1.7j: a request from a newer Signet asks to update, before
+  // or after the words unlock it, and produces no response.
+  Future<void> unlockRequest(WidgetTester tester, String wire) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a pasted request from a newer Signet says so before the '
+      'words, and a good one clears it', (tester) async {
+    final good = await TransportPackage.encodeLdpRequest(
+      publicKey: Uint8List(32)..[0] = 9,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextField).first, 'signet:tp2:AQIDBAUGBwgJ');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, good);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsNothing);
+  });
+
+  testWidgets('a request from a newer Signet asks to update', (tester) async {
+    final v2 = await TransportPackage.encodeLdpRequest(
+      publicKey: Uint8List(32)..[0] = 9,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+    );
+    final body = base64Url.decode(_pad(v2.substring('signet:tp1:'.length)));
+    body[0] = 3;
+    final v3 = 'signet:tp1:${base64Url.encode(body).replaceAll('=', '')}';
+    for (final wire in [v3, 'signet:tp2:AQIDBAUGBwgJ']) {
+      await unlockRequest(tester, wire);
+      expect(find.textContaining('needs a newer version of Signet'),
+          findsOneWidget, reason: wire);
+      expect(find.text('YOUR RESPONSE //'), findsNothing);
+    }
+  });
+
+  testWidgets('an unlocked request with a field this build does not know '
+      'asks to update', (tester) async {
+    final wire = await TransportPackage.encodeLdp(
+      publicKey: Uint8List(32)..[0] = 9,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+      version: 2,
+      extensions: const [
+        TransportExtension(TransportPackage.ldpStrongPhraseTag, [0x01]),
+        TransportExtension(0x8F, [1]),
+      ],
+    );
+    await unlockRequest(tester, wire);
+    expect(find.textContaining('made by a newer version of Signet'),
+        findsOneWidget);
+    expect(find.text('YOUR RESPONSE //'), findsNothing);
+  });
+
   testWidgets('the response is version 2 with the strong-phrase tag',
       (tester) async {
     final kp = await PairingHandshake.generateEphemeralKeyPair();
@@ -466,3 +535,5 @@ void main() {
     });
   }
 }
+
+String _pad(String s) => s + '=' * ((4 - s.length % 4) % 4);
