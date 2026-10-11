@@ -64,11 +64,11 @@ import 'pair_role.dart';
 /// fixed ones. A structurally broken extension area (overrun, truncated
 /// field, repeated tag) rejects the whole package.
 ///
-/// Version 1 packages (every backup made before the switch) keep decoding
-/// exactly as before. Backups are still *encoded* as version 1
+/// Version 1 packages (every backup made before 0.4.0) keep decoding
+/// exactly as before. Everything 0.4.0 writes is version 2
 /// ([TransportPackage.currentEncodeVersion]). Long-distance pairing
-/// requests and responses are always version 2 with the strong-phrase
-/// tag ([TransportPackage.encodeLdpRequest]); version 1 LDP is refused by
+/// requests and responses also carry the strong-phrase tag
+/// ([TransportPackage.encodeLdpRequest]); version 1 LDP is refused by
 /// [TransportPackage.decodeLdpStrict].
 ///
 /// `W_bytes` is the UTF-8 lowercased concatenation of the 8 BIP-39 words
@@ -103,10 +103,11 @@ class TransportPackage {
   static const int _versionV1 = 0x01;
   static const int _versionV2 = 0x02;
 
-  /// Version written by the backup encoders (LPR, BLK). Decoders accept 1
-  /// and 2. Long-distance pairing does not use it: it always writes
-  /// version 2.
-  static const int currentEncodeVersion = _versionV1;
+  /// Version written by the encoders: 2 from 0.4.0, for backups (LPR,
+  /// BLK) as for long-distance pairing. Decoders accept 1 and 2, so
+  /// backups made by 0.3.6 and older still restore; a 0.4.0 backup needs
+  /// 0.4.0 or later.
+  static const int currentEncodeVersion = _versionV2;
 
   static const int _typeLdp = 0x01;
   static const int _typeLpr = 0x02;

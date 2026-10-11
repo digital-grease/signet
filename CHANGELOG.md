@@ -12,6 +12,10 @@ distance. Signet 0.3.6 and older cannot read the new pairing codes and
 packages and will say "Not a Signet pairing QR" or that the package is
 not valid; update both phones from the store you installed Signet from.
 
+**Backups made with 0.4.0 need Signet 0.4.0 or later to restore**; older
+versions report them as not a valid package. Backups made with older
+versions still restore on 0.4.0.
+
 ### Changed
 - **In-person pairing is safer against interception.** One phone taps
   Start and the other Join, and the phones exchange three codes instead

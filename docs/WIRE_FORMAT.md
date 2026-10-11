@@ -148,9 +148,9 @@ length = 32)`.
 The header (version, payload type, timestamp) is **not** authenticated. The
 payload type is bound indirectly through the HKDF info string; the
 timestamp can be altered without detection. No decoder logic depends on the
-timestamp. Backups (LPR, BLK) are still encoded as version 1 by this build;
-version 1 is decoded indefinitely, except for long-distance pairing
-(below).
+timestamp. Signet 0.4.0 and later no longer write version 1, but decode
+it indefinitely so older backups still restore. Long-distance pairing is
+the exception: a version 1 LDP package is refused (below).
 
 ### Version 2
 
@@ -171,7 +171,9 @@ Rollout (0.4.0):
   words could re-encrypt a package without the tag; refusing it closes
   that downgrade. Signet 0.3.6 cannot read version 2, so long-distance
   pairing needs both phones on 0.4.0 or later.
-- **Backups** (LPR, BLK): decoders read versions 1 and 2.
+- **Backups** (LPR, BLK) are encoded as version 2; decoders read
+  versions 1 and 2. A backup made with 0.4.0 needs Signet 0.4.0 or later
+  to restore; 0.3.6 and older report it as not a valid package.
 
 A verdict of "needs a newer Signet" can come from two places. From the
 scheme prefix or the plaintext version or type byte it is unauthenticated (anyone can set those

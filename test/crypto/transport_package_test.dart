@@ -673,14 +673,40 @@ void main() {
       expect(blk.version, 2);
     });
 
-    test('this release still encodes version 1 by default', () async {
-      final wire = await TransportPackage.encodeLdp(
-        publicKey: pubKey,
-        labelHint: '',
+    // Plan Task 8.3: from 0.4.0 everything Signet writes is version 2.
+    test('backups encode version 2 by default', () async {
+      final lpr = await TransportPackage.encodeLpr(
+        label: 'Mom',
+        role: PairRole.a,
+        pairedAt: DateTime.utc(2026, 1, 1),
+        silentHaptics: false,
+        sharedSecret: secret,
         pakeWords: goodPake,
       );
-      expect(body(wire)[0], 1);
-      expect(TransportPackage.currentEncodeVersion, 1);
+      expect(body(lpr)[0], 2);
+      final blk = await TransportPackage.encodeBlk(
+        records: [
+          BlkRelationshipRecord(
+            sharedSecret: Uint8List.fromList(secret),
+            role: PairRole.a,
+            label: 'Mom',
+            pairedAt: DateTime.utc(2026, 1, 1),
+            silentHaptics: false,
+          ),
+        ],
+        pakeWords: goodPake,
+      );
+      expect(body(blk)[0], 2);
+      expect(TransportPackage.currentEncodeVersion, 2);
+      // And both are well-formed version 2 packages.
+      final lprBack =
+          await TransportPackage.decodeLpr(lpr, pakeWords: goodPake);
+      expect(lprBack.version, 2);
+      expect(lprBack.label, 'Mom');
+      final blkBack =
+          await TransportPackage.decodeBlk(blk, pakeWords: goodPake);
+      expect(blkBack.version, 2);
+      expect(blkBack.records.single.label, 'Mom');
     });
 
     test('extensions on a version 1 package are refused', () async {
@@ -1331,6 +1357,7 @@ void main() {
           pakeWords: goodPake,
           now: june,
           nonceRandom: Random(1),
+          version: 1,
         ),
         v036Lpr,
       );
@@ -1341,6 +1368,7 @@ void main() {
           pakeWords: goodPake,
           now: june,
           nonceRandom: Random(2),
+          version: 1,
         ),
         v036Ldp,
       );
@@ -1382,9 +1410,66 @@ void main() {
           pakeWords: goodPake,
           now: june,
           nonceRandom: Random(3),
+          version: 1,
         ),
         v036Blk,
       );
+    });
+
+    // Plan Task 8.3: a backup made by 0.3.6, restored and backed up again
+    // on 0.4.0, comes out as version 2 with the same contents. Extension
+    // fields are not stored, so a re-export never carries any.
+    test('a v0.3.6 backup re-exported on this release is version 2 with '
+        'the same contents', () async {
+      final old = await TransportPackage.decodeLpr(v036Lpr, pakeWords: goodPake);
+      expect(old.version, 1);
+      final again = await TransportPackage.decodeLpr(
+        await TransportPackage.encodeLpr(
+          label: old.label,
+          role: old.role,
+          pairedAt: old.pairedAt,
+          silentHaptics: old.silentHaptics,
+          sharedSecret: old.sharedSecret,
+          pakeWords: goodPake,
+        ),
+        pakeWords: goodPake,
+      );
+      expect(again.version, 2);
+      expect(again.extensions, isEmpty);
+      expect(again.label, old.label);
+      expect(again.role, old.role);
+      expect(again.pairedAt, old.pairedAt);
+      expect(again.silentHaptics, old.silentHaptics);
+      expect(again.sharedSecret, old.sharedSecret);
+
+      final oldBlk =
+          await TransportPackage.decodeBlk(v036Blk, pakeWords: goodPake);
+      final blkAgain = await TransportPackage.decodeBlk(
+        await TransportPackage.encodeBlk(
+          records: [
+            for (final r in oldBlk.records)
+              BlkRelationshipRecord(
+                sharedSecret: r.sharedSecret,
+                role: r.role,
+                label: r.label,
+                pairedAt: r.pairedAt,
+                silentHaptics: r.silentHaptics,
+              ),
+          ],
+          pakeWords: goodPake,
+        ),
+        pakeWords: goodPake,
+      );
+      expect(blkAgain.version, 2);
+      expect(blkAgain.records.map((r) => r.label), ['Mom', 'Jürgen']);
+      for (var i = 0; i < 2; i++) {
+        expect(blkAgain.records[i].sharedSecret, oldBlk.records[i].sharedSecret);
+        expect(blkAgain.records[i].role, oldBlk.records[i].role);
+        expect(blkAgain.records[i].pairedAt, oldBlk.records[i].pairedAt);
+        expect(blkAgain.records[i].silentHaptics,
+            oldBlk.records[i].silentHaptics);
+        expect(blkAgain.records[i].extensions, isEmpty);
+      }
     });
 
     test('version 2 golden vector (pins KDF domain, AAD and layout)', () async {

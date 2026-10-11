@@ -99,6 +99,8 @@ void main() {
       wire.data!,
       pakeWords: pakeWords,
     );
+    // Backups are tp1 version 2 from 0.4.0 (plan Task 8.3).
+    expect(decoded.version, 2);
     expect(decoded.label, _mom.label);
     expect(decoded.role, _mom.role);
     expect(decoded.pairedAt.toUtc(), _mom.pairedAt.toUtc());

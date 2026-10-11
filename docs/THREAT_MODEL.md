@@ -396,8 +396,8 @@ stays, because it also protects the shared secret itself.
 - Version 1 does not authenticate the header: the timestamp can be
   altered undetected (nothing depends on it), and an out-of-range value
   is rejected as a malformed package rather than crashing. Version 2
-  (decoded from 0.4.0; long-distance pairing encodes it from 0.4.0,
-  backups still encode version 1) passes the
+  (decoded and encoded from 0.4.0; version 1 is still decoded, so older
+  backups restore) passes the
   header to AES-GCM as associated data and binds the version into the
   HKDF info (`signet/v2/tp1/...`), so relabelling between versions fails.
   It also adds a length-delimited extension area with a must-understand
@@ -772,7 +772,8 @@ Changelog summary (most recent first):
   single-use keys and no fallback; transcript-bound phrases, Argon2id as
   a backstop. §2.4 and §3.3 long-distance pairing shows an 8-word phrase
   and requires the critical strong-phrase tag. "Needs a newer Signet"
-  for later formats. Closes the open limit recorded below.
+  for later formats. Backups are now encoded as transport package
+  version 2. Closes the open limit recorded below.
 - 2026-10-07 · 0.4.0: §3.3 transport package version 2 (authenticated
   header, versioned KDF domain, extension area with must-understand bit).
   Spec in `docs/WIRE_FORMAT.md`.

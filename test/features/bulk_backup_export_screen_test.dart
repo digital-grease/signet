@@ -141,6 +141,8 @@ void main() {
         packageFile.wire!,
         pakeWords: wordsFile.pakeWords!,
       );
+      // Backups are tp1 version 2 from 0.4.0 (plan Task 8.3).
+      expect(decoded.version, 2);
       expect(decoded.records, hasLength(3));
       final decodedLabels = decoded.records.map((r) => r.label).toSet();
       expect(decodedLabels, {'Mom', 'Dad', 'Jake'});
