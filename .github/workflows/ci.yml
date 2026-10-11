@@ -35,6 +35,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Every workflow must pin the same Flutter as release.yml's literal,
+      # which F-Droid's prebuild reads.
+      - name: Check Flutter version pins agree
+        run: scripts/check-flutter-version.sh
 
       - name: Set up Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0

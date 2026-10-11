@@ -9,7 +9,9 @@
     <!-- Merged in by libraries but never used (plan Task 7.1). The camera
          plugin asks for audio and storage for video recording; Signet only
          scans QR codes (flutter_zxing opens the camera with audio off).
-         media3 asks for network state; Signet has no network. Removed so
+         A library also asks for network state; Signet has no network
+         (build/app/outputs/logs/manifest-merger-release-report.txt names
+         the source). Removed so
          the install screen and F-Droid list only what Signet uses;
          scripts/check-apk-manifest.sh enforces the allowlist. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />

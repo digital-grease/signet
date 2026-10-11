@@ -18,7 +18,7 @@ syncing required.
 ### `metadata/dev.digitalgrease.signet.yml`
 
 The build recipe + listing-level metadata (Categories, License,
-SourceCode URL, AllowedAPKSigningKeys, Builds[], AutoUpdateMode, ...)
+SourceCode URL, Builds[], AutoUpdateMode, ...)
 that ends up at `metadata/dev.digitalgrease.signet.yml` inside the
 fdroiddata repo. We keep a copy here for reference and review.
 
@@ -29,6 +29,13 @@ falls behind between refreshes. To change the recipe, open an MR
 against fdroiddata first, then copy the merged file back here. To
 refresh the mirror, copy fdroiddata's current file over this one and
 keep the header comment block.
+
+The recipe has no `Binaries` or `AllowedAPKSigningKeys`: F-Droid builds
+from source and signs with its own key, and does not compare its build
+against ours. Adding verified builds (F-Droid ships our signed APK
+when its rebuild matches) would need both fields, plus our release
+built the way F-Droid builds it: Flutter version from release.yml,
+JDK 21 (already the toolchain), and a matching build path.
 
 ### `fastlane/metadata/android/en-US/`
 
@@ -48,10 +55,9 @@ concern; we just maintain the Fastlane-canonical names here.
 
 ## How to submit (or update) the F-Droid listing
 
-Prerequisites: a `vX.Y.Z` git tag exists, the GitHub Actions
-`release.yml` has produced a signed APK, and you've verified its
-SHA-256 fingerprint matches what's pasted into `AllowedAPKSigningKeys`
-in `dev.digitalgrease.signet.yml`.
+Prerequisites: a `vX.Y.Z` git tag exists and its `pubspec.yaml`
+version matches the tag (F-Droid reads versionName and versionCode
+from it via UpdateCheckData).
 
 ### First-time inclusion (one-time)
 

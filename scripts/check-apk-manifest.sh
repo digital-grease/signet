@@ -54,31 +54,39 @@ if grep -q 'android.permission.INTERNET' <<<"$manifest"; then
   err "android.permission.INTERNET is requested"
 fi
 
-# Permission allowlist (plan Task 7.1).
+# Permission allowlist (plan Task 7.1). aapt2 runs in a plain command
+# substitution so a failure aborts (set -e) instead of yielding an empty,
+# passing list; CAMERA must be found, so a parse that matches nothing fails.
 package=$("$aapt2" dump packagename "$apk")
 allowed="android.permission.CAMERA ${package}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+permissions=$("$aapt2" dump permissions "$apk")
+requested=$(sed -nE "s/^uses-permission(-sdk-23)?: name='([^']+)'.*/\2/p" <<<"$permissions")
+grep -qx 'android.permission.CAMERA' <<<"$requested" ||
+  err "android.permission.CAMERA not found (aapt2 output not parsed?)"
 while read -r perm; do
   [ -n "$perm" ] || continue
   case " $allowed " in
     *" $perm "*) ;;
     *) err "permission not on the allowlist: $perm" ;;
   esac
-done < <("$aapt2" dump permissions "$apk" |
-  sed -nE "s/^uses-permission(-sdk-23)?: name='([^']+)'.*/\2/p")
+done <<<"$requested"
 
-# Every <uses-feature> must say required="false".
-features=$(awk '
-  /^ *E: uses-feature / { infeat = 1; name = ""; req = ""; next }
-  infeat && /^ *E: / { print name, req; infeat = 0 }
-  infeat && /android:name\(/ { name = $0 }
-  infeat && /android:required\(/ { req = $0 }
-  END { if (infeat) print name, req }
-' <<<"$manifest")
+# No required feature. badging resolves the manifest rules for us:
+# optional features print as `uses-feature-not-required`, a feature with
+# no android:required (default true) or required="true" as `uses-feature`,
+# a glEsVersion requirement as `uses-gl-es`, and features a permission
+# implies (when not declared optional) as `uses-implied-feature`. Every
+# app gets an implied android.hardware.faketouch, which is allowed.
+badging=$("$aapt2" dump badging "$apk")
+grep -q "uses-feature-not-required: name='android.hardware.camera'" <<<"$badging" ||
+  err "android.hardware.camera not declared optional (aapt2 output not parsed?)"
 while read -r line; do
   [ -n "$line" ] || continue
-  grep -q 'required([^)]*)=false' <<<"$line" ||
-    err "a <uses-feature> is required: $line"
-done <<<"$features"
+  case "$line" in
+    *"name='android.hardware.faketouch'"*) ;;
+    *) err "a feature is required: $line" ;;
+  esac
+done < <(grep -E "^ *(uses-feature|uses-implied-feature|uses-gl-es):" <<<"$badging" | sed 's/^ *//' || true)
 
 # Resolve the (possibly obfuscated) path of the rules XML and check it.
 rules_path=$("$aapt2" dump resources "$apk" |

@@ -87,19 +87,49 @@ generation and release-tagging playbook.
 
 ## Bumping the Flutter version
 
-All four workflows share a pinned Flutter version via an `env` block at
-the top. To upgrade:
+The Flutter version is pinned in several places, and Renovate manages
+none of them. The source of truth is the `flutter-version: 'X.Y.Z'`
+literal on the Android build step of `release.yml`: F-Droid's prebuild
+extracts it with a sed one-liner (see
+`metadata/dev.digitalgrease.signet.yml`), which must match exactly one
+line, so keep that literal format. To upgrade:
 
-1. Upgrade locally: `flutter upgrade` → run tests → push a commit.
-2. Edit `env.FLUTTER_VERSION` in each of the four workflows to match
-   the output of `flutter --version`.
-3. The first CI run after the bump will rebuild the Flutter cache from
-   scratch; subsequent runs hit the new cache.
+1. Upgrade locally (`flutter upgrade`, or check out the new tag in your
+   Flutter SDK), run the tests, regenerate `pubspec.lock` with the new
+   Flutter.
+2. Change every pin to the new version:
+   - `env.FLUTTER_VERSION` in `ci.yml`, `android-build.yml`,
+     `ios-build.yml`, `jdk-canary.yml` and `release.yml`;
+   - the quoted `flutter-version:` literal in `release.yml` (the one
+     F-Droid reads) and in `codeql.yml`, plus `codeql.yml`'s `cache-key`;
+   - the prose in `README.md` and `docs/IOS_VALIDATION.md`.
+3. `scripts/check-flutter-version.sh` (run by `ci.yml` on every PR)
+   fails if any workflow disagrees with `release.yml`'s literal.
+4. The first CI run after the bump rebuilds the Flutter cache;
+   later runs hit the new cache.
 
-The four workflows are intentionally not merged into a single shared
-config because GitHub Actions doesn't have a clean include mechanism
-for non-reusable-workflow deduplication, and each workflow's trigger
-semantics is different enough that sharing would leak concerns.
+The workflows are not merged into one shared config: GitHub Actions has
+no clean include mechanism short of reusable workflows, and each
+workflow's triggers differ enough that sharing would leak concerns.
+
+## JDK
+
+Java compiles with a JDK 21 toolchain (`android/app/build.gradle.kts`,
+applied to the plugin modules in `android/build.gradle.kts`), the JDK on
+F-Droid's buildserver; do not raise it without checking what F-Droid
+ships. CI, release and CodeQL also run Gradle on JDK 21 (`JAVA_VERSION`).
+`jdk-canary.yml` runs Gradle on the newest GA JDK weekly so a Gradle,
+AGP or jlink break shows up before it reaches a developer.
+
+## Manifest check
+
+`scripts/check-apk-manifest.sh` runs on the release APK in
+`android-build.yml` and `release.yml`. It fails if backup is enabled,
+INTERNET is requested, any permission is outside the allowlist
+(`CAMERA` plus androidx's own receiver permission), or any hardware
+feature is required. `android-build.yml` also runs on PRs that touch
+`android/`, the pubspec files or the check itself, so Gradle and plugin
+bumps are built and checked before they merge.
 
 ## What CI does NOT do (yet)
 
@@ -108,8 +138,12 @@ semantics is different enough that sharing would leak concerns.
 - **TestFlight upload** — same.
 - **Play Store internal-track upload** — lands when Task 12.18 scaffolds
   the listing metadata.
-- **F-Droid reproducible build** — lands when Task 12.15 sets up the
-  Dockerfile + reproducible-build script.
+- **F-Droid verified builds**: F-Droid builds every release from
+  source on its own buildserver and signs it with its own key. CI
+  builds with the same JDK (21) but does not compare against
+  F-Droid's output. Verified builds (F-Droid ships our signed APK when
+  its rebuild matches) would need `Binaries` and
+  `AllowedAPKSigningKeys` in the F-Droid recipe; not set up.
 - **Codecov / Coveralls integration** — we upload coverage as an
   artifact only. The project stance is no external-service network
   dependencies in the build path.

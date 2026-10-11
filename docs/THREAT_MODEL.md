@@ -586,7 +586,7 @@ interpreted as bugs:
 | Platform-level backups / migrations that exfiltrate the secret | Current iOS config allows iCloud backup inclusion; see `docs/IOS_STORAGE_AUDIT.md` open questions. v1.0 may tighten to `*ThisDeviceOnly`. |
 | Quantum-capable adversary (CRQC) | X25519 is not PQ-resistant. Symmetric primitives are. Forward investigation at `.devloop/backlog.md`. |
 | Supply-chain compromise of Dart/Flutter/plugin packages | Rely on pub.dev's integrity + explicit version pinning in `pubspec.yaml`. Not additionally hardened. |
-| Reproducible-build drift | v0.2 does not yet produce bit-identical APKs across machines; lands in Phase 12.15. |
+| Unverified build provenance | Nobody independently checks that a published APK came from the published source. F-Droid users get F-Droid's own from-source build. F-Droid verified builds are a v1.0 candidate; see `docs/LIMITATIONS.md` L-BUILD-1. |
 
 ## 6. Non-security properties (out of scope for audit)
 
@@ -612,8 +612,9 @@ not security claims:
   by the regular test suite (`flutter test`). Full machine-readable
   listing in `docs/TEST_VECTORS.md`.
 - Crypto-module unit tests are pure-Dart and run on any platform.
-- A third party can rebuild the APK byte-for-byte via the script in
-  Phase 12.15 (`docs/REPRODUCIBLE_BUILD.md`).
+- Byte-for-byte rebuilds of our published APK are not offered yet;
+  F-Droid builds its own APK from source (`docs/LIMITATIONS.md`
+  L-BUILD-1).
 
 ## 8. What a Signet security audit should verify
 

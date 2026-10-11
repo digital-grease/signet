@@ -100,7 +100,7 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 ### Requirements
 
 - Flutter 3.47.5 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
-- JDK 17 or newer to run Gradle. Android Studio's bundled JDK works; CI and release builds use JDK 25. (JDK 26 does not build yet with the current Android Gradle Plugin.)
+- JDK 17 or newer to run Gradle (Android Studio's bundled JDK works), plus a JDK 21: the build compiles with a JDK 21 toolchain, the F-Droid buildserver's JDK. Gradle finds an installed JDK 21 or one in `~/.gradle/jdks`. CI and release builds run on JDK 21. (JDK 26 does not build yet with the current Android Gradle Plugin.)
 - Android toolchain: SDK Platform 34+, Command-line Tools, and licenses accepted
 - An Android 9+ device or emulator (the minimum SDK is API 28 — StrongBox availability)
 
@@ -282,7 +282,7 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - ✅ **FOSS-only QR scanner.** Replaced `mobile_scanner` (which bundles Google ML Kit + Play Services as proprietary native code) with `flutter_zxing` (MIT, ZXing C++ via FFI). F-Droid Inclusion Policy item 5 forbids proprietary Google libraries; this swap unblocked the F-Droid submission. APK shrinks 73.1 MB → 64.2 MB.
 - ✅ **ABI-split builds for F-Droid.** Per-architecture APKs (armeabi-v7a, arm64-v8a, x86_64) via a `versionCodeOverride` in `android/app/build.gradle.kts`. F-Droid users now download a CPU-specific binary ~3× smaller than the universal AAB. Play AAB unchanged.
 - ✅ **F-Droid metadata moved to Fastlane layout** at `fastlane/metadata/android/en-US/`. F-Droid auto-imports description/screenshots/changelogs from this canonical path on every release tag; no fdroiddata content MR needed for future releases.
-- ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: `.github/workflows/release.yml:76` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
+- ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: the Android build step in `.github/workflows/release.yml` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
 ### v0.3.4 — in-app crash detection + log-to-issue shipping
@@ -298,7 +298,7 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - Duress codes (pending an abuse-analysis pass)
 - Small-org shared verification (group-key via MLS-equivalent, not hand-rolled)
 - External security audit
-- Reproducible builds (containerized Gradle + NDK, public verify-script)
+- F-Droid verified reproducible builds (F-Droid rebuilds each release, compares it with our signed APK and ships ours if they match)
 - iOS parity + on-device plaintext-leak re-audit against Keychain
 - Play Store / App Store release
 

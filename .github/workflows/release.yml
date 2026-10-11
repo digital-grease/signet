@@ -9,9 +9,9 @@ name: Release
 #   - AAB (.aab) — Play Console requires this for new-app submissions
 #                  since Aug 2021. Upload this at Play Console →
 #                  Testing → Internal testing → Create new release.
-#   - APK (.apk) — F-Droid submissions (F-Droid rebuilds from source
-#                  but the fingerprint in AllowedAPKSigningKeys comes
-#                  from our signed APK) + any direct sideload channel
+#   - APK (.apk) — direct sideload channel (F-Droid builds its own APK
+#                  from source and signs it with F-Droid's key, so it
+#                  does not use this one)
 #                  (GitHub Release download, manual install on the
 #                  owner's test device). Play Console will still
 #                  accept APKs for *existing* apps but not new ones.
@@ -47,9 +47,10 @@ concurrency:
 env:
   FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  # JDK that runs the Gradle build (current LTS, as bundled by Android
-  # Studio). The bytecode target stays at 17 in android/app/build.gradle.kts.
-  JAVA_VERSION: 25
+  # JDK that runs the Gradle build: 21, the F-Droid buildserver's JDK and the
+  # compile toolchain set in android/app/build.gradle.kts. The bytecode
+  # target stays at 17 there.
+  JAVA_VERSION: 21
 
 # Least-privilege default. The publish job overrides to `contents: write`
 # because it pushes assets to the GitHub Release via
@@ -61,6 +62,10 @@ permissions:
 jobs:
   build-android:
     name: Signed Android AAB + APK
+    # Tags only. workflow_dispatch can re-run a release, but only from a
+    # v* tag: dispatched from a branch it would get the signing secrets and
+    # publish a release named after the branch.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     outputs:
@@ -69,12 +74,13 @@ jobs:
 
     steps:
       - name: Checkout (full history for changelog)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -90,8 +96,7 @@ jobs:
           # second flutter-action step below.
           flutter-version: '3.47.5'
           channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          cache: false
 
       - name: Stage keystore + key.properties from secrets
         env:
@@ -223,7 +228,7 @@ jobs:
           echo "apk-sha-path=$apk_dst.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Upload Android release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: android-release-${{ github.ref_name }}
           path: |
@@ -242,6 +247,7 @@ jobs:
 
   build-ios:
     name: iOS unsigned
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-latest
     timeout-minutes: 40
     outputs:
@@ -249,18 +255,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          cache: false
 
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cocoapods/repos
           key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
@@ -290,7 +297,7 @@ jobs:
           echo "sha256=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ios-release-${{ github.ref_name }}
           path: |
@@ -309,7 +316,7 @@ jobs:
     # (Flutter API shifts, Xcode upgrades on macos-latest, etc.) we
     # still publish Android. Android failure still gates everything.
     needs: [build-android, build-ios]
-    if: always() && needs.build-android.result == 'success'
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -319,17 +326,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download Android artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: android-release-${{ github.ref_name }}
           path: release-android
 
       - name: Download iOS artifact
         if: needs.build-ios.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ios-release-${{ github.ref_name }}
           path: release-ios
@@ -348,7 +357,7 @@ jobs:
             echo "| Artifact | Use for | SHA-256 |"
             echo "|----------|---------|---------|"
             echo "| \`signet-$tag.aab\` | Play Console upload (required for new apps) | \`${{ needs.build-android.outputs.aab-sha256 }}\` |"
-            echo "| \`signet-$tag.apk\` | F-Droid fingerprint source + direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
+            echo "| \`signet-$tag.apk\` | direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
             if [ "${{ needs.build-ios.result }}" = "success" ]; then
               echo "| \`signet-ios-$tag.zip\` | iOS archive (unsigned, verification only) | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
             else

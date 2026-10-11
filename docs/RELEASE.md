@@ -102,7 +102,7 @@ flutter build appbundle --release
 # Artifact: build/app/outputs/bundle/release/app-release.aab
 keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
 
-# APK — F-Droid fingerprint source + direct sideload.
+# APK — direct sideload.
 flutter build apk --release
 # Artifact: build/app/outputs/flutter-apk/app-release.apk
 keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
@@ -219,7 +219,7 @@ modify `release.yml` to skip it).
 | Channel | Upload |
 |---------|--------|
 | Play Console (Internal testing → Create new release) | `signet-vX.Y.Z.aab` |
-| F-Droid (`AllowedAPKSigningKeys` in `metadata/dev.digitalgrease.signet.yml`) | fingerprint from `signet-vX.Y.Z.apk` |
+| F-Droid | nothing: F-Droid builds from source and signs with its own key (`metadata/README.md`) |
 | Direct sideload (test device, non-Play user) | `signet-vX.Y.Z.apk` |
 | iOS TestFlight | not via this artifact — archive + upload from Xcode (see `docs/IOS_VALIDATION.md`) |
 
@@ -282,8 +282,6 @@ sideloaded the Play APK would still be vulnerable.
 
 - `docs/CI.md` — the four GitHub Actions workflows including
   `release.yml`.
-- `docs/REPRODUCIBLE_BUILD.md` — how a third party can build the
-  APK from source and compare bits.
 - `docs/THREAT_MODEL.md` — why signing matters + what it defends
   against + what it doesn't.
 - `docs/LIMITATIONS.md` § L-BUILD-* — the build/distribution gaps

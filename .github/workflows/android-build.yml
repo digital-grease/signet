@@ -4,6 +4,18 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
+  # Android-side changes (Gradle, AGP/Kotlin/wrapper bumps from Renovate,
+  # plugin bumps via pubspec, the manifest check) get a real Android build
+  # and the manifest check before they merge, not after. ci.yml covers the
+  # Dart side on every PR.
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'scripts/check-apk-manifest.sh'
+      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 concurrency:
@@ -13,10 +25,10 @@ concurrency:
 env:
   FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  # JDK that runs the Gradle build: the current LTS, which is also what
-  # Android Studio bundles. The bytecode target (JavaVersion.VERSION_17 in
-  # android/app/build.gradle.kts) is separate and stays at 17.
-  JAVA_VERSION: 25
+  # JDK that runs the Gradle build: 21, the F-Droid buildserver's JDK and the
+  # compile toolchain set in android/app/build.gradle.kts. The bytecode
+  # target (JavaVersion.VERSION_17 there) is separate and stays at 17.
+  JAVA_VERSION: 21
 
 # Least-privilege default. Closes a CodeQL
 # `actions/missing-workflow-permissions` finding.
@@ -32,6 +44,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -111,7 +125,8 @@ jobs:
       - name: Upload AAB + APK + checksums
         uses: actions/upload-artifact@v4
         with:
-          name: signet-android-${{ github.ref_name }}-${{ github.sha }}
+          # On a PR, ref_name is "<n>/merge", and artifact names cannot contain "/".
+          name: signet-android-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}-${{ github.sha }}
           path: |
             build/app/outputs/bundle/release/app-release.aab
             build/app/outputs/bundle/release/app-release.aab.sha256

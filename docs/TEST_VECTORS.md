@@ -146,8 +146,7 @@ dart run --enable-asserts bin/dump_wordlist.dart | sha256sum
 # Expected: 2f5eed53a4727b4bf8880d8f3077f0d68a8b9d27e1b0c7e46e0f4b5b3e9f6e5c
 ```
 
-(Helper `bin/dump_wordlist.dart` not yet written; added in
-Phase 12.15's reproducible-build work.)
+(Helper `bin/dump_wordlist.dart` not yet written.)
 
 **In-tree assertions:**
 - `test/crypto/verification_test.dart` — every word derived by

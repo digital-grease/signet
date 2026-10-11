@@ -32,6 +32,18 @@ kotlin {
     }
 }
 
+// Compile with JDK 21 LTS whatever JDK runs Gradle. This matches the F-Droid
+// buildserver's `default-jdk-headless` (Debian Trixie), so our builds and
+// F-Droid's use the same compiler. Do not bump above 21 without checking
+// what the F-Droid buildserver ships. Gradle finds a local JDK 21 or one in
+// ~/.gradle/jdks; android/build.gradle.kts applies the same compiler to the
+// plugin modules. The bytecode target stays 17 (above).
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 android {
     namespace = "dev.digitalgrease.signet"
     compileSdk = flutter.compileSdkVersion
@@ -63,12 +75,7 @@ android {
 
     buildTypes {
         release {
-            // SIGNET_UNSIGNED_RELEASE=1 (set by scripts/reproducible-build.sh)
-            // leaves the APK unsigned, so a rebuild is compared on content
-            // alone instead of carrying a throwaway debug key.
-            signingConfig = if (System.getenv("SIGNET_UNSIGNED_RELEASE") == "1") {
-                null
-            } else if (hasReleaseKeystore) {
+            signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

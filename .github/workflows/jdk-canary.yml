@@ -1,7 +1,9 @@
 name: JDK Canary
 
-# Builds the release APK with the newest GA JDK so javac/jlink changes
-# surface here before they break a developer's local build (plan Task 7.6).
+# Runs Gradle on the newest GA JDK so Gradle/AGP/jlink changes surface here
+# before they break a developer's local build (plan Task 7.6). Java still
+# compiles with the JDK 21 toolchain (android/app/build.gradle.kts), which
+# the runner image has preinstalled.
 # Weekly and on demand only: it is expected to be red on JDK 26 until the
 # AGP 9 upgrade (plan Task 7.5 D3), because AGP 8.11's jlink step rejects
 # JDK 26's java.base build signature. Running it on a schedule keeps that
@@ -29,6 +31,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK ${{ env.CANARY_JAVA_VERSION }}
         uses: actions/setup-java@v4
