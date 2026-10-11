@@ -80,7 +80,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           # Pinned literal (not ${{ env.FLUTTER_VERSION }}) so F-Droid's
           # prebuild can extract via the exact regex from
@@ -188,6 +188,10 @@ jobs:
 
       - name: Compute AAB + APK SHA-256
         id: checksum
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           aab=build/app/outputs/bundle/release/app-release.aab
           apk=build/app/outputs/flutter-apk/app-release.apk
@@ -195,16 +199,20 @@ jobs:
           apk_sha=$(sha256sum "$apk" | awk '{print $1}')
           echo "aab_sha256=$aab_sha" >> "$GITHUB_OUTPUT"
           echo "apk_sha256=$apk_sha" >> "$GITHUB_OUTPUT"
-          echo "$aab_sha  signet-${{ github.ref_name }}.aab" > "$aab.sha256"
-          echo "$apk_sha  signet-${{ github.ref_name }}.apk" > "$apk.sha256"
+          echo "$aab_sha  signet-$REF_NAME.aab" > "$aab.sha256"
+          echo "$apk_sha  signet-$REF_NAME.apk" > "$apk.sha256"
 
       - name: Rename artifacts with tag
         id: rename
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           aab_src=build/app/outputs/bundle/release/app-release.aab
           apk_src=build/app/outputs/flutter-apk/app-release.apk
-          aab_dst=build/app/outputs/bundle/release/signet-${{ github.ref_name }}.aab
-          apk_dst=build/app/outputs/flutter-apk/signet-${{ github.ref_name }}.apk
+          aab_dst="build/app/outputs/bundle/release/signet-$REF_NAME.aab"
+          apk_dst="build/app/outputs/flutter-apk/signet-$REF_NAME.apk"
           mv "$aab_src" "$aab_dst"
           mv "$aab_src.sha256" "$aab_dst.sha256"
           mv "$apk_src" "$apk_dst"
@@ -244,7 +252,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
@@ -269,12 +277,16 @@ jobs:
 
       - name: Package .app as zip
         id: package
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           cd build/ios/iphoneos
           zip -qr Runner.app.zip Runner.app
           sha=$(sha256sum Runner.app.zip | awk '{print $1}')
-          mv Runner.app.zip signet-ios-${{ github.ref_name }}.zip
-          echo "$sha  signet-ios-${{ github.ref_name }}.zip" > signet-ios-${{ github.ref_name }}.zip.sha256
+          mv Runner.app.zip "signet-ios-$REF_NAME.zip"
+          echo "$sha  signet-ios-$REF_NAME.zip" > "signet-ios-$REF_NAME.zip.sha256"
           echo "sha256=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS release artifact
@@ -324,8 +336,12 @@ jobs:
 
       - name: Assemble release body
         id: body
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          tag="${{ github.ref_name }}"
+          tag="$REF_NAME"
           {
             echo "## Signet $tag"
             echo ""
@@ -369,7 +385,7 @@ jobs:
           echo "path=$PWD/RELEASE_BODY.md" >> "$GITHUB_OUTPUT"
 
       - name: Create or update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ github.ref_name }}
           name: Signet ${{ github.ref_name }}

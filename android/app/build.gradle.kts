@@ -63,7 +63,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseKeystore) {
+            // SIGNET_UNSIGNED_RELEASE=1 (set by scripts/reproducible-build.sh)
+            // leaves the APK unsigned, so a rebuild is compared on content
+            // alone instead of carrying a throwaway debug key.
+            signingConfig = if (System.getenv("SIGNET_UNSIGNED_RELEASE") == "1") {
+                null
+            } else if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

@@ -54,7 +54,7 @@ jobs:
             gradle-${{ runner.os }}-
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
@@ -121,13 +121,17 @@ jobs:
           if-no-files-found: error
 
       - name: Summarize build
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF: ${{ github.ref }}
         run: |
           {
             echo "### Android build"
             echo ""
             echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
             echo "- Commit: \`${{ github.sha }}\`"
-            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Ref: \`$REF\`"
             echo "- AAB SHA-256: \`${{ steps.checksum.outputs.aab_sha256 }}\`"
             echo "- APK SHA-256: \`${{ steps.checksum.outputs.apk_sha256 }}\`"
             echo "- Signing: debug key (not distributable)"

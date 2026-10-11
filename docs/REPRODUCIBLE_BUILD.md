@@ -1,162 +1,151 @@
 # Reproducible build
 
-Signet aims for bit-identical APK builds from any clean checkout of a
-given git tag. This matters for three reasons:
+Signet aims for byte-identical APKs from any clean checkout of a given
+git tag. This matters for three reasons:
 
-1. **F-Droid submission** — F-Droid's build server independently
-   rebuilds every app on every release. Non-reproducible builds
-   cannot be submitted.
-2. **Independent audit credibility** — a third-party reviewer should
-   be able to compile the codebase and compare their APK's SHA-256
-   to ours. Equal hashes mean they're looking at the same bits we
-   shipped; divergence is a red flag.
-3. **Supply-chain trust** — if an attacker tampered with our
-   toolchain but not the committed source, a reproducible build
-   performed on a clean machine would produce a different hash than
-   our release artifact. Detection without trusting us.
+1. **F-Droid** rebuilds every release from source on its own build
+   server.
+2. **Independent audit credibility.** A third-party reviewer should be
+   able to compile the source and get the same bytes we shipped.
+   Divergence is a red flag.
+3. **Supply-chain trust.** If an attacker tampered with our toolchain
+   but not the committed source, a rebuild on a clean machine would not
+   match our release artifact. Detection without trusting us.
 
-**Current status** (end of Phase 12.15): infrastructure in place;
-bit-identical output **not yet verified end-to-end**. The Dockerfile
-pins every known-non-deterministic source; the outstanding risk
-areas are Gradle metadata + dex ordering, which will surface the
-first time two independent machines produce the image and compare.
+**Current status:** verified on one machine. On 2026-10-10 two clean
+runs of the same commit (fresh cache and clones each time, final pass
+offline) produced byte-identical APKs for all three ABIs. A match
+across two different machines, or against F-Droid's build, is not yet
+verified.
 
 ## Moving parts
 
 ### `Dockerfile.reproducible`
 
-Debian-pinned base image. Explicitly pinned:
+The build image. Pinned:
 
-- Debian release (`bookworm-20240926-slim`)
-- Flutter version + the exact git commit (not just the channel tag —
-  tags move)
-- Android command-line-tools archive version
-- Android platform SDK
-- Android build-tools
-- Android NDK
-- `LANG` / `LC_ALL` / `TZ` (C + UTF-8 + UTC)
+- Base image by digest: Eclipse Temurin 25 JDK on Ubuntu 24.04, the
+  same JDK major CI uses (`JAVA_VERSION` in `.github/workflows/release.yml`).
+- Flutter version and the exact commit it must resolve to. The build
+  fails if the version tag points anywhere else.
+- Android command-line tools archive, checked against the SHA-1 that
+  Google's repository index publishes for it (the only digest Google
+  provides for that file).
+- Every SDK component by exact version: platforms 34, 35 and 36,
+  build-tools 35.0.0, NDK 28.2 and 27.0, CMake 3.22.1. Each is the
+  version the app or one of its plugins asks for. `sdkmanager` checks
+  each download against Google's index.
+- `LANG` / `LC_ALL` / `TZ` (C.UTF-8, UTC).
 
-Using Debian's snapshot archive (`snapshot.debian.org`) is a
-further-hardening option not yet taken; current pin is the stable
-release tag, which is stable "enough" for the audit horizon but is
-not a commitment the way a snapshot-date would be.
+The Android SDK is read-only to the build user, so a build that wants a
+component the image lacks fails instead of downloading one quietly.
+The Flutter tool's own Dart dependencies are resolved into
+`/opt/pub-cache` at image build time, readable by any uid; otherwise
+the tool re-resolves them on every run, online, and the offline pass
+fails.
+
+Gradle dynamic versions (`1.2+`) cannot resolve offline and can drift
+between builds. Flutter's dev-only `integration_test` plugin declares
+some and `assembleRelease` still builds it, so `android/build.gradle.kts`
+pins them.
+
+Ubuntu packages (git, curl, unzip, xz) are not snapshot-pinned. They
+only fetch sources and unpack archives and do not reach the APK.
+
+Build the image without a context (it copies nothing from the repo):
+
+```sh
+docker build -t signet/repro:latest - < Dockerfile.reproducible
+```
 
 ### `scripts/reproducible-build.sh`
 
-Bash driver. Given a git ref:
+Given a git ref:
 
-1. Resolves ref → commit sha.
-2. Derives `SOURCE_DATE_EPOCH` from the commit's committer timestamp.
-3. Creates a fresh `git worktree` at the commit (isolates from any
-   local dirty state).
-4. Runs the Dockerfile's image with:
-   - `--network=none` — the build must be reproducible offline; if a
-     step reaches out to the network, it's a bug.
-   - `SOURCE_DATE_EPOCH` bound to commit time.
-   - Locale / TZ forced.
-   - Version + build number hard-pinned to `0.0.0+0` (regardless of
-     `pubspec.yaml`'s values, so the version field itself doesn't
-     drift the output).
-   - `--dart-define=SIGNET_REPRODUCIBLE=1` flag (currently unused by
-     app code; reserved for any future reproducible-only conditionals).
-5. Copies the resulting APK out to
-   `build/reproducible/<ref>/app-release-unsigned.apk`.
-6. Computes + writes a matching SHA-256 checksum file.
+1. Resolves the ref to a commit, takes `SOURCE_DATE_EPOCH` from the
+   commit's committer time and the version from its `pubspec.yaml`.
+2. **Warm pass** (network on): a fresh, self-contained clone of the
+   commit, then the full release build. This fills a cache directory
+   with pub packages, the Gradle distribution and Maven dependencies.
+   Its APKs are thrown away.
+3. **Build pass** (`--network=none`): a second fresh clone, built
+   again from the warmed cache with `flutter pub get --offline`. Any
+   step that still needs the network fails here. `flutter build` has
+   no `--offline` and `--no-pub` would skip the release-mode plugin
+   registration, so the script touches `pubspec.lock` first: Flutter
+   then sees an up-to-date resolution and skips its own pub step.
+4. Copies the three per-ABI APKs to
+   `build/reproducible/<ref>/signet-<version>-<abi>-unsigned.apk` and
+   writes `SHA256SUMS` and `build-info.txt` (commit, epoch, image id).
 
-The output is **unsigned**. Production signing is a separate step
-(see `docs/RELEASE.md` — coming in Phase 12.16).
+The build runs as your uid with `SIGNET_UNSIGNED_RELEASE=1`, which
+`android/app/build.gradle.kts` reads to leave the release APK
+**unsigned** (no throwaway debug key, so the bytes depend on the source
+only). Version name and code are the real ones from `pubspec.yaml`,
+and `--split-per-abi` gives F-Droid's versionCodes (pubspec code times
+10, plus 1 for armeabi-v7a, 2 for arm64-v8a, 3 for x86_64).
+
+By default the cache is fresh for every run and deleted afterwards.
+`SIGNET_REPRO_CACHE=<dir>` reuses one across runs, which is faster but
+a weaker check. The fresh cache and both clones are staged under
+`build/reproducible/.stage/`, on disk rather than in `/tmp` (often a
+RAM-backed tmpfs), because together they take several GB.
 
 ## Running the build
 
 ```sh
 # One-time: build the image.
-docker build -f Dockerfile.reproducible -t signet/repro:latest .
+docker build -t signet/repro:latest - < Dockerfile.reproducible
 
 # Each release: build from a tag.
-./scripts/reproducible-build.sh v0.2.0
+scripts/reproducible-build.sh v0.3.7
+cat build/reproducible/v0.3.7/SHA256SUMS
 ```
 
 ## Verifying reproducibility
 
-The test case for "is this reproducible": two independent machines,
-same ref, same image tag, compare SHA-256s.
+Run the build twice (ideally on two machines, with the same image) and
+compare `SHA256SUMS`. They must match. If they don't, `diffoscope` on
+the two APKs locates the non-deterministic content. Likely culprits:
 
-```sh
-# Machine A:
-./scripts/reproducible-build.sh v0.2.0
-cat build/reproducible/v0.2.0/app-release-unsigned.apk.sha256
+- **ZIP entry order or timestamps.** AGP normalises entry times, but a
+  plugin's own packaging step may not.
+- **Native libraries.** The zxing and jni CMake builds embed paths and
+  build ids; the fixed `/build` path should keep them stable.
+- **Dex ordering.** R8 output should be deterministic for identical
+  inputs; worth confirming on the first mismatch.
 
-# Machine B, different hardware / OS / time of day:
-./scripts/reproducible-build.sh v0.2.0
-cat build/reproducible/v0.2.0/app-release-unsigned.apk.sha256
+## Comparing with a published release
 
-# The two SHA-256s MUST match.
-```
+Release APKs on GitHub are signed; ours are not. APK Signature Scheme
+v2 stores the signature in a block inside the zip, so removing it is
+not a matter of deleting files. To compare, either:
 
-If they don't, the delta is a reproducibility bug — `diffoscope` on
-the two APKs will locate the non-deterministic content. Known likely
-culprits in the current state:
+- use F-Droid's tooling (`fdroid` compares an unsigned rebuild against
+  a signed APK by copying the signature over and verifying it), or
+- unzip both APKs and compare every entry except `META-INF/*.SF`,
+  `*.RSA`, `*.EC` and `MANIFEST.MF`.
 
-- **Dex merge order** — R8 can sort classes non-deterministically
-  without the right flags. Gradle option `android.enableD8=true` +
-  R8 with deterministic ordering flags will need verification.
-- **ZIP entry timestamps** — addressed via `SOURCE_DATE_EPOCH` but
-  not every zipping step respects it. `strip-nondeterminism` (the
-  same utility F-Droid uses) is the fallback fix.
-- **Asset hashing** — Flutter's asset manifest includes content
-  hashes; should be deterministic given deterministic inputs but
-  worth confirming.
+A scripted version of this comparison is still to do.
 
-## Known gaps (still TODO)
+## Known gaps
 
-1. **No CI job runs this** — a future workflow
-   `.github/workflows/reproducibility-check.yml` should do a
-   two-runner diff to smoke-test reproducibility on every main push.
-2. **No independent-mirror archive for the toolchain downloads** —
-   the Dockerfile fetches Flutter + Android tools from their vendors'
-   CDNs. A stricter posture would mirror these into a known-
-   immutable location.
-3. **iOS is not reproducible** — iOS builds involve Apple's
-   closed-source codesign infrastructure on macOS. Nothing we can
-   do there from a Linux repro image. Noted and accepted; F-Droid
-   does not distribute iOS builds anyway.
-4. **The image itself is not reproducible** — `docker build -f
-   Dockerfile.reproducible` on two machines will produce slightly
-   different image hashes due to apt repository mirror timing. We
-   address this by distributing the **built image** alongside
-   releases rather than asking every rebuilder to build the image
-   from scratch. A future v1.0 improvement: use `nix` or a
-   Debian snapshot-archive date.
-
-## Verifying a release APK
-
-For a reviewer who has a signed release APK from GitHub Releases
-and wants to confirm it matches the source at the tagged commit:
-
-```sh
-# 1. Build the unsigned APK reproducibly.
-./scripts/reproducible-build.sh v0.2.0
-
-# 2. Strip the signature from the signed APK you downloaded.
-#    The tool-of-choice is apksigner; on Debian:
-#      apt install apksigner
-#    The unsigned APK should be byte-identical to our output.
-apksigner extract --in signet-v0.2.0.apk --unsigned-out signet-v0.2.0.unsigned.apk
-
-# 3. Compare.
-sha256sum signet-v0.2.0.unsigned.apk
-sha256sum build/reproducible/v0.2.0/app-release-unsigned.apk
-```
-
-(`apksigner extract` isn't a real subcommand; the actual recipe is
-more involved — you'd unzip the APK, remove `META-INF/*.RSA` /
-`*.SF` / `MANIFEST.MF`, re-zip with `jar`/`zip` deterministically,
-and compare. That pipeline belongs in a later iteration of this
-doc. The intent is to sketch where the verification path lives.)
+1. **No CI job runs this.** A future workflow should run two builds on
+   separate runners and diff them on every main push.
+2. **Toolchain downloads come from vendor CDNs** (Google, GitHub,
+   Maven Central). A stricter posture would mirror them somewhere
+   immutable.
+3. **iOS is not reproducible.** iOS builds go through Apple's
+   closed-source signing on macOS. Accepted; F-Droid does not
+   distribute iOS builds.
+4. **The image itself is not reproducible** (unpinned Ubuntu
+   packages). The pinned toolchain inside it is what reaches the APK.
 
 ## Changelog
 
-- 2026-04-19 · initial scaffold (Phase 12.15). Dockerfile +
-  build script + this doc. **Reproducibility not yet empirically
-  verified** — that's a Phase 12.15.1 follow-up, ideally on a
-  different machine than the one these bits were written on.
+- 2026-04-19: initial scaffold (Phase 12.15). Never verified.
+- 2026-10-10: repaired (v0.3.7, Task 7.3). Temurin 25 base pinned by
+  digest, current SDK components, Flutter commit checked, two-pass
+  build with an offline second pass, unsigned output, real version and
+  per-ABI versionCodes. Two clean runs matched byte for byte on one
+  machine.

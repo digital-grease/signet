@@ -1,111 +1,119 @@
 # Signet reproducible-build image.
 #
-# Goal: given a git tag, building inside this container from a clean
-# checkout produces a byte-identical APK (modulo the user-supplied
-# release keystore, which is applied at the end outside the container).
-# F-Droid enforces this; the Play Store does not, but our stance is
-# that "a third party can independently verify the build" matters to
-# the security audit.
+# Goal: given a git ref, building inside this container from a clean
+# clone produces byte-identical unsigned APKs on any machine. F-Droid
+# rebuilds every release from source; an independent rebuild matching
+# ours is how a reviewer confirms a release came from the tagged source.
 #
-# Build the image once:
-#   docker build -f Dockerfile.reproducible -t signet/repro:v0.2.0 .
-# Build an APK with it:
-#   ./scripts/reproducible-build.sh v0.2.0
+# Build the image once (from the repo root):
+#   docker build -t signet/repro:latest - < Dockerfile.reproducible
+# Build APKs with it:
+#   scripts/reproducible-build.sh v0.3.7
 #
-# Key correctness knobs (things that would otherwise cause drift):
+# Correctness knobs (things that would otherwise cause drift):
 #
-#   1.  Pin Flutter to an exact git commit (not just the stable branch
-#       label). Floating references are how silent drift lands.
-#   2.  Pin the Android SDK command-line tools version and the
-#       specific build-tools / platform revisions installed.
-#       `sdkmanager` without pins will pull whatever is current.
-#   3.  Force a fixed `SOURCE_DATE_EPOCH` so every tool that stamps a
-#       timestamp (zip entries, Gradle outputs, dex metadata) uses
-#       the same value. By convention we use the commit timestamp of
-#       the tag being built.
-#   4.  Pin `LANG=C`, `TZ=UTC`, `LC_ALL=C.UTF-8` so locale-dependent
-#       formatting (sort order in resources, decimal separators) does
-#       not drift.
-#   5.  Use a deterministic build location (/build) so absolute paths
-#       that leak into debug info or R.java are stable.
-#   6.  Strip the Gradle daemon — it caches state between runs, which
-#       is the opposite of what we want for a one-shot reproducible
-#       build. `--no-daemon` in the build script.
+#   1.  Base image pinned by digest, and the JDK it carries matches CI
+#       (Temurin 25, the JAVA_VERSION in .github/workflows/release.yml).
+#   2.  Flutter pinned to an exact commit, checked after checkout, not
+#       just the version tag (tags can move).
+#   3.  Android command-line tools pinned by archive and checksum; every
+#       SDK component installed by exact version. The SDK is read-only
+#       to the build user, so a build that wants a component missing
+#       here fails instead of quietly downloading one.
+#   4.  scripts/reproducible-build.sh fixes SOURCE_DATE_EPOCH (commit
+#       time), locale and TZ, the build path (/build), and runs the real
+#       build with --network=none from a cache warmed in a first pass.
 
-FROM debian:bookworm-20240926-slim
+# Temurin 25 JDK on Ubuntu 24.04 (noble).
+FROM eclipse-temurin:25-jdk-noble@sha256:589ff4cc3f71aab462e7048a47a0d10edf57fbccde3fceea2281e610bf5880b4
 
-# --- Pin base toolchain ---
+# --- Toolchain pins ---
+# Must equal the `flutter-version:` literal in .github/workflows/release.yml.
 ARG FLUTTER_VERSION=3.47.5
-ARG FLUTTER_CHANNEL=stable
-# Exact revision for the pinned version — matches what subosito/flutter-action
-# resolves in CI. Update in lockstep with FLUTTER_VERSION.
+# The commit the 3.47.5 tag points at. Update in lockstep with
+# FLUTTER_VERSION (`git rev-parse 3.47.5^{commit}` in a Flutter clone).
 ARG FLUTTER_REVISION=6a19cca56475dbfba1478ee68d7bd0c2ef891da1
 
-ARG ANDROID_SDK_TOOLS_VERSION=11076708  # commandlinetools-linux-11076708_latest.zip
-ARG ANDROID_PLATFORM=android-34
-ARG ANDROID_BUILD_TOOLS=34.0.0
-ARG ANDROID_NDK_VERSION=26.3.11579264
+# Command-line tools 20.0. Google publishes only a SHA-1 for this
+# archive (repository2-3.xml); it is checked before unzipping.
+ARG ANDROID_CMDLINE_TOOLS=14742923
+ARG ANDROID_CMDLINE_TOOLS_SHA1=48833c34b761c10cb20bcd16582129395d121b27
+# Every component the app and its plugins compile against: compileSdk
+# 36 (Flutter default), 35 (jni_flutter), 34 (flutter_zxing, printing);
+# build-tools 35.0.0 (AGP 8.11 default); NDK 28.2 (Flutter default) and
+# 27.0 (flutter_zxing); CMake for the zxing and jni native builds.
+ARG ANDROID_PLATFORMS="platforms;android-36 platforms;android-35 platforms;android-34"
+ARG ANDROID_BUILD_TOOLS=35.0.0
+ARG ANDROID_NDKS="ndk;28.2.13676358 ndk;27.0.12077973"
+ARG ANDROID_CMAKE=3.22.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC
 
-# --- System packages (pinned via Debian release; snapshot repo optional) ---
+# Ubuntu packages are not snapshot-pinned; they only fetch sources and
+# unpack archives, so they do not reach the APK.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
         unzip \
         xz-utils \
-        openjdk-17-jdk-headless \
-        libglib2.0-0 \
-        libstdc++6 \
-        libgcc-s1 \
     && rm -rf /var/lib/apt/lists/*
-
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # --- Android SDK ---
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV ANDROID_HOME=${ANDROID_SDK_ROOT}
 RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" && \
     curl -fsSL \
-      "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS_VERSION}_latest.zip" \
+      "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip" \
       -o /tmp/cmdline-tools.zip && \
+    echo "${ANDROID_CMDLINE_TOOLS_SHA1}  /tmp/cmdline-tools.zip" | sha1sum -c - && \
     unzip -q /tmp/cmdline-tools.zip -d "${ANDROID_SDK_ROOT}/cmdline-tools" && \
     mv "${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools/latest" && \
     rm /tmp/cmdline-tools.zip
 
 ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
 
-# Accept licenses up front; install only the pinned components.
+# sdkmanager verifies each component against the checksum in Google's
+# signed-over-TLS repository index.
 RUN yes | sdkmanager --licenses > /dev/null && \
     sdkmanager --install \
         "platform-tools" \
-        "platforms;${ANDROID_PLATFORM}" \
+        ${ANDROID_PLATFORMS} \
         "build-tools;${ANDROID_BUILD_TOOLS}" \
-        "ndk;${ANDROID_NDK_VERSION}"
+        ${ANDROID_NDKS} \
+        "cmake;${ANDROID_CMAKE}"
 
 # --- Flutter SDK ---
 ENV FLUTTER_ROOT=/opt/flutter
 ENV PATH="${FLUTTER_ROOT}/bin:${PATH}"
+# The Flutter tool's own dependencies (packages/flutter_tools) resolve
+# here, outside /root, so the build user can read them. On every run the
+# tool checks that each package in flutter_tools' package_config.json
+# exists by absolute path; if it cannot see them it runs `pub get` for
+# flutter_tools without --offline, which fails the offline build pass.
+# The build script points PUB_CACHE elsewhere for the app's packages;
+# that does not affect this check.
+ENV PUB_CACHE=/opt/pub-cache
 RUN git clone --branch "${FLUTTER_VERSION}" --depth 1 \
         https://github.com/flutter/flutter.git "${FLUTTER_ROOT}" && \
-    # Hard-pin to the exact revision, not just the version tag, to defeat
-    # the case where upstream moves the tag.
-    git -C "${FLUTTER_ROOT}" fetch --depth 1 origin "${FLUTTER_REVISION}" && \
-    git -C "${FLUTTER_ROOT}" checkout "${FLUTTER_REVISION}" && \
-    # Pre-download engine artifacts so `flutter pub get` doesn't
-    # introduce variance due to first-run downloads.
+    actual="$(git -C "${FLUTTER_ROOT}" rev-parse HEAD)" && \
+    if [ "$actual" != "${FLUTTER_REVISION}" ]; then \
+      echo "Flutter ${FLUTTER_VERSION} is at $actual, expected ${FLUTTER_REVISION}" >&2; \
+      exit 1; \
+    fi && \
+    flutter config --no-analytics --no-cli-animations && \
     flutter --version && \
-    flutter precache --universal --android && \
-    flutter config --no-analytics --no-cli-animations
+    flutter precache --android --no-ios --no-web --no-linux --no-windows --no-macos --no-fuchsia
 
-# --- Reproducible-build workspace ---
+# The build runs as the caller's uid (so output files are theirs), which
+# needs a writable Flutter checkout (lock file, tool snapshot) and git
+# that trusts a checkout owned by someone else. The Android SDK stays
+# read-only on purpose (knob 3).
+RUN chmod -R a+rwX "${FLUTTER_ROOT}" && \
+    chmod -R a+rX "${PUB_CACHE}" && \
+    git config --system --add safe.directory '*'
+
 WORKDIR /build
-VOLUME ["/build"]
 
-# Default command: print the tool versions + sha so a human can
-# eyeball a build report. Actual builds happen via
-# scripts/reproducible-build.sh, which bind-mounts the source tree.
-CMD ["sh", "-c", "flutter --version && javac -version && sdkmanager --version"]
+CMD ["sh", "-c", "flutter --version && java -version && sdkmanager --list_installed"]

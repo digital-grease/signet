@@ -8,7 +8,12 @@
 #     crash or debug files) may reach Google cloud backup or a D2D copy
 #     (PRIVACY.md: no cloud, ever).
 #   - android.permission.INTERNET is never requested (offline by
-#     construction).
+#     construction), and every requested permission is on an allowlist:
+#     CAMERA, plus androidx's own DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION.
+#     A library that merges in anything else (audio, storage, network
+#     state) fails the check until it is removed in AndroidManifest.xml.
+#   - No <uses-feature> is required: Signet must install on devices
+#     without a camera (long-distance pairing and restore need none).
 #
 # Usage: scripts/check-apk-manifest.sh path/to/app.apk
 # Needs aapt2 from the Android SDK build-tools ($ANDROID_HOME or
@@ -49,6 +54,32 @@ if grep -q 'android.permission.INTERNET' <<<"$manifest"; then
   err "android.permission.INTERNET is requested"
 fi
 
+# Permission allowlist (plan Task 7.1).
+package=$("$aapt2" dump packagename "$apk")
+allowed="android.permission.CAMERA ${package}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+while read -r perm; do
+  [ -n "$perm" ] || continue
+  case " $allowed " in
+    *" $perm "*) ;;
+    *) err "permission not on the allowlist: $perm" ;;
+  esac
+done < <("$aapt2" dump permissions "$apk" |
+  sed -nE "s/^uses-permission(-sdk-23)?: name='([^']+)'.*/\2/p")
+
+# Every <uses-feature> must say required="false".
+features=$(awk '
+  /^ *E: uses-feature / { infeat = 1; name = ""; req = ""; next }
+  infeat && /^ *E: / { print name, req; infeat = 0 }
+  infeat && /android:name\(/ { name = $0 }
+  infeat && /android:required\(/ { req = $0 }
+  END { if (infeat) print name, req }
+' <<<"$manifest")
+while read -r line; do
+  [ -n "$line" ] || continue
+  grep -q 'required([^)]*)=false' <<<"$line" ||
+    err "a <uses-feature> is required: $line"
+done <<<"$features"
+
 # Resolve the (possibly obfuscated) path of the rules XML and check it.
 rules_path=$("$aapt2" dump resources "$apk" |
   awk '/ xml\/data_extraction_rules$/ { found = 1; next }
@@ -78,4 +109,4 @@ fi
 if [ "$fail" -ne 0 ]; then
   exit 1
 fi
-echo "Manifest OK: backup off (allowBackup, fullBackupContent, all domains excluded from cloud + D2D), no INTERNET ($apk)"
+echo "Manifest OK: backup off (allowBackup, fullBackupContent, all domains excluded from cloud + D2D), no INTERNET, permissions on the allowlist, no required features ($apk)"
