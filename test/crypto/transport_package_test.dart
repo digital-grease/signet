@@ -848,7 +848,7 @@ void main() {
           pakeWords: goodPake,
           version: 2,
           extensions: const [
-            TransportExtension(0x81, [1]),
+            TransportExtension(0x8F, [1]),
           ],
         );
         await expectLater(
@@ -864,7 +864,7 @@ void main() {
           pakeWords: goodPake,
           version: 2,
           extensions: const [
-            TransportExtension(0x81, [1]),
+            TransportExtension(0x8F, [1]),
           ],
         );
         await expectLater(
@@ -1111,7 +1111,7 @@ void main() {
         sharedSecret: secret,
         pakeWords: goodPake,
         version: 2,
-        extensions: const [TransportExtension(0x81, [1])],
+        extensions: const [TransportExtension(0x8F, [1])],
       );
       try {
         await TransportPackage.decodeLpr(wire, pakeWords: goodPake);

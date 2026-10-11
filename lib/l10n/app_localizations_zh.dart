@@ -933,7 +933,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      '请当面与发件人核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示传输包真实可信。';
+      'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
 
   @override
   String get pairTransportInResponseHeader => '你的响应包 //';
@@ -1003,7 +1003,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pairTransportOutPhraseInstruction(String label) {
-    return '请当面与 $label 核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示配对真实有效。';
+    return 'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
   }
 
   @override
@@ -1229,6 +1229,10 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get packageNeedsNewerSignetVerifiedError =>
       '这是由较新版本的 Signet 生成的。请通过您安装 Signet 的应用商店更新后再试一次。';
+
+  @override
+  String get packageFromOlderSignetError =>
+      'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.';
 
   @override
   String get packageDamagedError => '此包已损坏或不完整。请检查是否完整复制，或请对方重新发送。';

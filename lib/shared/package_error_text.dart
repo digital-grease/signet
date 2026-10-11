@@ -11,6 +11,9 @@ import '../l10n/app_localizations.dart';
 /// fake update. Only a verdict from inside the authenticated payload gets
 /// the plain wording.
 String packageErrorText(InvalidPackageException e, AppLocalizations l10n) {
+  if (e is OutdatedPeerPackageException) {
+    return l10n.packageFromOlderSignetError;
+  }
   if (e is UnsupportedPackageVersionException) {
     return e.authenticated
         ? l10n.packageNeedsNewerSignetVerifiedError

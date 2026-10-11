@@ -90,7 +90,7 @@
 
 
   "commonPairTimePhraseHeader": "PAIR-TIME PHRASE //",
-  "@commonPairTimePhraseHeader": {"description": "Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure."},
+  "@commonPairTimePhraseHeader": {"description": "Section header above the pair-time phrase (4 words on the binding phrase screen, 8 on the transport in/out confirm panes). Keep the ' //' structure."},
 
   "commonNameThisContactHeader": "NAME THIS CONTACT //",
   "@commonNameThisContactHeader": {"description": "Section header above the contact-name field on transport in/out screens. Keep the ' //' structure."},
@@ -803,7 +803,7 @@
   "pairTransportInProcessFailedError": "Failed to process package: {error}",
   "@pairTransportInProcessFailedError": {"description": "Generic catch-all unlock error on transport in.", "placeholders": {"error": {"type": "String"}}},
 
-  "pairTransportInPhraseInstruction": "Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.",
+  "pairTransportInPhraseInstruction": "Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.",
   "@pairTransportInPhraseInstruction": {"description": "Instruction above the phrase card on transport in."},
 
   "pairTransportInResponseHeader": "YOUR RESPONSE //",
@@ -863,7 +863,7 @@
   "pairingWeakKeyRemoteError": "This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.",
   "@pairingWeakKeyRemoteError": {"description": "Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel."},
 
-  "pairTransportOutPhraseInstruction": "Check these 4 words with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.",
+  "pairTransportOutPhraseInstruction": "Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.",
   "@pairTransportOutPhraseInstruction": {"description": "Instruction above the phrase card on transport out.", "placeholders": {"label": {"type": "String"}}},
 
   "backupExportTitle": "BACK UP TO PAPER",
@@ -1035,6 +1035,9 @@
 
   "packageNeedsNewerSignetVerifiedError": "This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.",
   "@packageNeedsNewerSignetVerifiedError": {"description": "A package unlocked with the correct 8 words contains a must-understand field this build does not know. Only the holder of the words can produce this, so plain wording is fine."},
+
+  "packageFromOlderSignetError": "This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.",
+  "@packageFromOlderSignetError": {"description": "A long-distance pairing package without the strong-phrase tag (made by Signet 0.3.6 or older, or with the tag stripped). There is no way to continue with it."},
 
   "packageDamagedError": "This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.",
   "@packageDamagedError": {"description": "Any malformed transport package (backup or pairing): replaces English developer error text."},

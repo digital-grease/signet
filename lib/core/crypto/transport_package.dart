@@ -111,9 +111,24 @@ class TransportPackage {
   /// Tag bit marking a must-understand extension.
   static const int criticalTagBit = 0x80;
 
-  /// Critical tags this build understands. None yet: any critical tag is
-  /// from a newer Signet.
-  static const Set<int> _knownCriticalTags = <int>{};
+  /// Critical: long-distance pairing uses the strong (8-word) phrase
+  /// (plan Task 1.7g). Value: one byte, the phrase scheme; 0x01 is the
+  /// 8-word transcript-bound phrase (`PairingVerification
+  /// .deriveLongDistancePhrase`). Every request and response carries it,
+  /// and both sides refuse a package without it, so it cannot be stripped
+  /// to force the weak phrase. Registered in docs/WIRE_FORMAT.md.
+  static const int ldpStrongPhraseTag = 0x81;
+  static const int _ldpStrongPhraseScheme = 0x01;
+  static const TransportExtension _ldpStrongPhrase = TransportExtension(
+    ldpStrongPhraseTag,
+    <int>[_ldpStrongPhraseScheme],
+  );
+
+  /// Critical tags this build understands, per payload type; any other
+  /// critical tag is refused with an "update Signet" error. Per type so a
+  /// tag understood in one payload is never silently ignored in another.
+  static const Set<int> _ldpKnownCriticalTags = <int>{ldpStrongPhraseTag};
+  static const Set<int> _recordKnownCriticalTags = <int>{};
 
   /// Never valid on the wire (see `docs/WIRE_FORMAT.md`).
   static const Set<int> _reservedTags = <int>{0x00, 0x80};
@@ -296,7 +311,11 @@ class TransportPackage {
         );
       }
     } else {
-      final ext = _parseExtensions(plaintext, cursor);
+      final ext = _parseExtensions(
+        plaintext,
+        cursor,
+        known: _ldpKnownCriticalTags,
+      );
       if (ext.unknownCritical) {
         throw const UnsupportedPackageVersionException(authenticated: true);
       }
@@ -312,6 +331,69 @@ class TransportPackage {
       version: opened.version,
       extensions: extensions,
     );
+  }
+
+  /// A long-distance pairing request: tp1 version 2 with the critical
+  /// strong-phrase tag. A receiver on Signet 0.3.6 or older cannot read
+  /// version 2 (its generic error); one that reads version 2 but not this
+  /// tag refuses it as needing a newer Signet.
+  static Future<String> encodeLdpRequest({
+    required List<int> publicKey,
+    required String labelHint,
+    required List<String> pakeWords,
+    DateTime? now,
+    Random? nonceRandom,
+  }) => encodeLdp(
+    publicKey: publicKey,
+    labelHint: labelHint,
+    pakeWords: pakeWords,
+    now: now,
+    nonceRandom: nonceRandom,
+    version: _versionV2,
+    extensions: const <TransportExtension>[_ldpStrongPhrase],
+  );
+
+  /// The response to a request accepted by [decodeLdpStrict]: same
+  /// version and tag. The receiver's own label is never sent.
+  static Future<String> encodeLdpResponse({
+    required List<int> publicKey,
+    required List<String> pakeWords,
+    DateTime? now,
+    Random? nonceRandom,
+  }) => encodeLdp(
+    publicKey: publicKey,
+    labelHint: '',
+    pakeWords: pakeWords,
+    now: now,
+    nonceRandom: nonceRandom,
+    version: _versionV2,
+    extensions: const <TransportExtension>[_ldpStrongPhrase],
+  );
+
+  /// [decodeLdp], then require the strong-phrase tag. Without it the
+  /// package came from an older Signet (or someone holding the 8 words
+  /// stripped it): [OutdatedPeerPackageException], never a fallback to the
+  /// weak 4-word phrase. An unknown scheme value means a newer Signet; a
+  /// value that is not exactly one byte is malformed.
+  static Future<LdpPackage> decodeLdpStrict(
+    String wire, {
+    required List<String> pakeWords,
+  }) async {
+    final ldp = await decodeLdp(wire, pakeWords: pakeWords);
+    final scheme = ldp.extensions[ldpStrongPhraseTag];
+    if (ldp.version < _versionV2 || scheme == null) {
+      throw const OutdatedPeerPackageException();
+    }
+    if (scheme.length != 1) {
+      // Malformed, not newer: an update would not help.
+      throw const InvalidPackageException(
+        'Strong-phrase extension has a malformed value.',
+      );
+    }
+    if (scheme[0] != _ldpStrongPhraseScheme) {
+      throw const UnsupportedPackageVersionException(authenticated: true);
+    }
+    return ldp;
   }
 
   // ========================================================================
@@ -621,7 +703,11 @@ class TransportPackage {
     var extensions = const <int, Uint8List>{};
     var unknownCritical = false;
     if (version != _versionV1) {
-      final ext = _parseExtensions(plaintext, cursor);
+      final ext = _parseExtensions(
+        plaintext,
+        cursor,
+        known: _recordKnownCriticalTags,
+      );
       cursor = ext.end;
       extensions = ext.fields;
       unknownCritical = ext.unknownCritical;
@@ -711,7 +797,8 @@ class TransportPackage {
   }
 
   static ({Map<int, Uint8List> fields, bool unknownCritical, int end})
-      _parseExtensions(List<int> plaintext, int start) {
+      _parseExtensions(List<int> plaintext, int start,
+          {required Set<int> known}) {
     if (plaintext.length < start + _extLenLength) {
       throw const InvalidPackageException(
           'Extension area truncated: missing length.');
@@ -744,7 +831,7 @@ class TransportPackage {
       }
       fields[tag] = Uint8List.fromList(plaintext.sublist(cursor, cursor + len));
       cursor += len;
-      if (tag & criticalTagBit != 0 && !_knownCriticalTags.contains(tag)) {
+      if (tag & criticalTagBit != 0 && !known.contains(tag)) {
         unknownCritical = true;
       }
     }
@@ -1056,8 +1143,12 @@ class LdpPackage {
   /// same version so an older peer can read it.
   final int version;
 
-  /// Non-critical extension fields (version 2), by tag.
+  /// Extension fields (version 2), by tag.
   final Map<int, Uint8List> extensions;
+
+  /// Carries the strong-phrase tag (see [TransportPackage.ldpStrongPhraseTag]).
+  bool get hasStrongPhrase =>
+      extensions.containsKey(TransportPackage.ldpStrongPhraseTag);
 }
 
 class LprPackage {
@@ -1198,4 +1289,18 @@ class UnsupportedPackageVersionException extends InvalidPackageException {
 
   @override
   String toString() => 'UnsupportedPackageVersionException: $message';
+}
+
+/// Thrown for a long-distance pairing package from an older Signet: no
+/// strong-phrase tag (version 1, or version 2 without it). Long-distance
+/// pairing needs both phones on Signet 0.4.0 or later. Authenticated (only
+/// the 8-word holder can make such a package), but it may also be a
+/// downgrade attempt by someone who has the words, so the UI must not offer
+/// any way to continue.
+class OutdatedPeerPackageException extends InvalidPackageException {
+  const OutdatedPeerPackageException()
+    : super('This package was made by an older version of Signet.');
+
+  @override
+  String toString() => 'OutdatedPeerPackageException: $message';
 }

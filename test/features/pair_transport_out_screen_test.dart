@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
+import 'package:signet/core/crypto/verification.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_out_screen.dart';
@@ -89,12 +90,19 @@ Future<String> _craftReceiverResponse({
   required List<String> pakeWords,
 }) async {
   final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
-  return TransportPackage.encodeLdp(
+  return TransportPackage.encodeLdpResponse(
     publicKey: receiverKp.publicKey,
-    labelHint: '',
     pakeWords: pakeWords,
   );
 }
+
+/// The pair-time phrase as shown, in order (the 22-point monospace rows).
+List<String> _shownPhrase(WidgetTester tester) => tester
+    .widgetList<Text>(find.byType(Text))
+    .where((t) =>
+        t.style?.fontFamily == 'monospace' && t.style?.fontSize == 22)
+    .map((t) => t.data ?? '')
+    .toList();
 
 void main() {
   testWidgets('setup pane renders and blocks empty label on GENERATE',
@@ -157,9 +165,8 @@ void main() {
       final extracted = await _extractOutgoing(tester);
       final responseWire = scenario == 'own package echoed back'
           ? extracted.outgoing
-          : await TransportPackage.encodeLdp(
+          : await TransportPackage.encodeLdpResponse(
               publicKey: Uint8List(32),
-              labelHint: '',
               pakeWords: extracted.pake,
             );
 
@@ -193,7 +200,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final extracted = await _extractOutgoing(tester);
-      final responseWire = await _craftReceiverResponse(
+      final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
+      final responseWire = await TransportPackage.encodeLdpResponse(
+        publicKey: receiverKp.publicKey,
         pakeWords: extracted.pake,
       );
 
@@ -210,8 +219,57 @@ void main() {
 
       expect(find.text('PAIR-TIME PHRASE //'), findsOneWidget);
       expect(find.text('COMMIT PAIR'), findsOneWidget);
+
+      // The words are the 8-word phrase over both keys: the receiver (this
+      // test holds its private key) derives the same ones.
+      final request = await TransportPackage.decodeLdpStrict(
+        extracted.outgoing,
+        pakeWords: extracted.pake,
+      );
+      final shared = await PairingHandshake.deriveSharedSecret(
+        ours: receiverKp,
+        theirPublicKey: request.publicKey,
+      );
+      final expected = await PairingVerification.deriveLongDistancePhrase(
+        sharedSecret: shared,
+        ownPublicKey: receiverKp.publicKey,
+        peerPublicKey: request.publicKey,
+      );
+      expect(expected, hasLength(8));
+      expect(_shownPhrase(tester), expected);
     },
   );
+
+  // Plan Task 1.7g: a response without the strong-phrase tag (an older
+  // Signet, or the tag stripped by someone holding the words) is refused;
+  // the requester never falls back to the weak 4-word phrase.
+  testWidgets('UNLOCK RESPONSE refuses a response from an older Signet',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+
+    final extracted = await _extractOutgoing(tester);
+    final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
+    final oldResponse = await TransportPackage.encodeLdp(
+      publicKey: receiverKp.publicKey,
+      labelHint: '',
+      pakeWords: extracted.pake,
+      version: 1,
+    );
+    await tester.enterText(find.byType(TextField).first, oldResponse);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+    await tester.tap(find.text('UNLOCK RESPONSE'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('made by an older version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
 
   testWidgets(
     'COMMIT writes the relationship and routes to /pair/complete/:id',
@@ -393,4 +451,49 @@ void main() {
       expect(find.text('COMMIT PAIR'), findsNothing);
     });
   });
+
+  // Large text (CLAUDE.md: large-text mode is first-class): the 8-word
+  // confirm pane fits or scrolls, the number labels stay on one line, and
+  // COMMIT stays reachable.
+  for (final (size, scale) in const [
+    (Size(360, 640), 1.3),
+    (Size(360, 640), 2.0),
+    (Size(412, 915), 2.0),
+  ]) {
+    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    testWidgets('the 8-word confirm pane works at large text, $tag',
+        (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('GENERATE PACKAGE'));
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'package pane');
+      final extracted = await _extractOutgoing(tester);
+      final responseWire = await _craftReceiverResponse(
+        pakeWords: extracted.pake,
+      );
+      await tester.enterText(find.byType(TextField).first, responseWire);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(_shownPhrase(tester), hasLength(8));
+      final label = find.byWidgetPredicate(
+          (w) => w is Text && w.data == '8.' && w.style?.fontSize == 16);
+      expect(tester.getSize(label).height, lessThan(16 * scale * 1.8),
+          reason: '"8." on one line');
+      await tester.ensureVisible(find.text('COMMIT PAIR'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

@@ -102,7 +102,7 @@ class _PairTransportOutScreenState
     try {
       final keyPair = await PairingHandshake.generateEphemeralKeyPair();
       final pakeWords = TransportPackage.mintPakeWords();
-      final outgoing = await TransportPackage.encodeLdp(
+      final outgoing = await TransportPackage.encodeLdpRequest(
         publicKey: keyPair.publicKey,
         labelHint: ownName,
         pakeWords: pakeWords,
@@ -146,7 +146,8 @@ class _PairTransportOutScreenState
       _errorText = null;
     });
     try {
-      final ldp = await TransportPackage.decodeLdp(
+      // Strict: a response without the strong-phrase tag is refused.
+      final ldp = await TransportPackage.decodeLdpStrict(
         wire,
         pakeWords: gen.pakeWords,
       );
@@ -168,8 +169,11 @@ class _PairTransportOutScreenState
       final totpSecret = await PairingHandshake.deriveTotpSecret(
         sharedSecret: sharedSecret,
       );
-      final phrase = await PairingVerification.derivePhrase(
+      // 8 words bound to both keys (plan Task 1.7g).
+      final phrase = await PairingVerification.deriveLongDistancePhrase(
         sharedSecret: sharedSecret,
+        ownPublicKey: gen.ourKeyPair.publicKey,
+        peerPublicKey: ldp.publicKey,
       );
       if (!mounted) return;
       setState(() {
@@ -402,8 +406,10 @@ class _PairTransportOutScreenState
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: <Widget>[
-                      SizedBox(
-                        width: 28,
+                      // Grows with large text instead of wrapping "8.".
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 28),
+                        padding: const EdgeInsetsDirectional.only(end: 6),
                         child: Text(
                           '${i + 1}.',
                           style: TextStyle(
@@ -553,8 +559,10 @@ class _PairTransportOutScreenState
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: <Widget>[
-                      SizedBox(
-                        width: 28,
+                      // Grows with large text instead of wrapping "8.".
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 28),
+                        padding: const EdgeInsetsDirectional.only(end: 6),
                         child: Text(
                           '${i + 1}.',
                           style: TextStyle(

@@ -278,7 +278,7 @@ abstract class AppLocalizations {
   /// **'PAKE SECRET //'**
   String get commonPakeSecretHeader;
 
-  /// Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure.
+  /// Section header above the pair-time phrase (4 words on the binding phrase screen, 8 on the transport in/out confirm panes). Keep the ' //' structure.
   ///
   /// In en, this message translates to:
   /// **'PAIR-TIME PHRASE //'**
@@ -1751,7 +1751,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on transport in.
   ///
   /// In en, this message translates to:
-  /// **'Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.'**
+  /// **'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.'**
   String get pairTransportInPhraseInstruction;
 
   /// Section header above the response package on transport in. Keep the ' //' structure.
@@ -1865,7 +1865,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on transport out.
   ///
   /// In en, this message translates to:
-  /// **'Check these 4 words with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.'**
+  /// **'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.'**
   String pairTransportOutPhraseInstruction(String label);
 
   /// AppBar title of the single-relationship paper backup export.
@@ -2209,6 +2209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.'**
   String get packageNeedsNewerSignetVerifiedError;
+
+  /// A long-distance pairing package without the strong-phrase tag (made by Signet 0.3.6 or older, or with the tag stripped). There is no way to continue with it.
+  ///
+  /// In en, this message translates to:
+  /// **'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.'**
+  String get packageFromOlderSignetError;
 
   /// Any malformed transport package (backup or pairing): replaces English developer error text.
   ///

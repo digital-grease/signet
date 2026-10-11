@@ -434,8 +434,6 @@
 
   "pairTransportInProcessFailedError": "处理传输包失败：{error}",
 
-  "pairTransportInPhraseInstruction": "请当面与发件人核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示传输包真实可信。",
-
   "pairTransportInResponseHeader": "你的响应包 //",
 
   "pairTransportInResponseInstruction": "用接收对方传输包的同一条渠道把它发回给发件人。对方粘贴后即可完成配对。",
@@ -474,8 +472,6 @@
   "pairingWeakKeyInPersonError": "停止。这个配对码不安全。请在两部手机上都取消配对，然后重新开始。不要相信任何一部手机上显示的单词。",
 
   "pairingWeakKeyRemoteError": "这个配对包不安全，可能已被篡改。请关闭此页面，重新生成配对包，并换一种与之前不同的方式发送。不要相信任何一部手机上显示的单词。",
-
-  "pairTransportOutPhraseInstruction": "请当面与 {label} 核对这 4 个单词，或拨打你原本就有的对方号码核对。不要通过消息核对，也绝不要使用别人提供的电话或号码。一致即表示配对真实有效。",
 
   "backupExportTitle": "备份到纸上",
 

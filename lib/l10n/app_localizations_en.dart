@@ -968,7 +968,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      'Check these 4 words with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
+      'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
 
   @override
   String get pairTransportInResponseHeader => 'YOUR RESPONSE //';
@@ -1040,7 +1040,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String pairTransportOutPhraseInstruction(String label) {
-    return 'Check these 4 words with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
+    return 'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
   }
 
   @override
@@ -1275,6 +1275,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get packageNeedsNewerSignetVerifiedError =>
       'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.';
+
+  @override
+  String get packageFromOlderSignetError =>
+      'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.';
 
   @override
   String get packageDamagedError =>

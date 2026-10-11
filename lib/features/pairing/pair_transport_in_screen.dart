@@ -25,7 +25,7 @@ import '../verify/word_input.dart';
 ///    AES-GCM authentication either succeeds (proceed) or fails
 ///    (InvalidPakeException → inline error).
 /// 2. **Confirm**: we derive the shared secret via ECDH against our fresh
-///    ephemeral key pair, compute the pair-time 4-word phrase, and
+///    ephemeral key pair, compute the pair-time 8-word phrase, and
 ///    display it alongside a response LDP package. The user confirms
 ///    the phrase matches on the sender's screen (via the same trusted
 ///    channel) AND sends the response package back. Tap COMMIT to write
@@ -87,7 +87,10 @@ class _PairTransportInScreenState
       _unlockError = null;
     });
     try {
-      final ldp = await TransportPackage.decodeLdp(
+      // Strict: a request without the strong-phrase tag is from an older
+      // Signet (or had the tag stripped) and is refused, never answered
+      // with the weak phrase.
+      final ldp = await TransportPackage.decodeLdpStrict(
         wire,
         pakeWords: pakeWords,
       );
@@ -98,16 +101,15 @@ class _PairTransportInScreenState
       );
       final totpSecret =
           await PairingHandshake.deriveTotpSecret(sharedSecret: sharedSecret);
-      final phrase = await PairingVerification.derivePhrase(
+      // 8 words bound to both keys (plan Task 1.7g).
+      final phrase = await PairingVerification.deriveLongDistancePhrase(
         sharedSecret: sharedSecret,
+        ownPublicKey: ourKeyPair.publicKey,
+        peerPublicKey: ldp.publicKey,
       );
-      final responseWire = await TransportPackage.encodeLdp(
+      final responseWire = await TransportPackage.encodeLdpResponse(
         publicKey: ourKeyPair.publicKey,
-        labelHint: '', // receiver hint is not useful to the sender
         pakeWords: pakeWords,
-        // Answer in the request's wire version so a sender on an older
-        // build (which reads only version 1) can still open the response.
-        version: ldp.version,
       );
       if (!mounted) return;
       setState(() {
@@ -341,8 +343,10 @@ class _PairTransportInScreenState
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: <Widget>[
-                      SizedBox(
-                        width: 28,
+                      // Grows with large text instead of wrapping "8.".
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 28),
+                        padding: const EdgeInsetsDirectional.only(end: 6),
                         child: Text(
                           '${i + 1}.',
                           style: TextStyle(

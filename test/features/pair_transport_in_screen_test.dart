@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
+import 'package:signet/core/crypto/verification.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_in_screen.dart';
@@ -68,6 +69,14 @@ Future<void> _enterPakeWords(WidgetTester tester, List<String> words) async {
   await tester.pumpAndSettle();
 }
 
+/// The pair-time phrase as shown, in order (the 22-point monospace rows).
+List<String> _shownPhrase(WidgetTester tester) => tester
+    .widgetList<Text>(find.byType(Text))
+    .where((t) =>
+        t.style?.fontFamily == 'monospace' && t.style?.fontSize == 22)
+    .map((t) => t.data ?? '')
+    .toList();
+
 void main() {
   testWidgets('Unlock pane renders the expected sections', (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
@@ -96,7 +105,7 @@ void main() {
     'UNLOCK with wrong PAKE words surfaces InvalidPakeException inline',
     (tester) async {
       // Forge a valid LDP package so only the PAKE secret is the failure.
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: List<int>.generate(32, (i) => i),
         labelHint: 'Alice',
         pakeWords: goodPake,
@@ -134,7 +143,7 @@ void main() {
       // An attacker who controls the package channel and knows the PAKE
       // words could swap in the all-zero point; both sides would then
       // derive the same public secret and matching phrases.
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: Uint8List(32),
         labelHint: 'Alice',
         pakeWords: goodPake,
@@ -160,7 +169,7 @@ void main() {
     'successful unlock transitions to the confirm pane with phrase + response',
     (tester) async {
       final kp = await PairingHandshake.generateEphemeralKeyPair();
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: kp.publicKey,
         labelHint: 'Alice',
         pakeWords: goodPake,
@@ -189,7 +198,7 @@ void main() {
     'COMMIT writes the relationship and navigates to /pair/complete/:id',
     (tester) async {
       final kp = await PairingHandshake.generateEphemeralKeyPair();
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: kp.publicKey,
         labelHint: 'Alice',
         pakeWords: goodPake,
@@ -225,7 +234,7 @@ void main() {
     'COMMIT with empty label is blocked with an inline error',
     (tester) async {
       final kp = await PairingHandshake.generateEphemeralKeyPair();
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: kp.publicKey,
         labelHint: 'Alice',
         pakeWords: goodPake,
@@ -257,43 +266,83 @@ void main() {
     },
   );
 
-  // Plan Task 1.6: a response must use the request's wire version, or a
-  // sender on an older build could not open it.
-  for (final version in [1, 2]) {
-    testWidgets('the response mirrors a v$version request', (tester) async {
-      final kp = await PairingHandshake.generateEphemeralKeyPair();
-      final wire = await TransportPackage.encodeLdp(
-        publicKey: kp.publicKey,
-        labelHint: 'Alice',
-        pakeWords: goodPake,
-        version: version,
-      );
-      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, wire);
-      await tester.pumpAndSettle();
-      await _enterPakeWords(tester, goodPake);
-      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
-      await tester.tap(find.text('UNLOCK PACKAGE'));
-      await tester.pumpAndSettle();
+  // Plan Task 1.7g: a request without the strong-phrase tag (Signet 0.3.6
+  // and older, or a stripped tag) is refused, never answered with the weak
+  // phrase; an accepted request gets a version 2 response with the tag.
+  testWidgets('a request from an older Signet is refused', (tester) async {
+    final kp = await PairingHandshake.generateEphemeralKeyPair();
+    final wire = await TransportPackage.encodeLdp(
+      publicKey: kp.publicKey,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+      version: 1,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('made by an older version of Signet'),
+        findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is SelectableText && (w.data ?? '').startsWith('signet:tp1:')),
+      findsNothing,
+      reason: 'no response is produced',
+    );
+  });
 
-      final response = tester
-          .widgetList<SelectableText>(find.byType(SelectableText))
-          .map((t) => t.data ?? '')
-          .firstWhere((t) => t.startsWith('signet:tp1:'));
-      final decoded = await TransportPackage.decodeLdp(
-        response,
-        pakeWords: goodPake,
-      );
-      expect(decoded.version, version);
-    });
-  }
+  testWidgets('the response is version 2 with the strong-phrase tag',
+      (tester) async {
+    final kp = await PairingHandshake.generateEphemeralKeyPair();
+    final wire = await TransportPackage.encodeLdpRequest(
+      publicKey: kp.publicKey,
+      labelHint: 'Alice',
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+
+    final response = tester
+        .widgetList<SelectableText>(find.byType(SelectableText))
+        .map((t) => t.data ?? '')
+        .firstWhere((t) => t.startsWith('signet:tp1:'));
+    final decoded = await TransportPackage.decodeLdpStrict(
+      response,
+      pakeWords: goodPake,
+    );
+    expect(decoded.version, 2);
+    expect(decoded.hasStrongPhrase, isTrue);
+
+    // The words shown are the 8-word phrase over both keys: the requester
+    // (this test holds its private key) derives the same ones.
+    final shared = await PairingHandshake.deriveSharedSecret(
+      ours: kp,
+      theirPublicKey: decoded.publicKey,
+    );
+    final expected = await PairingVerification.deriveLongDistancePhrase(
+      sharedSecret: shared,
+      ownPublicKey: kp.publicKey,
+      peerPublicKey: decoded.publicKey,
+    );
+    expect(expected, hasLength(8));
+    expect(_shownPhrase(tester), expected);
+  });
 
   testWidgets('Copy response uses the sensitive, timed clipboard',
       (tester) async {
     final clip = recordClipboard();
     final kp = await PairingHandshake.generateEphemeralKeyPair();
-    final wire = await TransportPackage.encodeLdp(
+    final wire = await TransportPackage.encodeLdpRequest(
       publicKey: kp.publicKey,
       labelHint: 'Alice',
       pakeWords: goodPake,
@@ -320,7 +369,7 @@ void main() {
   group('the suggested name (plan Task 3.6)', () {
     Future<String> unlockWithHint(WidgetTester tester, String hint) async {
       final kp = await PairingHandshake.generateEphemeralKeyPair();
-      final wire = await TransportPackage.encodeLdp(
+      final wire = await TransportPackage.encodeLdpRequest(
         publicKey: kp.publicKey,
         labelHint: hint,
         pakeWords: goodPake,
@@ -355,7 +404,7 @@ void main() {
   testWidgets('a word corrected after all 8 were entered is the one used',
       (tester) async {
     final kp = await PairingHandshake.generateEphemeralKeyPair();
-    final wire = await TransportPackage.encodeLdp(
+    final wire = await TransportPackage.encodeLdpRequest(
       publicKey: kp.publicKey,
       labelHint: 'Alice',
       pakeWords: goodPake,
@@ -373,4 +422,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('PAIR-TIME PHRASE //'), findsOneWidget);
   });
+
+  // Large text (CLAUDE.md: large-text mode is first-class): the 8-word
+  // confirm pane fits or scrolls, the number labels stay on one line, and
+  // COMMIT stays reachable.
+  for (final (size, scale) in const [
+    (Size(360, 640), 1.3),
+    (Size(360, 640), 2.0),
+    (Size(412, 915), 2.0),
+  ]) {
+    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    testWidgets('the 8-word confirm pane works at large text, $tag',
+        (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final kp = await PairingHandshake.generateEphemeralKeyPair();
+      final wire = await TransportPackage.encodeLdpRequest(
+        publicKey: kp.publicKey,
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+      );
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'unlock pane');
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(_shownPhrase(tester), hasLength(8));
+      final label = find.byWidgetPredicate(
+          (w) => w is Text && w.data == '8.' && w.style?.fontSize == 16);
+      expect(tester.getSize(label).height, lessThan(16 * scale * 1.8),
+          reason: '"8." on one line');
+      await tester.ensureVisible(find.text('COMMIT PAIR'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
