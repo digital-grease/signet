@@ -7,7 +7,27 @@ the surface is allowed to change between minor releases.
 
 ## [Unreleased]
 
+**Both phones need Signet 0.4.0 or later to pair**, in person or at a
+distance. Signet 0.3.6 and older cannot read the new pairing codes and
+packages and will say "Not a Signet pairing QR" or that the package is
+not valid; update both phones from the store you installed Signet from.
+
 ### Changed
+- **In-person pairing is safer against interception.** One phone taps
+  Start and the other Join, and the phones exchange three codes instead
+  of two: the first phone commits to its code before seeing the other
+  one. Someone secretly relaying the codes between the phones now gets
+  one blind guess at the 4 words per attempt, instead of being able to
+  search for a match in seconds. Rekeying works the same way.
+- **Long-distance pairing compares 8 words**, not 4. Check all 8, in
+  order, and that both phones show exactly 8, face to face or by calling
+  a number you already had. A package from an older Signet is refused
+  instead of falling back to the shorter check.
+- **"Update Signet" messages.** A code or package from a newer version
+  says this phone needs an update; an in-person code from an older
+  version says the other phone does. Update only from the store Signet
+  came from: Signet never sends updates as a link or file. A new FAQ
+  entry explains this.
 - **Backups are now two separate parts.** A backup used to be one file
   holding both the encrypted package and the 8 words that unlock it, so
   anyone who found that file had your pairings. Now you save the

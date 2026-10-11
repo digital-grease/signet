@@ -102,12 +102,25 @@ HMAC-SHA-256 primitive that RFC 6238 validates.
 | Context | `info` string |
 |---------|--------------|
 | Pair-time TOTP secret from shared secret | `signet/v1/totp-secret` |
-| Pair-time 4-word confirmation phrase | `signet/v1/verification-phrase` |
+| Pair-time phrase re-check (4 words, secret only) | `signet/v1/verification-phrase` |
+| In-person pair-time phrase (4 words, then Argon2id) | `signet/v2/verification-phrase/qr` |
+| Long-distance pair-time phrase (8 words) | `signet/v2/verification-phrase/ldp` |
 | Rotating verify code (role-asymmetric) | `signet/v1/totp-words-from-a` / `signet/v1/totp-words-from-b` |
-| Transport package LDP (long-distance pair) | `signet/v1/tp1/ldp` |
-| Transport package LPR (lost-phone recovery) | `signet/v1/tp1/lpr` |
+| Transport package LDP (long-distance pair) | `signet/v<version>/tp1/ldp` |
+| Transport package LPR (lost-phone recovery) | `signet/v<version>/tp1/lpr` |
+| Transport package BLK (bulk backup) | `signet/v<version>/tp1/blk` |
 | Challenge-response grid axis labels | `signet/v2/cr-axis-v1` |
 | Challenge-response grid cell contents | `signet/v2/cr-grid-v1` |
+
+Two SHA-256 domain prefixes sit beside these: `signet/v2/commit` (the
+in-person commitment) and `signet/v2/transcript` (the salt that binds
+both public keys into the v2 phrases). Layouts: `docs/WIRE_FORMAT.md`.
+
+**Pinned vectors for the v2 phrases:**
+`test/crypto/verification_v2_test.dart` pins the in-person phrase with
+the production Argon2id cost to the output of the Argon2 reference
+implementation, and pins the v1 phrase, so a change to either
+derivation fails the suite.
 
 **In-tree assertions:** `test/crypto/totp_words_test.dart` group
 `TotpWords domain separation` performs an exhaustive sweep across a

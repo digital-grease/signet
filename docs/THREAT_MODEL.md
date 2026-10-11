@@ -23,8 +23,11 @@ prove liveness to each other via:
 - A **rotating 4-word verification code** derived HKDF-from-secret +
   a time window + a role byte. Each side of the pair emits different
   words per window.
-- A one-time **pair-time 4-word confirmation phrase** derived from
-  the same secret, used at pair commitment and later re-check.
+- A one-time **pair-time confirmation phrase** derived from the same
+  secret and both public keys: 4 words in person (after a
+  commit-then-reveal exchange, through Argon2id), 8 words for
+  long-distance pairing. A re-check screen later shows an older
+  4-word phrase derived from the secret alone.
 - A deterministic **challenge-response grid** derived from the same
   secret, used as a paper fallback when a responder has no phone.
 
@@ -142,10 +145,26 @@ surface. 8-word symmetric unlock achieves state-level-resistant
 margin with ~200 LOC. See `.devloop/spikes/transport-package.md`
 "Option comparison" table.
 
+**Pairing-time MITM who also holds the PAKE words:** such an attacker
+can open and re-encrypt both packages and substitute its own keys. The
+two people then compare an **8-word** phrase (88 bits, bound to both
+public keys through the transcript salt; `docs/WIRE_FORMAT.md` "Pair-time
+phrases"), so the substitution goes unnoticed only if the attacker
+matches a phrase one side has already fixed: about 2^88 work, the
+strength of the PAKE words themselves. Requests and responses carry a
+critical strong-phrase tag, and both sides refuse a package without it,
+so the attacker cannot strip it to force the old 4-word phrase. The
+users must compare the words, and how many there are, on a channel
+other than the one that carried the packages.
+
 **Relevant code:**
-- `lib/core/crypto/transport_package.dart` — AEAD + HKDF + wire format
-- `test/crypto/transport_package_test.dart` — 21 tests incl. domain
-  separation, wrong-PAKE rejection, bit-flip rejection
+- `lib/core/crypto/transport_package.dart`: AEAD + HKDF + wire format
+  (`encodeLdpRequest`, `encodeLdpResponse`, `decodeLdpStrict`)
+- `lib/core/crypto/verification.dart`: `deriveLongDistancePhrase`
+- `test/crypto/transport_package_test.dart`,
+  `test/crypto/transport_package_ldp_strong_test.dart`: domain
+  separation, wrong-PAKE rejection, bit-flip rejection, refusal of
+  untagged or older packages
 
 ### 2.5 Paper-leak attacker A₅
 
@@ -179,7 +198,7 @@ on *different* physical paths — paper vs. memorized password, two
 separate safety deposit boxes, a prior in-person exchange, etc. See
 `BackupExportScreen` UI copy and `docs/RELEASE.md`.
 
-Since v0.3.7 the app enforces the split rather than just advising it:
+Since 0.4.0 the app enforces the split rather than just advising it:
 export is two steps that produce two artifacts (a PACKAGE file or QR,
 then the 8 words on paper or in a separate WORDS file); the words are
 never offered on the clipboard; and files handed to the share sheet are
@@ -268,25 +287,78 @@ i.e., a forensic-level compromise of the OS itself.
 
 ### 3.1 In-person QR pairing
 
-- Each side mints an ephemeral X25519 key pair (`PairingHandshake.generateEphemeralKeyPair`).
-- QR payload: `signet:p1:<base64url(32-byte pubkey)>`. Version-prefixed
-  so future pair formats can coexist.
-- Both sides scan, derive shared secret via X25519 ECDH
-  (`PairingHandshake.deriveSharedSecret`), derive a pair-time phrase
-  via HKDF (`PairingVerification.derivePhrase`), and display the
-  phrase to both users for **visual cross-confirmation over a
-  channel they already trust** (each other's faces).
+In-person pairing and in-person rekey use the same commit-then-reveal
+exchange (after ZRTP, RFC 6189 section 4.4.1.1). Byte layouts:
+`docs/WIRE_FORMAT.md`.
+
+- One phone taps Start, the other Join. Start mints an ephemeral X25519
+  key pair and a 16-byte nonce and shows a commitment,
+  `signet:p2:C:<SHA-256("signet/v2/commit" || key || nonce)>`
+  (`PairingCommitment.commit`).
+- Join, only after accepting the commitment, mints its key pair and
+  shows `signet:p2:K:<key>`.
+- Start, after accepting exactly one key, reveals
+  `signet:p2:R:<key || nonce>`. Join checks it against the commitment;
+  a mismatch ends the attempt with a tamper message.
+- Both derive the shared secret via X25519 ECDH
+  (`PairingHandshake.deriveSharedSecret`) and a 4-word phrase bound to
+  the secret, both keys and the nonce
+  (`PairingVerification.deriveInPersonPhrase`), and the two people
+  compare it side by side.
 - On match, both commit the relationship + shared secret atomically
   to secure storage; on mismatch, both abort.
 
-**MITM consideration:** a physical MITM who sits between two phones
-at pair time could substitute their own pubkey for each side. The
-pair-time phrase detects this: both sides would derive different
-phrases. This requires the users to actually *read the phrases to
-each other* — the UI nudges this but does not enforce it (enforcement
-is a copy / social-layer concern).
+Controller: `lib/features/pairing/in_person_pairing_controller.dart`;
+codec: `lib/features/pairing/pairing_code_v2.dart`.
 
-**Low-order key substitution (fixed in v0.3.7):** a MITM could instead
+**MITM bound.** A man-in-the-middle substituting both phones' codes
+must give Join a commitment before Join's key exists, which fixes the
+attacker's key and nonce, so Join's phrase is out of its control, and
+must give Start a substitute key before Start's key is
+revealed, so Start's phrase is uniformly random from the attacker's
+view. Relaying Start's real commitment gains nothing, because the
+reveal is bound to it. The attacker gets **one blind guess per attempt,
+success probability 2^-44**, with no advantage from compute. This holds
+only because:
+
+- **Keys and nonces are single-use.** Every abort, timeout, restart,
+  tamper error or wrong-role code ends the attempt and discards them.
+  Going back to show one's own code again re-shows the same code and
+  reveals nothing new. An attacker who could abort an attempt after
+  learning both keys, then rerun with the same keys, would be back to
+  the birthday search below.
+- **Each phone accepts exactly one code of each kind it expects per
+  attempt.** A second, different code of a kind already accepted ends
+  the attempt; the identical code scanned again is ignored; a damaged
+  or foreign code is reported and changes nothing.
+- **There is no fallback to the old protocol.** A `signet:p1:` code
+  (Signet 0.3.6 and older) is refused with "the other phone needs to
+  update Signet". Before 0.4.0 neither phone committed to its key, so a
+  MITM who saw both real keys could search for two substitutes whose
+  44-bit phrases collided: a birthday search of about 2^22 tries,
+  seconds of work. Any path back to that protocol would reopen it.
+- **The people actually compare the phrases.** The UI asks for it but
+  cannot enforce it.
+
+**Argon2id is a backstop, not a multiplier on 2^-44.** The phrase passes
+through Argon2id (19 MiB, 2 passes, 1 lane; OWASP's minimum setting).
+Against the commit-then-reveal flow it adds nothing: a blind guess costs
+the attacker no computation either way. It matters only if the
+single-use rule above is ever broken: the key-reuse birthday search then
+needs about 2^22 (4 million) memory-hard evaluations of 19 MiB each
+instead of 2^22 hashes: days of single-core work, or hours on a large
+cluster, rather than seconds. The cost runs once per pairing on each phone
+(about 0.1 s on a desktop; the low-end phone figure is still to be
+measured).
+
+**Public-key top bit.** Codes whose key has bit 255 set are refused.
+X25519 ignores that bit while the transcript hashes the raw bytes, so
+accepting it would let a relay give the two phones different transcripts
+for one shared secret. Remaining malleability (adding a small-order
+point, which clamping cancels) can only make the phrases differ: a
+denial of service a MITM can cause anyway, never a false match.
+
+**Low-order key substitution (fixed in 0.4.0):** a MITM could instead
 substitute a *low-order* point (for example the all-zero u-coordinate)
 in both directions. X25519 then outputs 32 zero bytes for every private
 key, so both victims derive the same secret, see *matching* phrases,
@@ -300,22 +372,9 @@ show a "this code may have been tampered with" message. Because the
 scalar is clamped to a multiple of 8, the zero check covers every
 low-order point, including its non-canonical encodings (non-canonical
 encodings of ordinary points are harmless and are not rejected).
-
-**Known limit: the phrase is short and uncommitted (open, tracked for
-v0.3.8+).** The pair-time phrase carries 44 bits, and neither device
-commits to its public key before seeing the other's. A MITM who can
-substitute both QR codes sees both real keys first and can search for
-two substitute keys whose phrases collide: a birthday search of about
-2^22 tries, seconds of work. For long-distance pairing, an attacker who
-also knows the 8 PAKE words must match a phrase already fixed by one
-side, about 2^44 tries (hours on GPUs, and the asynchronous channel
-hides the delay). The phrase check therefore does not, on its own,
-stop a well-resourced pairing-time MITM. The planned fix is a
-commit-then-reveal step (as in Bluetooth numeric comparison and ZRTP):
-one side first sends a hash of its public key and reveals the key only
-after receiving the other side's. Until then, in-person pairing where
-each person scans the other's screen directly remains the strongest
-mode.
+Since 0.4.0 the phrases also hash both public keys, so the two phones
+would show different phrases in this attack anyway; the zero check
+stays, because it also protects the shared secret itself.
 
 ### 3.2 Role-asymmetric rotating verify code
 
@@ -329,20 +388,30 @@ mode.
 - Wire format: `signet:tp1:<base64url(body)>`.
 - `body = version | payload-type | timestamp | nonce | AEAD-ciphertext | AEAD-tag`.
 - AEAD = AES-256-GCM; key = HKDF-SHA-256 of the 8-word PAKE secret
-  (UTF-8-joined), info-string domain-separated per payload type
-  (`signet/v1/tp1/ldp` vs `signet/v1/tp1/lpr`).
+  (UTF-8-joined), info-string domain-separated per version and payload
+  type (`signet/v<version>/tp1/<ldp|lpr|blk>`).
 - Payload types: LDP (ephemeral pubkey + label hint — long-distance
   pairing) or LPR (shared secret + full relationship metadata —
   lost-phone recovery).
 - Version 1 does not authenticate the header: the timestamp can be
   altered undetected (nothing depends on it), and an out-of-range value
   is rejected as a malformed package rather than crashing. Version 2
-  (decoded from v0.3.7, encoded from the following release) passes the
+  (decoded from 0.4.0; long-distance pairing encodes it from 0.4.0,
+  backups still encode version 1) passes the
   header to AES-GCM as associated data and binds the version into the
   HKDF info (`signet/v2/tp1/...`), so relabelling between versions fails.
   It also adds a length-delimited extension area with a must-understand
   bit, so future security-relevant fields cannot be silently dropped by
   an older decoder. Full layout and tag registry: `docs/WIRE_FORMAT.md`.
+- Long-distance pairing requires version 2 with the critical
+  strong-phrase tag `0x81` in both directions, and shows the 8-word
+  phrase (section 2.4). A package without the tag is refused as coming
+  from an older Signet, so the phrase cannot be downgraded.
+- "Needs a newer Signet" from the unauthenticated prefix, version or
+  type byte can be produced by anyone, so its copy points only to the
+  store Signet was installed from and says Signet never sends updates as
+  a link or file. The same applies to in-person codes from a later
+  version.
 
 ### 3.4 Storage
 
@@ -370,7 +439,7 @@ mode.
   HDMI mirror sessions (acknowledged limit; iOS offers no user-space
   override).
 
-Clipboard (v0.3.7): packages that can be copied (a backup package, a
+Clipboard (0.4.0): packages that can be copied (a backup package, a
 long-distance pairing package or response) go through
 `lib/shared/secure_clipboard.dart`. The 8 PAKE words are never offered
 for copying.
@@ -620,8 +689,8 @@ not security claims:
 
 Suggested scope for an external audit (Cure53-class firm or similar):
 
-1. **Wire-format parsers** — `PairingCodec`, `TransportPackage` wire
-   decoders. Malformed / oversized / bit-flipped inputs must
+1. **Wire-format parsers** — `PairingCodeV2`, `TransportPackage` wire
+   decoders (including `decodeLdpStrict`). Malformed / oversized / bit-flipped inputs must
    produce clean exceptions, never silent corruption.
 2. **HKDF info-string separation** — every in-tree `info` string is
    unique and differs in ways the attacker can't induce.
@@ -649,7 +718,15 @@ Suggested scope for an external audit (Cure53-class firm or similar):
    malformed method calls don't crash the activity / app delegate,
    and that the blur-overlay / FLAG_SECURE state can't get stuck
    on after `secureOff`.
-9. **Crash-log shipping pipeline (§3.6).** Audit the four-layer
+9. **In-person commit-then-reveal (§3.1).** Verify that the controller
+   (`InPersonPairingController`) never reuses a key pair or nonce across
+   attempts on any exit path, accepts exactly one code of each expected
+   kind per attempt, shows the phrase on Join only after the reveal
+   opens the commitment, and offers no route to the pre-0.4.0 protocol
+   (including rekey). Check the transcript layout and Argon2id framing
+   against `docs/WIRE_FORMAT.md`, and that both long-distance packages
+   are refused without the strong-phrase tag.
+10. **Crash-log shipping pipeline (§3.6).** Audit the four-layer
    defense:
    - `LogScrubber` deny-by-default against a custom adversarial
      corpus (not just the bundled tests). Mechanical patterns
@@ -667,7 +744,7 @@ Suggested scope for an external audit (Cure53-class firm or similar):
      `INTERNET` after the log-shipping feature ships — the OS-browser
      handoff via `url_launcher` is the only network path, and it
      runs out-of-process.
-10. **Debug-log shipping pipeline (§3.7).** Audit the opt-in
+11. **Debug-log shipping pipeline (§3.7).** Audit the opt-in
    `DebugSession` + `DebugLogExportScrubber`:
    - Export-scrubber order (id-map → secret-scrub → label-sweep →
      PII) against an adversarial corpus. A label that is a
@@ -690,14 +767,20 @@ a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
 
-- 2026-10-07 · v0.3.7: §3.3 transport package version 2 (authenticated
-  header, versioned KDF domain, extension area with must-understand bit);
-  decoders read v1 and v2, encoders stay on v1 for one release. Spec in
-  `docs/WIRE_FORMAT.md`.
-- 2026-10-07 · v0.3.7: §3.1 low-order X25519 key substitution
+- 2026-10-11 · 0.4.0: §3.1 in-person pairing and rekey are
+  commit-then-reveal (`signet:p2:`), bound 2^-44 per attempt with
+  single-use keys and no fallback; transcript-bound phrases, Argon2id as
+  a backstop. §2.4 and §3.3 long-distance pairing shows an 8-word phrase
+  and requires the critical strong-phrase tag. "Needs a newer Signet"
+  for later formats. Closes the open limit recorded below.
+- 2026-10-07 · 0.4.0: §3.3 transport package version 2 (authenticated
+  header, versioned KDF domain, extension area with must-understand bit).
+  Spec in `docs/WIRE_FORMAT.md`.
+- 2026-10-07 · 0.4.0: §3.1 low-order X25519 key substitution
   documented and closed: all-zero ECDH output and reflected own keys
   are rejected in `PairingHandshake.deriveSharedSecret`. Documented the
-  open limit that the 44-bit pair-time phrase has no key commitment.
+  open limit that the 44-bit pair-time phrase has no key commitment
+  (since closed, see the 2026-10-11 entry).
 - 2026-06-12 · Phase 8 — opt-in debug logging added. A₁₀ extended to
   cover the debug `session.bin` artifact (present only while opt-in
   logging is active). New §3.7 covers the opt-in retention model, the

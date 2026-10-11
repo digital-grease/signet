@@ -65,10 +65,11 @@ import 'pair_role.dart';
 /// field, repeated tag) rejects the whole package.
 ///
 /// Version 1 packages (every backup made before the switch) keep decoding
-/// exactly as before. This release still *encodes* version 1
-/// ([TransportPackage.currentEncodeVersion]); the next release switches the
-/// encoder to version 2 once decoders that read it are in the field. An
-/// LDP response mirrors the version of the request it answers.
+/// exactly as before. Backups are still *encoded* as version 1
+/// ([TransportPackage.currentEncodeVersion]). Long-distance pairing
+/// requests and responses are always version 2 with the strong-phrase
+/// tag ([TransportPackage.encodeLdpRequest]); version 1 LDP is refused by
+/// [TransportPackage.decodeLdpStrict].
 ///
 /// `W_bytes` is the UTF-8 lowercased concatenation of the 8 BIP-39 words
 /// separated by spaces, the same normalization applied on input, so the
@@ -102,9 +103,9 @@ class TransportPackage {
   static const int _versionV1 = 0x01;
   static const int _versionV2 = 0x02;
 
-  /// Version written by the encoders. Decoders accept 1 and 2. Switch to 2
-  /// in v0.3.8, one release after decoders that understand it ship (plan
-  /// Task 1.6 part B).
+  /// Version written by the backup encoders (LPR, BLK). Decoders accept 1
+  /// and 2. Long-distance pairing does not use it: it always writes
+  /// version 2.
   static const int currentEncodeVersion = _versionV1;
 
   static const int _typeLdp = 0x01;
@@ -248,9 +249,9 @@ class TransportPackage {
   /// short [labelHint] (≤32 UTF-8 bytes). The caller chooses [pakeWords]
   /// via [mintPakeWords] and communicates them to the receiver OOB.
   ///
-  /// A response to a received request passes that request's
-  /// [LdpPackage.version] as [version], so peers on an older build that
-  /// only reads version 1 can still pair. [extensions] are version 2 only.
+  /// The pairing screens use [encodeLdpRequest] and [encodeLdpResponse],
+  /// which fix version 2 and the strong-phrase tag; this general form is
+  /// for tests and fixtures. [extensions] are version 2 only.
   static Future<String> encodeLdp({
     required List<int> publicKey,
     required String labelHint,

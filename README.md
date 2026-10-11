@@ -74,7 +74,7 @@ Not available yet. iOS builds exist but are untested; TestFlight is planned.
 
 ## How it works
 
-Two phones pair in person by exchanging QR codes containing ephemeral X25519 public keys. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word confirmation phrase derived from that secret — a visual check that the pairing wasn't intercepted. Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to generate a **rotating 4 BIP-39 words every 30 seconds** (HKDF-SHA-256, domain-separated from the pair-time phrase, ±1 window tolerance for clock drift).
+Two phones pair in person by exchanging QR codes: one phone first commits to its ephemeral X25519 public key, the other shows its key, then the first reveals its key. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word confirmation phrase bound to that secret and both keys: a visual check that the pairing wasn't intercepted. Because of the commitment, an interceptor gets one blind guess at the phrase per attempt, provided the two people actually compare the phrases. (Long-distance pairing compares 8 words instead.) Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to generate a **rotating 4 BIP-39 words every 30 seconds** (HKDF-SHA-256, domain-separated from the pair-time phrase, ±1 window tolerance for clock drift).
 
 To verify a caller later: open Signet, tap the contact, ask them to read their 4 current words aloud. Type what you hear into the 4-slot input (BIP-39 autocomplete: two letters narrows to a chip you can tap). ✅ green banner = verified, ❌ red banner = not verified. On ❌ the input clears and you can retry immediately.
 
@@ -243,7 +243,7 @@ The stronger `AndroidOptions.biometric()` path (AES-GCM for both key wrap and da
 
 ### QR payload
 
-Pairing QR codes use the wire format `signet:p1:<base64url(public_key)>`, where the body is the 32-byte X25519 public key with no base64 padding. The `signet:p1:` prefix prevents a stray URL or other QR from being parsed as a pairing payload.
+In-person pairing exchanges three QR codes in the format `signet:p2:<kind>:<base64url>`: a commitment to the first phone's key (`C`), the second phone's X25519 public key (`K`), then the first phone's key and nonce (`R`), which must match the commitment. The prefix keeps a stray URL or other QR from being read as a pairing code, and a code from an older or newer Signet says which phone needs an update. Full byte layouts, including the long-distance package and both pair-time phrases, are in [`docs/WIRE_FORMAT.md`](docs/WIRE_FORMAT.md).
 
 ## Development roadmap
 

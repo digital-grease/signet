@@ -2,24 +2,130 @@
 
 This document specifies the byte layouts Signet exchanges between devices or
 with the user. It is the reference for the extension tag registry and for
-anyone writing an independent implementation. Code: `lib/core/crypto/`.
-Test vectors: `test/crypto/transport_package_test.dart` (compatibility
-fixtures and the version 2 golden vector).
+anyone writing an independent implementation. Code: `lib/core/crypto/`
+and `lib/features/pairing/pairing_code_v2.dart`. Test vectors:
+`test/crypto/transport_package_test.dart` (compatibility fixtures and the
+version 2 golden vector), `test/crypto/verification_v2_test.dart`
+(pair-time phrases, including a pinned Argon2id vector) and
+`test/features/pairing_code_v2_test.dart`.
 
-## Pairing QR: `signet:p1:`
+## In-person pairing codes: `signet:p2:`
+
+In-person pairing (and in-person rekey) is a commit-then-reveal exchange
+of three codes, after ZRTP (RFC 6189 section 4.4.1.1). One phone taps
+Start, the other Join.
 
 ```
-signet:p1:<base64url, no padding, of the 32-byte X25519 public key>
+signet:p2:<kind>:<base64url, no padding, of body>
+
+kind  body                                  shown by
+C     commitment, 32 bytes                  Start, step 1
+K     X25519 public key, 32 bytes           Join, step 2
+R     public key (32) || nonce (16)         Start, step 3
+
+commitment = SHA-256("signet/v2/commit" || public key || nonce)
 ```
 
-The receiving device rejects a key whose X25519 output with its own private
-key is all zeros (a low-order point) or equals the output of its own public
-key (a reflected key). See `docs/THREAT_MODEL.md` §3.1.
+The domain string is ASCII with no terminator; every field has a fixed
+length, so the hash input needs no length prefixes.
+
+1. Start mints a key pair and a 16-byte random nonce and shows `C`.
+2. Join, only after accepting a `C`, mints its key pair and shows `K`.
+3. Start, after accepting exactly one `K`, shows `R`. Join checks that
+   `R` opens the commitment; if not, the attempt ends with a tamper
+   message.
+4. Both phones derive the in-person pair-time phrase (below) and the two
+   people compare it side by side.
+
+A man-in-the-middle must hand Join a commitment before Join's key exists,
+and hand Start a substitute key before Start's key is revealed, so it has
+one blind guess at a 44-bit phrase per attempt.
+
+Rules:
+
+- Keys and the nonce are single-use: every abort, timeout, restart,
+  tamper error or wrong-role code ends the attempt and discards them.
+  Going back to show one's own code again re-shows the same code and
+  reveals nothing new.
+- A second, different code of a kind already accepted ends the attempt.
+  The identical code scanned again is ignored, and a damaged or foreign
+  code is reported and changes nothing.
+- There is no fallback to the old protocol. A `signet:p1:` code (Signet
+  0.3.6 and older) is refused with "the other phone needs to update
+  Signet".
+
+Decoding:
+
+- Whitespace (including no-break space and line breaks) and zero-width
+  characters are removed from the input first; messaging apps insert
+  them, and a real code never contains them.
+- The body must be canonical unpadded base64url: no `+`, `/` or `=`, and
+  re-encoding the decoded bytes must give back the same text, so each
+  code has exactly one spelling.
+- Public keys must have the top bit (bit 7 of the last byte) clear.
+  X25519 ignores that bit while the phrase transcript hashes the raw
+  bytes, so this removes the cheapest way to give the two phones
+  different transcripts for one shared secret.
+- The receiving phone also applies the low-order and reflected-key
+  checks described in `docs/THREAT_MODEL.md` section 3.1.
+- `signet:pN:` with N above 2 (canonical decimal, no leading zero), or a
+  `signet:p2:` code with an unknown upper-case kind letter, means "this
+  phone needs to update Signet". Any other damage is "incomplete or
+  damaged, try again". More than one `signet:` code in one paste is
+  refused.
+
+## Pair-time phrases
+
+Both phones derive the phrase they compare from the X25519 output (the
+32-byte shared secret) and a transcript salt that binds both public keys:
+
+```
+transcript = SHA-256("signet/v2/transcript" || key_low || key_high || nonce)
+```
+
+`key_low` and `key_high` are the two 32-byte public keys in byte order,
+so both phones compute the same value whichever key is theirs. `nonce` is
+Start's 16-byte commitment nonce in person, and empty for long distance.
+
+Words are taken from the derived bytes 11 bits at a time, most
+significant bit first, as indexes into the BIP-39 English wordlist.
+
+**In person (4 words):**
+
+```
+ikm    = HKDF-SHA-256(ikm = shared secret, salt = transcript,
+                      info = "signet/v2/verification-phrase/qr", length = 32)
+output = Argon2id(password = ikm, salt = transcript, no secret, no
+                  associated data, memory = 19456 KiB, iterations = 2,
+                  parallelism = 1, version 0x13, length = 6)
+words  = top 44 bits of output
+```
+
+The Argon2id parameters are part of the protocol: both phones must use
+the same ones.
+
+**Long distance (8 words):**
+
+```
+bytes = HKDF-SHA-256(ikm = shared secret, salt = transcript,
+                     info = "signet/v2/verification-phrase/ldp", length = 11)
+words = all 88 bits
+```
+
+**Re-check (4 words):** the "check the pairing phrase again" screen shows
+the older phrase, `HKDF-SHA-256(ikm = shared secret, salt = empty, info =
+"signet/v1/verification-phrase", length = 6)`, because the transcript is
+not stored. It can differ from the words shown at pairing time.
 
 ## Transport package: `signet:tp1:`
 
 One envelope carries three payload types: LDP (long-distance pairing), LPR
 (single-relationship backup) and BLK (bulk backup).
+
+A later scheme prefix (`signet:tpN:` with N of 2 or more, canonical
+decimal) is from a newer Signet: decoders report "needs a newer version of
+Signet" rather than "not a Signet package", and the backup file reader and
+QR scanner accept it so that message can be shown.
 
 ```
 signet:tp1:<base64url, no padding, of body>
@@ -42,8 +148,9 @@ length = 32)`.
 The header (version, payload type, timestamp) is **not** authenticated. The
 payload type is bound indirectly through the HKDF info string; the
 timestamp can be altered without detection. No decoder logic depends on the
-timestamp. Version 1 is still produced by this release's encoders and is
-decoded indefinitely.
+timestamp. Backups (LPR, BLK) are still encoded as version 1 by this build;
+version 1 is decoded indefinitely, except for long-distance pairing
+(below).
 
 ### Version 2
 
@@ -53,22 +160,21 @@ decoded indefinitely.
   version 2 package as version 1 (or the reverse) also fails.
 - Each LDP and LPR payload, and each BLK record, ends with an extension
   area (below).
-- An LDP response is encoded with the version of the request it answers,
-  so a peer on an older build can always open it.
 
-Rollout:
+Rollout (0.4.0):
 
-- v0.3.7 decodes versions 1 and 2 and still encodes version 1 everywhere.
-- From the next release, **backups** (LPR, BLK) are encoded as version 2.
-  A version 2 backup needs Signet 0.3.7 or later to restore; older builds
-  report it as "not a Signet backup". The release notes must say so.
-- **LDP requests** stay at version 1 until a version 2 field is actually
-  needed. Mirroring only protects an *older initiator*: a newer initiator
-  sending a version 2 request to a pre-0.3.7 peer would fail. LDP
-  responses always mirror the request.
+- **Long-distance pairing** requests and responses are version 2 and
+  carry the critical strong-phrase tag `0x81` (registry below). Both
+  sides decode strictly: a version 1 package, or a version 2 package
+  without the tag, is refused as "made by an older version of Signet",
+  never answered with the old 4-word phrase. Someone holding the 8 PAKE
+  words could re-encrypt a package without the tag; refusing it closes
+  that downgrade. Signet 0.3.6 cannot read version 2, so long-distance
+  pairing needs both phones on 0.4.0 or later.
+- **Backups** (LPR, BLK): decoders read versions 1 and 2.
 
 A verdict of "needs a newer Signet" can come from two places. From the
-plaintext version or type byte it is unauthenticated (anyone can set those
+scheme prefix or the plaintext version or type byte it is unauthenticated (anyone can set those
 bytes without the PAKE words), so the app shows cautious copy that warns
 against update links or files. From an unknown must-understand extension
 it comes from inside the authenticated payload, and the app uses plain
@@ -149,7 +255,11 @@ loudly instead of being repaired downstream.
 
 | Tag | Critical | Name | Payloads | Value | Since |
 |---|---|---|---|---|---|
-| (none yet) | | | | | |
+| `0x81` | yes | Strong pair-time phrase | LDP | 1 byte, the phrase scheme: `0x01` = the 8-word long-distance phrase above. A value that is not exactly one byte is a damaged package; another scheme value needs a newer Signet. | 0.4.0 |
+
+Known critical tags are per payload type. `0x81` is understood only in
+LDP; in an LPR it rejects the package, and in a BLK record it skips the
+record, as any unknown critical tag does.
 
 Allocate tags here before using them. Non-critical tags use `0x01`-`0x7F`;
 critical tags use `0x81`-`0xFF`. Tags `0x00` and `0x80` are reserved:
