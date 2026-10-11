@@ -23,6 +23,14 @@
         "androidx.test.espresso:espresso-core"
       ],
       "enabled": false
+    },
+    {
+      "description": "Hold AGP 10: it removes the old variant API (android.newDsl=false) that Flutter's Gradle plugin and our per-ABI versionCode override still use. Lift when the pinned Flutter supports the new DSL.",
+      "matchPackageNames": [
+        "com.android.application",
+        "com.android.tools.build:gradle"
+      ],
+      "allowedVersions": "<10"
     }
   ]
 }

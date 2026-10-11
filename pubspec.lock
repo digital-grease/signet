@@ -217,14 +217,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.9.0"
-  cryptography_flutter:
-    dependency: "direct main"
-    description:
-      name: cryptography_flutter
-      sha256: d1c7e7a31a072d63b27ce0537b89868f9bda9188f2b1651ae728a295762921d4
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.4"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -571,10 +563,10 @@ packages:
     dependency: transitive
     description:
       name: image_picker_android
-      sha256: d5b3e1774af29c9ab00103afb0d4614070f924d2e0057ac867ec98800114793f
+      sha256: "8a7823d5d3e884f7780829d85d92110d072bdcd9ed48e2be158d2abe91a912d4"
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.13+17"
+    version: "0.8.13+25"
   image_picker_for_web:
     dependency: transitive
     description:
@@ -1016,10 +1008,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: e8d4762b1e2e8578fc4d0fd548cebf24afd24f49719c08974df92834565e2c53
+      sha256: "1e12aafe408aa50da80edfd679a2a6bf63ba7ab37c7fa98286da459a757b3399"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.23"
+    version: "2.4.28"
   shared_preferences_foundation:
     dependency: transitive
     description:

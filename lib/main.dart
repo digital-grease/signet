@@ -37,13 +37,12 @@ Future<void> main() async {
 
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    // cryptography_flutter auto-registers itself as Cryptography.instance at
-    // plugin-init time and routes HMAC (and thus HKDF) through a platform
-    // MethodChannel on Android. We've seen that channel dispatch stall for
-    // minutes on Android-16 x86_64 emulators during pair-derivation, and the
-    // "native acceleration" wins nothing for our workload (a handful of
-    // 32-byte HMACs per pair + one per TOTP tick). Pin the pure-Dart impl.
-    // This also matches the project's pinned crypto-is-pure-Dart convention.
+    // Pin the pure-Dart implementation. cryptography_flutter (removed in
+    // v0.4.0) used to register itself here and route HMAC/HKDF through a
+    // platform MethodChannel that stalled for minutes on Android-16 x86_64
+    // emulators, for no gain on our workload (a handful of 32-byte HMACs per
+    // pair, one per TOTP tick). Kept so no future plugin can silently swap
+    // the backend; matches the crypto-is-pure-Dart convention.
     Cryptography.instance = DartCryptography.defaultInstance;
 
     // Backup files handed to the share sheet are swept when the export

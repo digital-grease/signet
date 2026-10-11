@@ -4,7 +4,10 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    // No kotlin-android: Kotlin is compiled by AGP's built-in Kotlin
+    // (android.builtInKotlin=true in gradle.properties), and AGP 9 errors if
+    // kotlin-android is applied with it on. The `kotlin {}` block below
+    // still configures it.
     id("dev.flutter.flutter-gradle-plugin")
 }
 

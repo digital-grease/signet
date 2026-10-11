@@ -84,6 +84,24 @@ the surface is allowed to change between minor releases.
   however they are separated or listed, and contacts' names after any
   name-like field.
 
+### Build
+- **Fewer permissions.** The install screen and store listing no longer
+  show microphone, storage or network-state permissions. Libraries
+  asked for them; Signet never used them. It asks only for the camera,
+  to scan pairing QR codes, and still has no internet permission. A
+  build check now fails if any other permission or a required hardware
+  feature slips in.
+- **Android Gradle Plugin 9.2, Gradle 9.8, Kotlin 2.4.** Builds compile
+  with JDK 21, the same JDK F-Droid's build server uses. Kotlin moves to
+  the Android Gradle Plugin's built-in support.
+- **Removed `cryptography_flutter`.** Signet already ran its crypto in
+  pure Dart and switched this native helper off at startup; it is no
+  longer bundled.
+- **Release pipeline hardening.** Release builds run only from version
+  tags, third-party build actions are pinned to exact versions, and the
+  Docker-based reproducible-build script was dropped (F-Droid builds
+  Signet from source itself).
+
 ## [0.3.6] — 2026-06-12
 
 Opt-in debug logging: capture and export a scrubbed activity log to
