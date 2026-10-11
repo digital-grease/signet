@@ -10,7 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../shared/widgets/secure_screen.dart';
-import 'pairing_controller.dart';
+import 'in_person_pairing_controller.dart';
 
 /// Step 3 of the pair flow: show the 4-word verification phrase derived from
 /// the shared secret and ask the user to visually confirm it matches the
@@ -47,10 +47,10 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
   }
 
   Future<void> _commit(BuildContext context, WidgetRef ref) async {
-    final pair = ref.read(pairingControllerProvider);
+    final pair = ref.read(inPersonPairingControllerProvider);
     final label = pair.label;
     final secret = pair.totpSecret;
-    final ourPublicKey = pair.ourKeyPair?.publicKey;
+    final ourPublicKey = pair.ourPublicKey;
     final theirPublicKey = pair.theirPublicKey;
     if (label == null ||
         secret == null ||
@@ -105,7 +105,7 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
       ref
           .read(debugLogProvider)
           .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
-      ref.read(pairingControllerProvider.notifier).reset();
+      ref.read(inPersonPairingControllerProvider.notifier).reset();
       ref.invalidate(relationshipsProvider);
       if (!context.mounted) return;
       final l10n = AppLocalizations.of(context);
@@ -164,7 +164,7 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
     );
     if (confirmed != true || !mounted) return;
     setState(() => _busy = true);
-    ref.read(pairingControllerProvider.notifier).reset();
+    ref.read(inPersonPairingControllerProvider.notifier).reset();
     if (!context.mounted) return;
     context.go('/');
   }
@@ -179,11 +179,25 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
   // screen (and keeps FLAG_SECURE held across the exchange → confirm
   // transition).
   @override
-  Widget build(BuildContext context) =>
-      SecureScreen(child: _buildBody(context, ref));
+  Widget build(BuildContext context) => SecureScreen(
+        // System back means "abandon this pairing": drop it (its TOTP
+        // secret would otherwise stay in the long-lived controller) and go
+        // home. Intercepted because /pair/confirm is usually the only page,
+        // where back would close the app without telling us. Ignored while
+        // a save is in progress: _commit finishes and navigates itself.
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop || _busy) return;
+            ref.read(inPersonPairingControllerProvider.notifier).reset();
+            context.go('/');
+          },
+          child: _buildBody(context, ref),
+        ),
+      );
 
   Widget _buildBody(BuildContext context, WidgetRef ref) {
-    final pair = ref.watch(pairingControllerProvider);
+    final pair = ref.watch(inPersonPairingControllerProvider);
     // While saving or leaving, the state may already be reset: keep
     // showing the phrase the user confirmed.
     final phrase = pair.phrase ?? (_busy ? _shownPhrase : null);

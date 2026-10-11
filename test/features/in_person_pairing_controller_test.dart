@@ -351,6 +351,43 @@ void main() {
       expect(start.state.step, InPersonStep.startScanKey);
     });
 
+    test('Next tapped too early: each phone can go back to the same code',
+        () async {
+      await start.ctrl.begin(InPersonRole.start);
+      final commit = start.qr;
+      start.ctrl.startNext(); // before Join scanned
+      start.ctrl.startBack();
+      expect(start.state.step, InPersonStep.startShowCommit);
+      expect(start.qr, commit); // the same commitment, nothing new
+      expect(start.keys, hasLength(1));
+
+      await join.ctrl.begin(InPersonRole.join);
+      await join.ctrl.onScan(commit);
+      final key = join.qr;
+      join.ctrl.joinNext(); // before Start scanned
+      join.ctrl.joinBack();
+      expect(join.state.step, InPersonStep.joinShowKey);
+      expect(join.qr, key);
+      expect(join.keys, hasLength(1));
+
+      // The attempt still completes normally afterwards.
+      start.ctrl.startNext();
+      await start.ctrl.onScan(key);
+      join.ctrl.joinNext();
+      await join.ctrl.onScan(start.qr);
+      await start.ctrl.startFinish();
+      expect(join.state.phrase, start.state.phrase);
+    });
+
+    test('going back is refused once the next code was accepted', () async {
+      final air = await _runToReveal(start, join);
+      start.ctrl.startBack(); // Start already accepted a key
+      expect(start.state.step, InPersonStep.startShowReveal);
+      await join.ctrl.onScan(air.reveal);
+      join.ctrl.joinBack(); // Join already accepted the reveal
+      expect(join.state.step, InPersonStep.confirm);
+    });
+
     test('Finish twice confirms once', () async {
       final air = await _runToReveal(start, join);
       await join.ctrl.onScan(air.reveal);

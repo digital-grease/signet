@@ -12,7 +12,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
 import '../../core/models/label_policy.dart';
 import '../../shared/label_input.dart';
-import '../pairing/pairing_controller.dart';
+import '../pairing/in_person_pairing_controller.dart';
 import '../settings/debug_logging_controller.dart';
 
 /// Home — "operator" layout, multi-peer capable (Phase 10.4).
@@ -363,7 +363,7 @@ class HomeScreen extends ConsumerWidget {
       case 'cr-grid':
         context.go('/inspect/cr-grid/${relationship.id}');
       case 'rekey':
-        ref.read(pairingControllerProvider.notifier).startRekey(
+        ref.read(inPersonPairingControllerProvider.notifier).startRekey(
               id: relationship.id,
               label: relationship.label,
             );

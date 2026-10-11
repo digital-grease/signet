@@ -8,10 +8,10 @@ import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/label_input.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../core/models/label_policy.dart';
-import 'pairing_controller.dart';
+import 'in_person_pairing_controller.dart';
 
 /// Step 1 of the pair flow: ask who this person is and persist the label
-/// in the [pairingControllerProvider]. The text field is autofocused so
+/// in the [inPersonPairingControllerProvider]. The text field is autofocused so
 /// the keyboard opens immediately.
 class PairStartScreen extends ConsumerStatefulWidget {
   const PairStartScreen({super.key});
@@ -29,7 +29,7 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
     super.initState();
     // Fresh flow: reset any half-finished previous attempt.
     Future<void>.microtask(
-      () => ref.read(pairingControllerProvider.notifier).reset(),
+      () => ref.read(inPersonPairingControllerProvider.notifier).reset(),
     );
   }
 
@@ -43,7 +43,7 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
           : labelRejectionText(rejection, l10n));
       return;
     }
-    ref.read(pairingControllerProvider.notifier).setLabel(label);
+    ref.read(inPersonPairingControllerProvider.notifier).setLabel(label);
     context.go('/pair/exchange');
   }
 

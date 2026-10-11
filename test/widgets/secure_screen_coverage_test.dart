@@ -28,8 +28,6 @@ const _secretBearingScreens = <String>{
 /// Feature files that reference secret material but render none of it on
 /// screen. Each needs a reason.
 const _allowlist = <String, String>{
-  'lib/features/pairing/pairing_controller.dart':
-      'state holder; renders nothing',
   'lib/features/pairing/in_person_pairing_controller.dart':
       'state holder; renders nothing',
   'lib/features/inspect/cr_grid_pdf.dart':

@@ -1268,71 +1268,287 @@ abstract class AppLocalizations {
   /// **'contact'**
   String get pairExchangeFallbackContact;
 
-  /// Intro line at the top of the exchange overview pane.
+  /// Intro on the in-person pairing role choice. Keeps the safety rule from the old exchange intro (Task 1.7a): scan the phone itself, never a photo or video call.
   ///
   /// In en, this message translates to:
-  /// **'Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.'**
-  String get pairExchangeIntro;
+  /// **'Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.'**
+  String get pairInPersonIntro;
 
-  /// Step card 1 title: display my pairing QR.
+  /// Explains the two roles above the Start and Join buttons.
   ///
   /// In en, this message translates to:
-  /// **'Show my QR'**
-  String get pairExchangeStep1Title;
+  /// **'Decide out loud who goes first. That phone taps Start. The other phone taps Join.'**
+  String get pairInPersonRoleHint;
 
-  /// Step card 1 subtitle.
+  /// Moves on after this phone's code was scanned.
   ///
   /// In en, this message translates to:
-  /// **'Let the other person scan your code.'**
-  String get pairExchangeStep1Subtitle;
+  /// **'NEXT'**
+  String get pairInPersonNextButton;
 
-  /// Step card 2 title: scan the other device's QR.
+  /// Under NEXT: the visible cue that the other phone scanned this one (a phone cannot detect it).
   ///
   /// In en, this message translates to:
-  /// **'Scan their QR'**
-  String get pairExchangeStep2Title;
+  /// **'Tap when the other phone shows its own code.'**
+  String get pairInPersonNextHint;
 
-  /// Step card 2 subtitle.
+  /// Start's last tap, after the other phone scanned the last code.
   ///
   /// In en, this message translates to:
-  /// **'Point your camera at their code.'**
-  String get pairExchangeStep2Subtitle;
+  /// **'SHOW THE WORDS'**
+  String get pairInPersonShowWordsButton;
 
-  /// Dev-only step card 3 title (paste-exchange pane, compile-time flag).
+  /// Under SHOW THE WORDS: the visible cue that the other phone scanned the last code.
   ///
   /// In en, this message translates to:
-  /// **'Paste string (dev)'**
-  String get pairExchangeStep3Title;
+  /// **'Tap when the other phone shows 4 words.'**
+  String get pairInPersonFinishHint;
 
-  /// Dev-only step card 3 subtitle.
+  /// On a scan step: go back and show this phone's code again, for when NEXT was tapped too early.
   ///
   /// In en, this message translates to:
-  /// **'Two-emulator testing only. Bypasses the camera.'**
-  String get pairExchangeStep3Subtitle;
+  /// **'Show my code again'**
+  String get pairInPersonShowAgainButton;
 
-  /// Status line under the step cards once both steps are complete.
+  /// Screen-reader label of the pairing QR image.
   ///
   /// In en, this message translates to:
-  /// **'Deriving shared secret…'**
-  String get pairExchangeDerivingStatus;
+  /// **'Pairing QR code'**
+  String get pairInPersonQrLabel;
 
-  /// Status line under the step cards while steps are incomplete.
+  /// The camera read a code this phone already used (the other phone has not moved on yet).
   ///
   /// In en, this message translates to:
-  /// **'Waiting for both steps…'**
-  String get pairExchangeWaitingStatus;
+  /// **'Already scanned. Wait for the other phone\'s next code.'**
+  String get pairCodeAlreadyScannedNotice;
 
-  /// Headline above the fullscreen pairing QR.
+  /// Fills the paste field from the clipboard in one tap.
   ///
   /// In en, this message translates to:
-  /// **'Let them scan this.'**
-  String get pairExchangeShowHeading;
+  /// **'PASTE FROM CLIPBOARD'**
+  String get pairInPersonPasteFromClipboard;
 
-  /// BigButton under the QR confirming the other side has scanned.
+  /// Snackbar after copying a pairing code. {status} is the clipboard result (commonCopiedProtected or commonCopiedPlain). Must not suggest sending the code over a messaging app.
   ///
   /// In en, this message translates to:
-  /// **'They scanned — I\'m done'**
-  String get pairExchangeShowDoneButton;
+  /// **'{status} Get it to the other phone yourself, then check the 4 words together in person.'**
+  String pairInPersonCopiedSnackbar(String status);
+
+  /// Role button: this phone shows its code first.
+  ///
+  /// In en, this message translates to:
+  /// **'START'**
+  String get pairInPersonStartButton;
+
+  /// Line under the START button.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone shows its code first.'**
+  String get pairInPersonStartSubtitle;
+
+  /// Role button: this phone scans first.
+  ///
+  /// In en, this message translates to:
+  /// **'JOIN'**
+  String get pairInPersonJoinButton;
+
+  /// Line under the JOIN button.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scans the other phone first.'**
+  String get pairInPersonJoinSubtitle;
+
+  /// Progress label above each in-person pairing step.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of 3'**
+  String pairInPersonStepLabel(int step);
+
+  /// Heading over a QR code this phone shows (steps 1 and 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Let the other phone scan this.'**
+  String get pairInPersonShowHeading;
+
+  /// Heading over the last QR code Start shows (step 3).
+  ///
+  /// In en, this message translates to:
+  /// **'Let the other phone scan this one too.'**
+  String get pairInPersonShowRevealHeading;
+
+  /// Heading over the camera (steps 1 and 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the other phone.'**
+  String get pairInPersonScanHeading;
+
+  /// Heading over the camera for Join's last scan (step 3).
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the other phone once more.'**
+  String get pairInPersonScanRevealHeading;
+
+  /// Shown while this phone makes its pairing code.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready…'**
+  String get pairInPersonPreparing;
+
+  /// Shown while the 4 words are computed (about a second).
+  ///
+  /// In en, this message translates to:
+  /// **'Working out the words…'**
+  String get pairInPersonDeriving;
+
+  /// Hint after about 20 s with nothing scanned on Join's first step.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.'**
+  String get pairInPersonJoinIdleHint;
+
+  /// Hint after about 20 s with nothing scanned on Start's scan step (two Start phones just face each other).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.'**
+  String get pairInPersonStartIdleHint;
+
+  /// Accessibility fallback: show this phone's code as text to copy instead of a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the code as text'**
+  String get pairInPersonShowAsText;
+
+  /// Switch back from the text form to the QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the QR code'**
+  String get pairInPersonShowAsQr;
+
+  /// Copies this phone's pairing code (public, not secret).
+  ///
+  /// In en, this message translates to:
+  /// **'COPY CODE'**
+  String get pairInPersonCopyCode;
+
+  /// Accessibility fallback on scan steps: type or paste the other phone's code.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a code instead'**
+  String get pairInPersonPasteInstead;
+
+  /// Heading of the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the other phone\'s code'**
+  String get pairInPersonPasteHeading;
+
+  /// Label of the paste field.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get pairInPersonPasteLabel;
+
+  /// Submit button of the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'USE THIS CODE'**
+  String get pairInPersonPasteSubmit;
+
+  /// Paste fallback submitted with an empty field.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the other phone\'s code first.'**
+  String get pairInPersonPasteEmptyError;
+
+  /// Leave the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the camera'**
+  String get pairInPersonBackToCamera;
+
+  /// Button on a failed attempt; returns to the Start/Join choice with new keys.
+  ///
+  /// In en, this message translates to:
+  /// **'START OVER'**
+  String get pairInPersonStartOverButton;
+
+  /// Shown under every failure: the other phone does not know this attempt ended.
+  ///
+  /// In en, this message translates to:
+  /// **'On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.'**
+  String get pairInPersonStartOverBoth;
+
+  /// A scanned or pasted pairing code is damaged (usually a broken paste). Must not say tampered.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is incomplete or damaged. Scan or paste it again.'**
+  String get pairCodeMalformedNotice;
+
+  /// The camera read a QR code that is not a Signet pairing code.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a Signet pairing code. Scan the code on the other phone\'s pairing screen.'**
+  String get pairCodeNotPairingNotice;
+
+  /// More than one pairing code in one paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste one code at a time.'**
+  String get pairCodeMultipleNotice;
+
+  /// The other phone showed an older-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source.
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.'**
+  String get pairCodePeerNeedsUpdateNotice;
+
+  /// The other phone showed a newer-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.'**
+  String get pairCodeThisNeedsUpdateNotice;
+
+  /// Start scanned another Start code (or its own code in a reflection). Neutral wording: must not accuse the other person.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scanned a Start code. One phone must tap Start and the other Join.'**
+  String get pairFailStartStart;
+
+  /// Join scanned another Join code before any Start code.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scanned a Join code. One phone must tap Start and the other Join.'**
+  String get pairFailJoinJoin;
+
+  /// A second, different code arrived after one was accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'A different code was scanned partway through, so this attempt ended to keep it safe.'**
+  String get pairFailSecondCode;
+
+  /// A valid code of a kind this step never accepts.
+  ///
+  /// In en, this message translates to:
+  /// **'That code belongs to a different step, so this attempt ended to keep it safe.'**
+  String get pairFailWrongCode;
+
+  /// Join's last code does not open the step-1 commitment: possible tampering. Must not reassure.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.'**
+  String get pairFailRevealMismatch;
+
+  /// The attempt's idle timer ran out.
+  ///
+  /// In en, this message translates to:
+  /// **'This took too long, so the attempt ended.'**
+  String get pairFailTimedOut;
+
+  /// Key generation or the word computation failed unexpectedly.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong on this phone.'**
+  String get pairFailInternal;
 
   /// Title of the camera-permission-denied pane.
   ///
@@ -1357,90 +1573,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apps → Signet → Permissions → Camera'**
   String get pairCameraSettingsPathAndroid;
-
-  /// Dev-only pane headline (paste string instead of camera).
-  ///
-  /// In en, this message translates to:
-  /// **'Dev: paste-exchange'**
-  String get pairExchangeDevHeading;
-
-  /// Dev-only pane instructions; references the two field labels below.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy the \"Your string\" value into the other emulator\'s paste box, then paste theirs below.'**
-  String get pairExchangeDevInstructions;
-
-  /// Label above our own pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Your string'**
-  String get pairExchangeDevYourString;
-
-  /// Copy button next to our pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy'**
-  String get pairExchangeDevCopyButton;
-
-  /// SnackBar after copying our pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Copied to clipboard'**
-  String get pairExchangeDevCopiedSnackbar;
-
-  /// Label above the input for the other device's pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Their string'**
-  String get pairExchangeDevTheirString;
-
-  /// BigButton submitting the pasted pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get pairExchangeDevSubmitButton;
-
-  /// Disabled state of the dev-pane submit button.
-  ///
-  /// In en, this message translates to:
-  /// **'Submitting…'**
-  String get pairExchangeDevSubmittingButton;
-
-  /// Validation error when submitting an empty pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste the other device’s pairing string.'**
-  String get pairExchangePasteEmptyError;
-
-  /// FormatException message from the pairing codec; shown in the scan pane and dev paste pane when the payload has the wrong prefix.
-  ///
-  /// In en, this message translates to:
-  /// **'Not a Signet pairing QR (wrong scheme / version).'**
-  String get pairingErrorNotPairingQr;
-
-  /// FormatException message from the pairing codec when the decoded key length is wrong.
-  ///
-  /// In en, this message translates to:
-  /// **'Decoded payload is {actual} bytes, expected 32.'**
-  String pairingErrorBadPayloadLength(int actual);
-
-  /// FormatException message from the pairing codec wrapping a base64 decode failure.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not decode pairing QR: {error}'**
-  String pairingErrorDecodeFailed(String error);
-
-  /// Error stored in pairing state when the scanned key has the wrong length; shown in the exchange overview error box.
-  ///
-  /// In en, this message translates to:
-  /// **'Scanned key is {actual} bytes; expected {expected}.'**
-  String pairingErrorBadKeyLength(int actual, int expected);
-
-  /// Error stored in pairing state when ECDH derivation throws; shown in the exchange overview error box.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to derive shared secret: {error}'**
-  String pairingErrorDeriveFailed(String error);
 
   /// AppBar title of the phrase-confirmation step during a fresh pair.
   ///
@@ -2261,7 +2393,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on the binding-phrase screen.
   ///
   /// In en, this message translates to:
-  /// **'These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.'**
+  /// **'These 4 words come from the secret you and {label} share. They may not be the words you checked when you first paired; that is normal. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.'**
   String bindingPhraseExplanation(String label);
 
   /// Red warning headline on the binding-phrase screen. Keep the ' //' structure.

@@ -563,38 +563,146 @@
   "pairExchangeFallbackContact": "contact",
   "@pairExchangeFallbackContact": {"description": "Fallback word in the exchange AppBar title when no label has been set yet ('Pair with contact')."},
 
-  "pairExchangeIntro": "Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.",
-  "@pairExchangeIntro": {"description": "Intro line at the top of the exchange overview pane."},
+  "pairInPersonIntro": "Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.",
+  "@pairInPersonIntro": {"description": "Intro on the in-person pairing role choice. Keeps the safety rule from the old exchange intro (Task 1.7a): scan the phone itself, never a photo or video call."},
 
-  "pairExchangeStep1Title": "Show my QR",
-  "@pairExchangeStep1Title": {"description": "Step card 1 title: display my pairing QR."},
+  "pairInPersonRoleHint": "Decide out loud who goes first. That phone taps Start. The other phone taps Join.",
+  "@pairInPersonRoleHint": {"description": "Explains the two roles above the Start and Join buttons."},
 
-  "pairExchangeStep1Subtitle": "Let the other person scan your code.",
-  "@pairExchangeStep1Subtitle": {"description": "Step card 1 subtitle."},
+  "pairInPersonNextButton": "NEXT",
+  "@pairInPersonNextButton": {"description": "Moves on after this phone's code was scanned."},
 
-  "pairExchangeStep2Title": "Scan their QR",
-  "@pairExchangeStep2Title": {"description": "Step card 2 title: scan the other device's QR."},
+  "pairInPersonNextHint": "Tap when the other phone shows its own code.",
+  "@pairInPersonNextHint": {"description": "Under NEXT: the visible cue that the other phone scanned this one (a phone cannot detect it)."},
 
-  "pairExchangeStep2Subtitle": "Point your camera at their code.",
-  "@pairExchangeStep2Subtitle": {"description": "Step card 2 subtitle."},
+  "pairInPersonShowWordsButton": "SHOW THE WORDS",
+  "@pairInPersonShowWordsButton": {"description": "Start's last tap, after the other phone scanned the last code."},
 
-  "pairExchangeStep3Title": "Paste string (dev)",
-  "@pairExchangeStep3Title": {"description": "Dev-only step card 3 title (paste-exchange pane, compile-time flag)."},
+  "pairInPersonFinishHint": "Tap when the other phone shows 4 words.",
+  "@pairInPersonFinishHint": {"description": "Under SHOW THE WORDS: the visible cue that the other phone scanned the last code."},
 
-  "pairExchangeStep3Subtitle": "Two-emulator testing only. Bypasses the camera.",
-  "@pairExchangeStep3Subtitle": {"description": "Dev-only step card 3 subtitle."},
+  "pairInPersonShowAgainButton": "Show my code again",
+  "@pairInPersonShowAgainButton": {"description": "On a scan step: go back and show this phone's code again, for when NEXT was tapped too early."},
 
-  "pairExchangeDerivingStatus": "Deriving shared secret…",
-  "@pairExchangeDerivingStatus": {"description": "Status line under the step cards once both steps are complete."},
+  "pairInPersonQrLabel": "Pairing QR code",
+  "@pairInPersonQrLabel": {"description": "Screen-reader label of the pairing QR image."},
 
-  "pairExchangeWaitingStatus": "Waiting for both steps…",
-  "@pairExchangeWaitingStatus": {"description": "Status line under the step cards while steps are incomplete."},
+  "pairCodeAlreadyScannedNotice": "Already scanned. Wait for the other phone's next code.",
+  "@pairCodeAlreadyScannedNotice": {"description": "The camera read a code this phone already used (the other phone has not moved on yet)."},
 
-  "pairExchangeShowHeading": "Let them scan this.",
-  "@pairExchangeShowHeading": {"description": "Headline above the fullscreen pairing QR."},
+  "pairInPersonPasteFromClipboard": "PASTE FROM CLIPBOARD",
+  "@pairInPersonPasteFromClipboard": {"description": "Fills the paste field from the clipboard in one tap."},
 
-  "pairExchangeShowDoneButton": "They scanned — I'm done",
-  "@pairExchangeShowDoneButton": {"description": "BigButton under the QR confirming the other side has scanned."},
+  "pairInPersonCopiedSnackbar": "{status} Get it to the other phone yourself, then check the 4 words together in person.",
+  "@pairInPersonCopiedSnackbar": {"description": "Snackbar after copying a pairing code. {status} is the clipboard result (commonCopiedProtected or commonCopiedPlain). Must not suggest sending the code over a messaging app.", "placeholders": {"status": {"type": "String"}}},
+
+  "pairInPersonStartButton": "START",
+  "@pairInPersonStartButton": {"description": "Role button: this phone shows its code first."},
+
+  "pairInPersonStartSubtitle": "This phone shows its code first.",
+  "@pairInPersonStartSubtitle": {"description": "Line under the START button."},
+
+  "pairInPersonJoinButton": "JOIN",
+  "@pairInPersonJoinButton": {"description": "Role button: this phone scans first."},
+
+  "pairInPersonJoinSubtitle": "This phone scans the other phone first.",
+  "@pairInPersonJoinSubtitle": {"description": "Line under the JOIN button."},
+
+  "pairInPersonStepLabel": "Step {step} of 3",
+  "@pairInPersonStepLabel": {"description": "Progress label above each in-person pairing step.", "placeholders": {"step": {"type": "int"}}},
+
+  "pairInPersonShowHeading": "Let the other phone scan this.",
+  "@pairInPersonShowHeading": {"description": "Heading over a QR code this phone shows (steps 1 and 2)."},
+
+  "pairInPersonShowRevealHeading": "Let the other phone scan this one too.",
+  "@pairInPersonShowRevealHeading": {"description": "Heading over the last QR code Start shows (step 3)."},
+
+  "pairInPersonScanHeading": "Scan the other phone.",
+  "@pairInPersonScanHeading": {"description": "Heading over the camera (steps 1 and 2)."},
+
+  "pairInPersonScanRevealHeading": "Scan the other phone once more.",
+  "@pairInPersonScanRevealHeading": {"description": "Heading over the camera for Join's last scan (step 3)."},
+
+  "pairInPersonPreparing": "Getting ready…",
+  "@pairInPersonPreparing": {"description": "Shown while this phone makes its pairing code."},
+
+  "pairInPersonDeriving": "Working out the words…",
+  "@pairInPersonDeriving": {"description": "Shown while the 4 words are computed (about a second)."},
+
+  "pairInPersonJoinIdleHint": "Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.",
+  "@pairInPersonJoinIdleHint": {"description": "Hint after about 20 s with nothing scanned on Join's first step."},
+
+  "pairInPersonStartIdleHint": "Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.",
+  "@pairInPersonStartIdleHint": {"description": "Hint after about 20 s with nothing scanned on Start's scan step (two Start phones just face each other)."},
+
+  "pairInPersonShowAsText": "Show the code as text",
+  "@pairInPersonShowAsText": {"description": "Accessibility fallback: show this phone's code as text to copy instead of a QR code."},
+
+  "pairInPersonShowAsQr": "Show the QR code",
+  "@pairInPersonShowAsQr": {"description": "Switch back from the text form to the QR code."},
+
+  "pairInPersonCopyCode": "COPY CODE",
+  "@pairInPersonCopyCode": {"description": "Copies this phone's pairing code (public, not secret)."},
+
+  "pairInPersonPasteInstead": "Paste a code instead",
+  "@pairInPersonPasteInstead": {"description": "Accessibility fallback on scan steps: type or paste the other phone's code."},
+
+  "pairInPersonPasteHeading": "Paste the other phone's code",
+  "@pairInPersonPasteHeading": {"description": "Heading of the paste fallback."},
+
+  "pairInPersonPasteLabel": "Code",
+  "@pairInPersonPasteLabel": {"description": "Label of the paste field."},
+
+  "pairInPersonPasteSubmit": "USE THIS CODE",
+  "@pairInPersonPasteSubmit": {"description": "Submit button of the paste fallback."},
+
+  "pairInPersonPasteEmptyError": "Paste the other phone's code first.",
+  "@pairInPersonPasteEmptyError": {"description": "Paste fallback submitted with an empty field."},
+
+  "pairInPersonBackToCamera": "Back to the camera",
+  "@pairInPersonBackToCamera": {"description": "Leave the paste fallback."},
+
+  "pairInPersonStartOverButton": "START OVER",
+  "@pairInPersonStartOverButton": {"description": "Button on a failed attempt; returns to the Start/Join choice with new keys."},
+
+  "pairInPersonStartOverBoth": "On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.",
+  "@pairInPersonStartOverBoth": {"description": "Shown under every failure: the other phone does not know this attempt ended."},
+
+  "pairCodeMalformedNotice": "This code is incomplete or damaged. Scan or paste it again.",
+  "@pairCodeMalformedNotice": {"description": "A scanned or pasted pairing code is damaged (usually a broken paste). Must not say tampered."},
+
+  "pairCodeNotPairingNotice": "That is not a Signet pairing code. Scan the code on the other phone's pairing screen.",
+  "@pairCodeNotPairingNotice": {"description": "The camera read a QR code that is not a Signet pairing code."},
+
+  "pairCodeMultipleNotice": "Paste one code at a time.",
+  "@pairCodeMultipleNotice": {"description": "More than one pairing code in one paste."},
+
+  "pairCodePeerNeedsUpdateNotice": "The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.",
+  "@pairCodePeerNeedsUpdateNotice": {"description": "The other phone showed an older-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source."},
+
+  "pairCodeThisNeedsUpdateNotice": "This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.",
+  "@pairCodeThisNeedsUpdateNotice": {"description": "The other phone showed a newer-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source."},
+
+  "pairFailStartStart": "This phone scanned a Start code. One phone must tap Start and the other Join.",
+  "@pairFailStartStart": {"description": "Start scanned another Start code (or its own code in a reflection). Neutral wording: must not accuse the other person."},
+
+  "pairFailJoinJoin": "This phone scanned a Join code. One phone must tap Start and the other Join.",
+  "@pairFailJoinJoin": {"description": "Join scanned another Join code before any Start code."},
+
+  "pairFailSecondCode": "A different code was scanned partway through, so this attempt ended to keep it safe.",
+  "@pairFailSecondCode": {"description": "A second, different code arrived after one was accepted."},
+
+  "pairFailWrongCode": "That code belongs to a different step, so this attempt ended to keep it safe.",
+  "@pairFailWrongCode": {"description": "A valid code of a kind this step never accepts."},
+
+  "pairFailRevealMismatch": "Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.",
+  "@pairFailRevealMismatch": {"description": "Join's last code does not open the step-1 commitment: possible tampering. Must not reassure."},
+
+  "pairFailTimedOut": "This took too long, so the attempt ended.",
+  "@pairFailTimedOut": {"description": "The attempt's idle timer ran out."},
+
+  "pairFailInternal": "Something went wrong on this phone.",
+  "@pairFailInternal": {"description": "Key generation or the word computation failed unexpectedly."},
 
   "pairExchangeCameraPermissionTitle": "Camera permission is turned off.",
   "@pairExchangeCameraPermissionTitle": {"description": "Title of the camera-permission-denied pane."},
@@ -607,48 +715,6 @@
 
   "pairCameraSettingsPathAndroid": "Apps → Signet → Permissions → Camera",
   "@pairCameraSettingsPathAndroid": {"description": "Android per-app camera settings path, interpolated into the permission body."},
-
-  "pairExchangeDevHeading": "Dev: paste-exchange",
-  "@pairExchangeDevHeading": {"description": "Dev-only pane headline (paste string instead of camera)."},
-
-  "pairExchangeDevInstructions": "Copy the \"Your string\" value into the other emulator's paste box, then paste theirs below.",
-  "@pairExchangeDevInstructions": {"description": "Dev-only pane instructions; references the two field labels below."},
-
-  "pairExchangeDevYourString": "Your string",
-  "@pairExchangeDevYourString": {"description": "Label above our own pairing string in the dev pane."},
-
-  "pairExchangeDevCopyButton": "Copy",
-  "@pairExchangeDevCopyButton": {"description": "Copy button next to our pairing string in the dev pane."},
-
-  "pairExchangeDevCopiedSnackbar": "Copied to clipboard",
-  "@pairExchangeDevCopiedSnackbar": {"description": "SnackBar after copying our pairing string in the dev pane."},
-
-  "pairExchangeDevTheirString": "Their string",
-  "@pairExchangeDevTheirString": {"description": "Label above the input for the other device's pairing string in the dev pane."},
-
-  "pairExchangeDevSubmitButton": "Submit",
-  "@pairExchangeDevSubmitButton": {"description": "BigButton submitting the pasted pairing string in the dev pane."},
-
-  "pairExchangeDevSubmittingButton": "Submitting…",
-  "@pairExchangeDevSubmittingButton": {"description": "Disabled state of the dev-pane submit button."},
-
-  "pairExchangePasteEmptyError": "Paste the other device’s pairing string.",
-  "@pairExchangePasteEmptyError": {"description": "Validation error when submitting an empty pairing string in the dev pane."},
-
-  "pairingErrorNotPairingQr": "Not a Signet pairing QR (wrong scheme / version).",
-  "@pairingErrorNotPairingQr": {"description": "FormatException message from the pairing codec; shown in the scan pane and dev paste pane when the payload has the wrong prefix."},
-
-  "pairingErrorBadPayloadLength": "Decoded payload is {actual} bytes, expected 32.",
-  "@pairingErrorBadPayloadLength": {"description": "FormatException message from the pairing codec when the decoded key length is wrong.", "placeholders": {"actual": {"type": "int"}}},
-
-  "pairingErrorDecodeFailed": "Could not decode pairing QR: {error}",
-  "@pairingErrorDecodeFailed": {"description": "FormatException message from the pairing codec wrapping a base64 decode failure.", "placeholders": {"error": {"type": "String"}}},
-
-  "pairingErrorBadKeyLength": "Scanned key is {actual} bytes; expected {expected}.",
-  "@pairingErrorBadKeyLength": {"description": "Error stored in pairing state when the scanned key has the wrong length; shown in the exchange overview error box.", "placeholders": {"actual": {"type": "int"}, "expected": {"type": "int"}}},
-
-  "pairingErrorDeriveFailed": "Failed to derive shared secret: {error}",
-  "@pairingErrorDeriveFailed": {"description": "Error stored in pairing state when ECDH derivation throws; shown in the exchange overview error box.", "placeholders": {"error": {"type": "String"}}},
 
   "pairConfirmTitle": "Confirm",
   "@pairConfirmTitle": {"description": "AppBar title of the phrase-confirmation step during a fresh pair."},
@@ -1058,7 +1124,7 @@
   "bindingPhraseLoadError": "Could not read your pairing.",
   "@bindingPhraseLoadError": {"description": "Error state message on the binding-phrase screen."},
 
-  "bindingPhraseExplanation": "These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.",
+  "bindingPhraseExplanation": "These 4 words come from the secret you and {label} share. They may not be the words you checked when you first paired; that is normal. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.",
   "@bindingPhraseExplanation": {"description": "Instruction above the phrase card on the binding-phrase screen.", "placeholders": {"label": {"type": "String"}}},
 
   "bindingPhraseMismatchHeader": "IF THEY DO NOT MATCH //",

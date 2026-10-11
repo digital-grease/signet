@@ -15,11 +15,11 @@ import 'package:signet/features/onboarding/onboarding_screen.dart';
 import 'package:signet/features/pairing/pair_complete_screen.dart';
 import 'package:signet/features/pairing/pair_confirm_screen.dart';
 import 'package:signet/features/pairing/pair_start_screen.dart';
-import 'package:signet/features/pairing/pairing_controller.dart';
-import 'dart:typed_data';
+import 'package:signet/features/pairing/in_person_pairing_controller.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/in_person_pairing.dart';
 
 const _cases = <(Size, double)>[
   (Size(360, 640), 1.3),
@@ -175,14 +175,12 @@ void main() {
     testWidgets('pair confirm, $tag', (tester) async {
       await setScreen(tester, size, scale);
       final container = ProviderContainer(overrides: [
+        testInPersonPhrase,
         secureStoreProvider.overrideWithValue(FakeSecureStore()),
       ]);
       addTearDown(container.dispose);
-      final ctrl = container.read(pairingControllerProvider.notifier);
-      ctrl.setLabel('Mom');
-      await ctrl.ensureOurKeyPair();
-      await ctrl.markQrShown();
-      await ctrl.recordTheirPublicKey(Uint8List.fromList(List.filled(32, 2)));
+      container.read(inPersonPairingControllerProvider.notifier).setLabel('Mom');
+      await tester.runAsync(() => driveToConfirm(container));
       await tester.pumpWidget(routed('/pair/confirm', const PairConfirmScreen(),
           container: container));
       await tester.pumpAndSettle();

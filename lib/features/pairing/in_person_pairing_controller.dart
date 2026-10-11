@@ -218,6 +218,7 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
   Uint8List? _commitment; // Join: the commitment it accepted
   Uint8List? _acceptedKey; // Start: Join's key it accepted
   Uint8List? _acceptedReveal; // Join: the reveal it accepted (key || nonce)
+  String? _commitPayload; // Start: QR-1, kept so it can be shown again
   // Start's derivation runs while QR-3 is up. If the attempt ends first,
   // the future still holds the shared secret until it completes.
   Future<_Derived?>? _startDerivation;
@@ -273,10 +274,11 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
     if (attempt != _attempt) return;
     _keyPair = keyPair;
     _nonce = nonce;
+    _commitPayload = PairingCodeV2.encodeCommit(commitment);
     state = state._next(
       role: role,
       step: InPersonStep.startShowCommit,
-      qrPayload: PairingCodeV2.encodeCommit(commitment),
+      qrPayload: _commitPayload,
     );
   }
 
@@ -297,6 +299,39 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
     state = state._next(
       role: InPersonRole.join,
       step: InPersonStep.joinScanReveal,
+    );
+  }
+
+  /// Start: back from scanning to showing QR-1, for when "Next" was tapped
+  /// before the other phone had scanned it. Shows the same commitment
+  /// again (nothing new is revealed), and only before a key is accepted.
+  void startBack() {
+    final payload = _commitPayload;
+    if (state.step != InPersonStep.startScanKey ||
+        payload == null ||
+        _acceptedKey != null) {
+      return;
+    }
+    state = state._next(
+      role: InPersonRole.start,
+      step: InPersonStep.startShowCommit,
+      qrPayload: payload,
+    );
+  }
+
+  /// Join: back from scanning to showing QR-2, for when "Next" was tapped
+  /// before the other phone had scanned it. Shows the same key again.
+  void joinBack() {
+    final keyPair = _keyPair;
+    if (state.step != InPersonStep.joinScanReveal ||
+        keyPair == null ||
+        _acceptedReveal != null) {
+      return;
+    }
+    state = state._next(
+      role: InPersonRole.join,
+      step: InPersonStep.joinShowKey,
+      qrPayload: PairingCodeV2.encodeKey(keyPair.publicKey),
     );
   }
 
@@ -587,6 +622,9 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
   /// Leave this attempt (back, cancel, "start over"). Keeps the label and
   /// rekey target so the user can try again.
   void abort() {
+    // The screen calls this from dispose, after the frame; by then the
+    // whole container may be gone (app teardown).
+    if (!ref.mounted) return;
     _dropAttempt();
     state = state._next(role: null, step: InPersonStep.chooseRole);
   }
@@ -604,6 +642,7 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
     _commitment = null;
     _acceptedKey = null;
     _acceptedReveal = null;
+    _commitPayload = null;
     _startDerivation = null;
   }
 

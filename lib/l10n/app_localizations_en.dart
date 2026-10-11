@@ -680,40 +680,169 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairExchangeFallbackContact => 'contact';
 
   @override
-  String get pairExchangeIntro =>
-      'Hold your phones together, in the same room. Each of you needs to do both of these. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.';
+  String get pairInPersonIntro =>
+      'Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.';
 
   @override
-  String get pairExchangeStep1Title => 'Show my QR';
+  String get pairInPersonRoleHint =>
+      'Decide out loud who goes first. That phone taps Start. The other phone taps Join.';
 
   @override
-  String get pairExchangeStep1Subtitle =>
-      'Let the other person scan your code.';
+  String get pairInPersonNextButton => 'NEXT';
 
   @override
-  String get pairExchangeStep2Title => 'Scan their QR';
+  String get pairInPersonNextHint =>
+      'Tap when the other phone shows its own code.';
 
   @override
-  String get pairExchangeStep2Subtitle => 'Point your camera at their code.';
+  String get pairInPersonShowWordsButton => 'SHOW THE WORDS';
 
   @override
-  String get pairExchangeStep3Title => 'Paste string (dev)';
+  String get pairInPersonFinishHint =>
+      'Tap when the other phone shows 4 words.';
 
   @override
-  String get pairExchangeStep3Subtitle =>
-      'Two-emulator testing only. Bypasses the camera.';
+  String get pairInPersonShowAgainButton => 'Show my code again';
 
   @override
-  String get pairExchangeDerivingStatus => 'Deriving shared secret…';
+  String get pairInPersonQrLabel => 'Pairing QR code';
 
   @override
-  String get pairExchangeWaitingStatus => 'Waiting for both steps…';
+  String get pairCodeAlreadyScannedNotice =>
+      'Already scanned. Wait for the other phone\'s next code.';
 
   @override
-  String get pairExchangeShowHeading => 'Let them scan this.';
+  String get pairInPersonPasteFromClipboard => 'PASTE FROM CLIPBOARD';
 
   @override
-  String get pairExchangeShowDoneButton => 'They scanned — I\'m done';
+  String pairInPersonCopiedSnackbar(String status) {
+    return '$status Get it to the other phone yourself, then check the 4 words together in person.';
+  }
+
+  @override
+  String get pairInPersonStartButton => 'START';
+
+  @override
+  String get pairInPersonStartSubtitle => 'This phone shows its code first.';
+
+  @override
+  String get pairInPersonJoinButton => 'JOIN';
+
+  @override
+  String get pairInPersonJoinSubtitle =>
+      'This phone scans the other phone first.';
+
+  @override
+  String pairInPersonStepLabel(int step) {
+    return 'Step $step of 3';
+  }
+
+  @override
+  String get pairInPersonShowHeading => 'Let the other phone scan this.';
+
+  @override
+  String get pairInPersonShowRevealHeading =>
+      'Let the other phone scan this one too.';
+
+  @override
+  String get pairInPersonScanHeading => 'Scan the other phone.';
+
+  @override
+  String get pairInPersonScanRevealHeading => 'Scan the other phone once more.';
+
+  @override
+  String get pairInPersonPreparing => 'Getting ready…';
+
+  @override
+  String get pairInPersonDeriving => 'Working out the words…';
+
+  @override
+  String get pairInPersonJoinIdleHint =>
+      'Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.';
+
+  @override
+  String get pairInPersonStartIdleHint =>
+      'Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.';
+
+  @override
+  String get pairInPersonShowAsText => 'Show the code as text';
+
+  @override
+  String get pairInPersonShowAsQr => 'Show the QR code';
+
+  @override
+  String get pairInPersonCopyCode => 'COPY CODE';
+
+  @override
+  String get pairInPersonPasteInstead => 'Paste a code instead';
+
+  @override
+  String get pairInPersonPasteHeading => 'Paste the other phone\'s code';
+
+  @override
+  String get pairInPersonPasteLabel => 'Code';
+
+  @override
+  String get pairInPersonPasteSubmit => 'USE THIS CODE';
+
+  @override
+  String get pairInPersonPasteEmptyError =>
+      'Paste the other phone\'s code first.';
+
+  @override
+  String get pairInPersonBackToCamera => 'Back to the camera';
+
+  @override
+  String get pairInPersonStartOverButton => 'START OVER';
+
+  @override
+  String get pairInPersonStartOverBoth =>
+      'On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.';
+
+  @override
+  String get pairCodeMalformedNotice =>
+      'This code is incomplete or damaged. Scan or paste it again.';
+
+  @override
+  String get pairCodeNotPairingNotice =>
+      'That is not a Signet pairing code. Scan the code on the other phone\'s pairing screen.';
+
+  @override
+  String get pairCodeMultipleNotice => 'Paste one code at a time.';
+
+  @override
+  String get pairCodePeerNeedsUpdateNotice =>
+      'The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairCodeThisNeedsUpdateNotice =>
+      'This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairFailStartStart =>
+      'This phone scanned a Start code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailJoinJoin =>
+      'This phone scanned a Join code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailSecondCode =>
+      'A different code was scanned partway through, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailWrongCode =>
+      'That code belongs to a different step, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailRevealMismatch =>
+      'Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.';
+
+  @override
+  String get pairFailTimedOut => 'This took too long, so the attempt ended.';
+
+  @override
+  String get pairFailInternal => 'Something went wrong on this phone.';
 
   @override
   String get pairExchangeCameraPermissionTitle =>
@@ -730,59 +859,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pairCameraSettingsPathAndroid =>
       'Apps → Signet → Permissions → Camera';
-
-  @override
-  String get pairExchangeDevHeading => 'Dev: paste-exchange';
-
-  @override
-  String get pairExchangeDevInstructions =>
-      'Copy the \"Your string\" value into the other emulator\'s paste box, then paste theirs below.';
-
-  @override
-  String get pairExchangeDevYourString => 'Your string';
-
-  @override
-  String get pairExchangeDevCopyButton => 'Copy';
-
-  @override
-  String get pairExchangeDevCopiedSnackbar => 'Copied to clipboard';
-
-  @override
-  String get pairExchangeDevTheirString => 'Their string';
-
-  @override
-  String get pairExchangeDevSubmitButton => 'Submit';
-
-  @override
-  String get pairExchangeDevSubmittingButton => 'Submitting…';
-
-  @override
-  String get pairExchangePasteEmptyError =>
-      'Paste the other device’s pairing string.';
-
-  @override
-  String get pairingErrorNotPairingQr =>
-      'Not a Signet pairing QR (wrong scheme / version).';
-
-  @override
-  String pairingErrorBadPayloadLength(int actual) {
-    return 'Decoded payload is $actual bytes, expected 32.';
-  }
-
-  @override
-  String pairingErrorDecodeFailed(String error) {
-    return 'Could not decode pairing QR: $error';
-  }
-
-  @override
-  String pairingErrorBadKeyLength(int actual, int expected) {
-    return 'Scanned key is $actual bytes; expected $expected.';
-  }
-
-  @override
-  String pairingErrorDeriveFailed(String error) {
-    return 'Failed to derive shared secret: $error';
-  }
 
   @override
   String get pairConfirmTitle => 'Confirm';
@@ -1330,7 +1406,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return 'These 4 words were derived the moment you and $label paired. Ask $label to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If the 4 words on both devices match, the pairing is intact.';
+    return 'These 4 words come from the secret you and $label share. They may not be the words you checked when you first paired; that is normal. Ask $label to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.';
   }
 
   @override
