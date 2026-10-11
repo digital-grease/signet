@@ -30,6 +30,8 @@ const _secretBearingScreens = <String>{
 const _allowlist = <String, String>{
   'lib/features/pairing/pairing_controller.dart':
       'state holder; renders nothing',
+  'lib/features/pairing/in_person_pairing_controller.dart':
+      'state holder; renders nothing',
   'lib/features/inspect/cr_grid_pdf.dart':
       'builds the printed card off-screen; the caller screen is wrapped',
   'lib/features/verify/word_input.dart':
