@@ -83,7 +83,7 @@ operating system's behavior, not the app's.
   screenshots, screen recording and the recent-apps thumbnail; it does
   not block accessibility services. Only enable accessibility services
   you trust.
-- Android backup is switched off for Signet (from v0.3.7). The app
+- Android backup is switched off for Signet (from v0.4.0). The app
   sets `allowBackup="false"` and data-extraction rules that exclude all
   of its data from Google cloud backup and from device-to-device
   transfer, so your pairings never leave the phone that way. They would

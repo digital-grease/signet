@@ -1,11 +1,10 @@
-v0.3.6 — opt-in debug logging.
+v0.4.0: safer pairing and two-part backups.
 
-• New: Debug Logging in Settings, off by default. If you hit a bug,
-  turn it on, reproduce it, then Export to send us a diagnostic log.
-  Your secrets are removed and your contacts' names become anonymous
-  tags like <peer-1> before anything leaves your phone. It auto-erases
-  after 24 hours, and a banner shows whenever it's recording.
-• Contact names that look like Signet data are now rejected at
-  pairing time, so a name can't be mistaken for a secret.
+• Both phones need Signet 0.4.0 or later to pair. Backups made with
+  0.4.0 need 0.4.0 or later to restore.
+• In-person pairing: one phone taps Start, the other Join.
+• Long-distance pairing checks 8 words.
+• Backups are two parts you keep apart: a PACKAGE file and 8 words.
+• Fixes to verify, restore, the clipboard and large text.
 
 Issues: https://github.com/digital-grease/signet/issues.
