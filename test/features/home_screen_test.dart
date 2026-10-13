@@ -44,6 +44,11 @@ Widget _wrap({required FakeSecureStore store}) {
         builder: (_, state) =>
             Scaffold(body: Text('EXPORT_${state.pathParameters['id']}')),
       ),
+      GoRoute(
+        path: '/inspect/cr-grid/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('CR_GRID_${state.pathParameters['id']}')),
+      ),
     ],
   );
   return ProviderScope(
@@ -139,17 +144,34 @@ void main() {
       }
     });
 
-    testWidgets('shows the OFFLINE-FREE chip and a PAIR FAB', (tester) async {
+    testWidgets('shows the WORKS OFFLINE chip and a PAIR FAB', (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: mom, secret: secret),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('OFFLINE-FREE'), findsOneWidget);
+      expect(find.text('WORKS OFFLINE'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       // FAB label is "PAIR".
       expect(find.widgetWithText(FloatingActionButton, 'PAIR'),
           findsOneWidget);
+    });
+
+    testWidgets('the chip fits at 2x text on a small phone', (tester) async {
+      const size = Size(360, 640);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MediaQuery(
+        data: const MediaQueryData(
+          size: size,
+          textScaler: TextScaler.linear(2.0),
+        ),
+        child: _wrap(store: FakeSecureStore(seeded: mom, secret: secret)),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('WORKS OFFLINE'), findsOneWidget);
     });
 
     testWidgets('tapping the FAB opens a bottom-sheet pair menu', (tester) async {
@@ -181,6 +203,39 @@ void main() {
 
       expect(find.text('VERIFY_${mom.id}'), findsOneWidget);
     });
+
+    // QA 2026-10-13: these screens used to replace the stack, so system
+    // Back on them closed the app instead of returning home.
+    for (final (name, menuItem, landing) in [
+      ('row tap', null, 'VERIFY_${mom.id}'),
+      ('Verify (video call)', 'Verify (video call)', 'VERIFY_${mom.id}'),
+      ('binding phrase', 'Show binding phrase', 'BINDING_${mom.id}'),
+      ('CR grid', 'Challenge-response grid', 'CR_GRID_${mom.id}'),
+      ('backup', 'Back up to paper', 'EXPORT_${mom.id}'),
+    ]) {
+      testWidgets('system Back from $name returns home', (tester) async {
+        await tester.pumpWidget(_wrap(
+          store: FakeSecureStore(seeded: mom, secret: secret),
+        ));
+        await tester.pumpAndSettle();
+
+        if (menuItem == null) {
+          await tester.tap(find.text('Mom'));
+        } else {
+          await tester.longPress(find.text('Mom'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(menuItem));
+        }
+        await tester.pumpAndSettle();
+        expect(find.text(landing), findsOneWidget);
+
+        final handled = await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(handled, isTrue, reason: 'Back must not fall through to the OS');
+        expect(find.text('Mom'), findsOneWidget);
+        expect(find.text(landing), findsNothing);
+      });
+    }
 
     testWidgets(
       'long-press opens a bottom sheet menu with Rename / Haptics / Binding / Unpair',

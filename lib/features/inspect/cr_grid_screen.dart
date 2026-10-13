@@ -177,10 +177,8 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
           Text(
             l10n.commonAirplaneFooter,
             style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 10,
+              fontSize: 12,
               color: scheme.onSurfaceVariant,
-              letterSpacing: 1.5,
             ),
           ),
         ],

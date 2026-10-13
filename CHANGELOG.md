@@ -69,6 +69,19 @@ versions still restore on 0.4.0.
 - **Restore can scan the backup QR code.**
 
 ### Fixed
+- In split screen, wrong words no longer leave the verify screen blank
+  above the keyboard: the red "Not verified" banner stays in view while
+  the first slot is ready for another try.
+- The phone's Back button on the verify, challenge-response grid,
+  binding phrase and backup screens now returns to your contacts instead
+  of closing Signet.
+- With large text, the "Show my 4 words" heading is readable again; a
+  label beside it had squeezed it to a few letters per line.
+- Plainer labels instead of technical ones: the line at the bottom of
+  the verify, grid and binding phrase screens says Signet works offline
+  and never connects to the internet; the status dot says "Works
+  offline"; the verify result is headed "Result" instead of an HTTP-style
+  status code; and "Show my 4 words" says "Screenshots blocked".
 - Pairing dates show your own local date, so a pairing made in the
   evening no longer shows tomorrow's date, and a contact restored from a
   backup keeps its original pairing date instead of today's.

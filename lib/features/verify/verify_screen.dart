@@ -157,6 +157,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
   bool _inputNonEmpty = false;
   // Scrolled into view when the gesture question opens (plan Task 3.4).
   final GlobalKey _judgmentPanelKey = GlobalKey();
+  final GlobalKey _resultBannerKey = GlobalKey();
 
   @override
   void initState() {
@@ -387,6 +388,26 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           ));
         }
       });
+    } else {
+      // The retry focuses slot 1, which can scroll the banner above it out
+      // of view when space is short (split screen with the keyboard up,
+      // QA 2026-10-13). Bring the banner's top back; no-op when visible.
+      // Wait two frames: slot 1 takes focus a frame after the reset and
+      // scrolls its caret into view the frame after that. The banner wins
+      // over the empty slot; typing scrolls the slot back.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await WidgetsBinding.instance.endOfFrame;
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) return;
+        final banner = _resultBannerKey.currentContext;
+        if (banner != null && banner.mounted) {
+          unawaited(Scrollable.ensureVisible(
+            banner,
+            duration: const Duration(milliseconds: 250),
+            alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          ));
+        }
+      });
     }
     // Haptic policy:
     // - Words ❌: immediate heavy — the attempt has already failed
@@ -500,17 +521,27 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     // FLAG_SECURE wraps the entire Verify screen: rotating words + the
     // collapsed Show-my-words pane + any banner text are all inside and
     // therefore covered. The flag clears when the user navigates away.
+    // Home pushes this screen, but "Verify now" after pairing replaces the
+    // stack with it. With nothing underneath, system Back goes home
+    // instead of closing the app.
+    final router = GoRouter.maybeOf(context);
     return SecureScreen(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context).verifyTitle),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.go('/'),
+      child: PopScope(
+        canPop: router == null || router.canPop(),
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) context.go('/');
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context).verifyTitle),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/'),
+            ),
           ),
-        ),
-        body: SafeArea(
-          child: _buildBody(context),
+          body: SafeArea(
+            child: _buildBody(context),
+          ),
         ),
       ),
     );
@@ -584,13 +615,16 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           ],
           const SizedBox(height: 20),
           if (showBanner) ...<Widget>[
-            _ResultBanner(
-              // A new node per attempt, so a repeated identical result is
-              // still a change for TalkBack (plan Task 5.2).
-              key: ValueKey<DateTime>(result.at),
-              result: result,
-              relationshipLabel: relationship.label,
-              relationshipId: relationship.id,
+            KeyedSubtree(
+              key: _resultBannerKey,
+              child: _ResultBanner(
+                // A new node per attempt, so a repeated identical result is
+                // still a change for TalkBack (plan Task 5.2).
+                key: ValueKey<DateTime>(result.at),
+                result: result,
+                relationshipLabel: relationship.label,
+                relationshipId: relationship.id,
+              ),
             ),
             const SizedBox(height: 20),
           ],
@@ -636,10 +670,8 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           Text(
             AppLocalizations.of(context).commonAirplaneFooter,
             style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 10,
+              fontSize: 12,
               color: scheme.onSurfaceVariant,
-              letterSpacing: 1.5,
             ),
           ),
         ],
@@ -1216,17 +1248,21 @@ class _OwnWordsSection extends StatelessWidget {
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
+                        // Under the subtitle, not beside it: at large text
+                        // sizes a badge in the Row squeezed the title to a
+                        // few letters per line.
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.verifyFlagSecureBadge,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            color: scheme.secondary,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
-                    ),
-                  ),
-                  Text(
-                    l10n.verifyFlagSecureBadge,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 10,
-                      color: scheme.secondary,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -1338,14 +1374,17 @@ class _StatusChip extends StatelessWidget {
       children: <Widget>[
         Icon(Icons.circle, size: 8, color: color),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: color,
-            letterSpacing: 1.8,
-            fontWeight: FontWeight.w700,
+        // Wraps instead of overflowing at large text sizes.
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: color,
+              letterSpacing: 1.8,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

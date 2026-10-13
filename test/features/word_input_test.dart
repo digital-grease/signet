@@ -53,6 +53,26 @@ void main() {
     );
   });
 
+  testWidgets('the keyboard stays up while the fourth word is checked',
+      (tester) async {
+    // QA 2026-10-13: closing the keyboard on the fourth word and reopening
+    // it a frame later for the retry collapsed the verify body in Android
+    // split screen. The parent's reset now decides where focus goes.
+    List<String>? submitted;
+    await tester.pumpWidget(
+      buildHost(onSubmit: (words) async => submitted = words),
+    );
+    const words = ['abandon', 'ability', 'absent', 'absorb'];
+    for (var i = 0; i < words.length; i++) {
+      await tester.tap(slotField(i));
+      await tester.enterText(slotField(i), '${words[i]} ');
+      await tester.pumpAndSettle();
+    }
+    expect(submitted, words);
+    expect(tester.widget<TextField>(slotField(3)).focusNode!.hasFocus, isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+  });
+
   testWidgets('pastes four space-separated words across all slots and submits',
       (tester) async {
     List<String>? submitted;

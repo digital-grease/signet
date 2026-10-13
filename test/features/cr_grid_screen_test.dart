@@ -61,7 +61,7 @@ void main() {
       expect(find.text('GRID // 8×8 //'), findsOneWidget);
       expect(find.textContaining('FALLBACK'), findsOneWidget);
       expect(
-        find.text('AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX'),
+        find.text('Works offline. Signet never connects to the internet.'),
         findsOneWidget,
       );
     },
