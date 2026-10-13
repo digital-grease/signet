@@ -108,7 +108,7 @@
 
   "commonRelationshipNotFound": "未找到该配对联系人。",
 
-  "commonAirplaneFooter": "离线 // 无网络 · 无遥测 · STRONGBOX",
+  "commonAirplaneFooter": "离线可用。Signet 从不连接互联网。",
 
   "homeHelpTooltip": "帮助",
 

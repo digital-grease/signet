@@ -164,10 +164,8 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
         Text(
           AppLocalizations.of(context).commonAirplaneFooter,
           style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 10,
+            fontSize: 12,
             color: scheme.onSurfaceVariant,
-            letterSpacing: 1.5,
           ),
         ),
       ],

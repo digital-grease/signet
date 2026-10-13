@@ -172,8 +172,8 @@
   "commonRelationshipNotFound": "Relationship not found.",
   "@commonRelationshipNotFound": {"description": "Error text shown (via an error wrapper) when the relationship id no longer resolves (backup export, challenge-response grid)."},
 
-  "commonAirplaneFooter": "AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX",
-  "@commonAirplaneFooter": {"description": "Monospace reassurance footer at the bottom of binding phrase, verify and cr-grid screens. Keep the ' //' structure and the · separators."},
+  "commonAirplaneFooter": "Works offline. Signet never connects to the internet.",
+  "@commonAirplaneFooter": {"description": "Plain reassurance line at the bottom of the binding phrase, verify and cr-grid screens. Must stay true on every phone: the app has no internet permission."},
 
   "homeHelpTooltip": "Help",
   "@homeHelpTooltip": {"description": "Tooltip of the help icon (question mark) in the Home AppBar."},

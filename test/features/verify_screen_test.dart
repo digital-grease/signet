@@ -324,6 +324,80 @@ void main() {
       expect(find.byType(WordsDisplay), findsNothing);
     });
 
+    testWidgets('on a short screen the NOT VERIFIED banner stays in view '
+        'while slot 1 takes focus for the retry', (tester) async {
+      // QA 2026-10-13: in split screen with the keyboard up, refocusing
+      // slot 1 scrolled the red banner above it out of view.
+      // About what the emulator's split pane left above the keyboard.
+      const size = Size(412, 915);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 620);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        wrap(
+          store: FakeSecureStore(seeded: _mom, secret: _secret),
+          child: _verifyScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _enterWords(tester, await _currentWordsFromSelf());
+      await tester.pumpAndSettle();
+
+      final title = find.text('NOT VERIFIED — BE SUSPICIOUS');
+      expect(title, findsOneWidget);
+      final top = tester.getTopLeft(title).dy;
+      final appBarBottom = tester.getBottomLeft(find.byType(AppBar)).dy;
+      expect(top, greaterThanOrEqualTo(appBarBottom));
+      expect(top, lessThan(size.height - 620));
+    });
+
+    testWidgets('system Back with nothing underneath goes home instead of '
+        'closing the app', (tester) async {
+      // "Verify now" after pairing opens verify with `go`, so there is no
+      // route below it.
+      await tester.pumpWidget(wrapWithRouter(
+        store: FakeSecureStore(seeded: _mom, secret: _secret),
+        verifyId: 'abc',
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('HOME_ROUTE'), findsNothing);
+
+      final handled = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(handled, isTrue, reason: 'Back must not fall through to the OS');
+      expect(find.text('HOME_ROUTE'), findsOneWidget);
+    });
+
+    testWidgets('Show my words title keeps its width at 2x text on a small '
+        'phone', (tester) async {
+      // QA 2026-10-13: the FLAG_SECURE badge sat beside the title and
+      // squeezed it to 2 or 3 letters per line at large text sizes.
+      const size = Size(360, 640);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: size,
+            textScaler: TextScaler.linear(2.0),
+          ),
+          child: wrap(
+            store: FakeSecureStore(seeded: _mom, secret: _secret),
+            child: _verifyScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      final title = find.text('Show my 4 words');
+      await tester.ensureVisible(title);
+      expect(tester.getSize(title).width, greaterThan(size.width / 2));
+    });
+
     testWidgets('tapping Show my words reveals the rotating 4-word display',
         (tester) async {
       await tester.pumpWidget(

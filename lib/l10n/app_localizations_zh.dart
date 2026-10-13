@@ -221,7 +221,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonRelationshipNotFound => '未找到该配对联系人。';
 
   @override
-  String get commonAirplaneFooter => '离线 // 无网络 · 无遥测 · STRONGBOX';
+  String get commonAirplaneFooter => '离线可用。Signet 从不连接互联网。';
 
   @override
   String get homeHelpTooltip => '帮助';

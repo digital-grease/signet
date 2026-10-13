@@ -415,12 +415,10 @@ class _VerifyOkMock extends StatelessWidget {
             Divider(color: scheme.outlineVariant),
             const SizedBox(height: 12),
             Text(
-              'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX',
+              'Works offline. Signet never connects to the internet.',
               style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 10,
+                fontSize: 12,
                 color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-                letterSpacing: 1.5,
               ),
             ),
           ],

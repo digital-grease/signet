@@ -353,15 +353,15 @@ class HomeScreen extends ConsumerWidget {
       case 'haptics':
         await _toggleSilentHaptics(ref, relationship);
       case 'binding':
-        context.go('/inspect/binding/${relationship.id}');
+        unawaited(context.push('/inspect/binding/${relationship.id}'));
       case 'liveness':
         // Direct-path to verify screen's video mode. Phase 14 retired
         // the standalone liveness screen; the legacy redirect at
         // /liveness/:id → /verify/:id?video=1 still exists but going
         // direct avoids a pointless extra hop.
-        context.go('/verify/${relationship.id}?video=1');
+        unawaited(context.push('/verify/${relationship.id}?video=1'));
       case 'cr-grid':
-        context.go('/inspect/cr-grid/${relationship.id}');
+        unawaited(context.push('/inspect/cr-grid/${relationship.id}'));
       case 'rekey':
         ref.read(inPersonPairingControllerProvider.notifier).startRekey(
               id: relationship.id,
@@ -369,7 +369,7 @@ class HomeScreen extends ConsumerWidget {
             );
         context.go('/pair/exchange');
       case 'export':
-        context.go('/inspect/export/${relationship.id}');
+        unawaited(context.push('/inspect/export/${relationship.id}'));
       case 'unpair':
         await _unpair(context, ref, relationship);
     }
@@ -474,7 +474,7 @@ class HomeScreen extends ConsumerWidget {
                       ? const _EmptyState()
                       : _PairedList(
                           relationships: relationships,
-                          onTapRow: (r) => context.go('/verify/${r.id}'),
+                          onTapRow: (r) => context.push('/verify/${r.id}'),
                           onLongPressRow: (r) => _openRowMenu(context, ref, r),
                         ),
                 ),

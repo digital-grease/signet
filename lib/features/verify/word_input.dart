@@ -285,9 +285,22 @@ class _WordInputState extends State<WordInput> {
   void _advanceFrom(int index) {
     if (index + 1 < widget.wordCount) {
       _focusNodes[index + 1].requestFocus();
-    } else {
+    } else if (!_willAutoSubmit()) {
       _focusNodes[index].unfocus();
     }
+    // Otherwise the keyboard stays up through the check and the parent's
+    // reset decides: slot 1 for a retry, or unfocus. Closing it here and
+    // reopening it a frame later for the retry left the body a few pixels
+    // tall in Android split screen (QA 2026-10-13).
+  }
+
+  /// Whether [_afterChange] is about to hand the words to [WordInput.onSubmit].
+  bool _willAutoSubmit() {
+    if (widget.onSubmit == null) return false;
+    final words = _collectValidWords();
+    return words != null &&
+        _confirmed.every((c) => c) &&
+        !listEquals(words, _lastSubmitted);
   }
 
   List<String>? _collectValidWords() {

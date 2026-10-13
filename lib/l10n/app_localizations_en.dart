@@ -230,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonAirplaneFooter =>
-      'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX';
+      'Works offline. Signet never connects to the internet.';
 
   @override
   String get homeHelpTooltip => 'Help';

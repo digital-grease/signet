@@ -482,10 +482,10 @@ abstract class AppLocalizations {
   /// **'Relationship not found.'**
   String get commonRelationshipNotFound;
 
-  /// Monospace reassurance footer at the bottom of binding phrase, verify and cr-grid screens. Keep the ' //' structure and the · separators.
+  /// Plain reassurance line at the bottom of the binding phrase, verify and cr-grid screens. Must stay true on every phone: the app has no internet permission.
   ///
   /// In en, this message translates to:
-  /// **'AIRPLANE // NO NETWORK · NO TELEMETRY · STRONGBOX'**
+  /// **'Works offline. Signet never connects to the internet.'**
   String get commonAirplaneFooter;
 
   /// Tooltip of the help icon (question mark) in the Home AppBar.
