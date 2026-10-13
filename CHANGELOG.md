@@ -69,6 +69,9 @@ versions still restore on 0.4.0.
 - **Restore can scan the backup QR code.**
 
 ### Fixed
+- Pairing dates show your own local date, so a pairing made in the
+  evening no longer shows tomorrow's date, and a contact restored from a
+  backup keeps its original pairing date instead of today's.
 - Pasting a whole backup file's text into Restore no longer fails with
   "not a valid Signet backup", and a package split across lines by an
   email app is joined back together.

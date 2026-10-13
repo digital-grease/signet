@@ -115,6 +115,30 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
+    // The pairing date is the phone's local date: 03:00 UTC on 16 April is
+    // still 15 April in the Americas. (Run under a non-UTC TZ, e.g.
+    // TZ=America/Chicago, for this to tell local from UTC.)
+    testWidgets('shows the pairing date in local time', (tester) async {
+      final late = Relationship(
+        id: 'ab123cdef',
+        label: 'Mom',
+        pairedAt: DateTime.utc(2026, 4, 16, 3),
+        role: PairRole.a,
+      );
+      await tester.pumpWidget(_wrap(
+        store: FakeSecureStore(seeded: late, secret: secret),
+      ));
+      await tester.pumpAndSettle();
+
+      final local = late.pairedAt.toLocal();
+      String two(int n) => n.toString().padLeft(2, '0');
+      final expected = '${local.year}-${two(local.month)}-${two(local.day)}';
+      expect(find.textContaining(expected), findsOneWidget);
+      if (local.day != 16) {
+        expect(find.textContaining('2026-04-16'), findsNothing);
+      }
+    });
+
     testWidgets('shows the OFFLINE-FREE chip and a PAIR FAB', (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: mom, secret: secret),

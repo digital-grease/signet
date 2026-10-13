@@ -29,9 +29,8 @@ import '../verify/word_input.dart';
 /// 2. **Preview + commit**: app decodes → renders a summary (label,
 ///    originally-paired date, role) → user taps COMMIT IMPORT. A fresh
 ///    `Relationship` is written to storage with a new local id but the
-///    decoded label + role + silentHaptics. `pairedAt` is stamped to
-///    now — that reflects "the rematerialization moment on this
-///    device." The peer is unaware of the restore: their device still
+///    decoded label + role + silentHaptics + `pairedAt` (the original
+///    pairing date, as in bulk restore). The peer is unaware of the restore: their device still
 ///    has the original shared secret, and subsequent verifies work
 ///    unless they've rekeyed in the interim.
 class BackupImportScreen extends ConsumerStatefulWidget {
@@ -427,10 +426,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     if (decoded == null || _busy) return;
     setState(() => _busy = true);
     try {
+      // Keeps the original pairing date, as bulk restore does (a damaged
+      // date was already reset to today by the decoder).
       final fresh = Relationship.fresh(
         label: _restoredLabel(decoded),
         role: decoded.role,
         silentHaptics: decoded.silentHaptics,
+        now: decoded.pairedAt.toUtc(),
       );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             fresh,
@@ -717,12 +719,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   bool _labelReplaced(LprPackage decoded) =>
       !LabelPolicy.isValid(LabelPolicy.clean(decoded.label));
 
+  /// A local date, matching the home screen.
   static String _formatDate(DateTime dt) {
-    final u = dt.toUtc();
+    final u = dt.toLocal();
     final y = u.year.toString().padLeft(4, '0');
     final m = u.month.toString().padLeft(2, '0');
     final d = u.day.toString().padLeft(2, '0');
-    return '$y-$m-$d UTC';
+    return '$y-$m-$d';
   }
 }
 

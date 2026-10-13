@@ -677,8 +677,10 @@ class _RelationshipRow extends StatelessWidget {
     return bytes.join(':');
   }
 
+  /// The pairing date as the phone's local date: stored in UTC, but an
+  /// evening pairing should not show tomorrow's date.
   String get _boundAt {
-    final dt = relationship.pairedAt.toUtc();
+    final dt = relationship.pairedAt.toLocal();
     final y = dt.year.toString().padLeft(4, '0');
     final mo = dt.month.toString().padLeft(2, '0');
     final d = dt.day.toString().padLeft(2, '0');

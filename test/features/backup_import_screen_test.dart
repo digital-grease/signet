@@ -121,6 +121,13 @@ void main() {
     expect(find.text('RESTORED PEER //'), findsOneWidget);
     expect(find.text('Mom'), findsOneWidget);
     expect(find.text('COMMIT IMPORT'), findsOneWidget);
+    // The original pairing date, as a local date like the home screen.
+    final shown = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .map((w) => w.text.toPlainText())
+        .join('\n');
+    expect(shown, contains('2026-02-14'));
+    expect(shown, isNot(contains('UTC')));
   });
 
   testWidgets(
@@ -151,6 +158,8 @@ void main() {
       expect(stored, hasLength(1));
       expect(stored.single.label, 'Mom');
       expect(stored.single.role, PairRole.b);
+      // The original pairing date is kept, as in bulk restore.
+      expect(stored.single.pairedAt, DateTime.utc(2026, 2, 14, 15, 3));
 
       final storedSecret =
           await store.getSharedSecretById(stored.single.id);

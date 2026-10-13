@@ -283,6 +283,25 @@ void main() {
   );
 
   // Plan Task 1.6: per-record repairs and newer-version skips are visible.
+  // Pairing dates are local dates, like the home screen. (Run under a
+  // non-UTC TZ, e.g. TZ=America/Chicago, for this to tell local from UTC.)
+  testWidgets('preview shows each pairing date in local time',
+      (tester) async {
+    final when = DateTime.utc(2026, 4, 16, 3);
+    await tester.pumpWidget(_wrap(
+      store: FakeSecureStore(),
+      decoded: _blk([_record(seed: 1, label: 'Mom', pairedAt: when)]),
+    ));
+    await tester.pumpAndSettle();
+    final local = when.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    expect(find.textContaining('${local.year}-${two(local.month)}-${two(local.day)}'),
+        findsOneWidget);
+    if (local.day != 16) {
+      expect(find.textContaining('2026-04-16'), findsNothing);
+    }
+  });
+
   testWidgets('preview tells the user about repaired and skipped records',
       (tester) async {
     final decoded = BlkPackage(

@@ -665,8 +665,9 @@ class _RecordRow extends StatelessWidget {
     );
   }
 
+  /// A local date, matching the home screen.
   static String _formatDate(DateTime dt) {
-    final u = dt.toUtc();
+    final u = dt.toLocal();
     final y = u.year.toString().padLeft(4, '0');
     final m = u.month.toString().padLeft(2, '0');
     final d = u.day.toString().padLeft(2, '0');
