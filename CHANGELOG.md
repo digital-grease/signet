@@ -5,7 +5,7 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
-## [0.4.0] — 2026-10-11
+## [0.4.0] — 2026-10-12
 
 **Both phones need Signet 0.4.0 or later to pair**, in person or at a
 distance. Signet 0.3.6 and older cannot read the new pairing codes and
