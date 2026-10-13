@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,23 +10,27 @@ import 'package:go_router/go_router.dart';
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/package_error_text.dart';
+import '../../shared/widgets/qr_scanner.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
 /// Lost-phone recovery import. Mirror of `BackupExportScreen`:
 ///
-/// 1. **Unlock**: user pastes the LPR wire (from QR scan on paper or
-///    clipboard) and enters the 8-word PAKE secret they stored
-///    separately when they created the backup.
+/// 1. **Unlock**: user loads or pastes the package (the PACKAGE file, or
+///    an old combined backup) and types or loads the 8 words they kept
+///    apart from it (on paper, or in the WORDS file). Before decrypting,
+///    a WORDS file's fingerprint is checked against the package so a
+///    mix-up between two backups is named as such.
 /// 2. **Preview + commit**: app decodes → renders a summary (label,
 ///    originally-paired date, role) → user taps COMMIT IMPORT. A fresh
 ///    `Relationship` is written to storage with a new local id but the
-///    decoded label + role + silentHaptics. `pairedAt` is stamped to
-///    now — that reflects "the rematerialization moment on this
-///    device." The peer is unaware of the restore: their device still
+///    decoded label + role + silentHaptics + `pairedAt` (the original
+///    pairing date, as in bulk restore). The peer is unaware of the restore: their device still
 ///    has the original shared secret, and subsequent verifies work
 ///    unless they've rekeyed in the interim.
 class BackupImportScreen extends ConsumerStatefulWidget {
@@ -42,6 +46,19 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   List<String> _pakeWords = const <String>[];
   int _pakeResetKey = 0;
 
+  /// Every package wire read from the last loaded or pasted text, longest
+  /// join first (see [BackupText.wireCandidates]). The field shows the
+  /// first; the rest are tried only while the field still holds it.
+  List<String> _packageCandidates = const <String>[];
+
+  /// Fingerprint from the header of a loaded WORDS file, and the words it
+  /// came with. Dropped once the user types different words.
+  String? _wordsFingerprint;
+  List<String>? _loadedWords;
+
+  /// An old single-file backup (package and words together) was loaded.
+  bool _legacyBundle = false;
+
   String? _error;
   bool _busy = false;
 
@@ -54,83 +71,263 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   }
 
   // ------------------------------------------------------------------
-  // Load from file
+  // Package and words input (file, paste, typing)
   // ------------------------------------------------------------------
 
-  Future<void> _handleLoadFromFile() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.any,
-      // Allow either plain text or arbitrary — don't filter on extension
-      // because Android's file picker is flaky about .txt vs .* filtering.
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    String contents;
-    try {
-      if (file.bytes != null) {
-        contents = String.fromCharCodes(file.bytes!);
-      } else if (file.path != null) {
-        contents = await File(file.path!).readAsString();
-      } else {
-        setState(() => _error =
-            AppLocalizations.of(context).backupImportFileReadError);
-        return;
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(
-        () => _error = AppLocalizations.of(context)
-            .backupImportFileReadFailedError(e.toString()),
-      );
+  /// Take a package from loaded or pasted text: a PACKAGE file, an old
+  /// combined backup, or a bare (possibly wrapped) wire.
+  void _applyPackageText(String text) {
+    final l10n = AppLocalizations.of(context);
+    final read = BackupText.read(text);
+    if (read.wireCandidates.isEmpty) {
+      setState(() => _error = read.pakeWords != null
+          ? l10n.backupImportIsWordsError
+          : l10n.backupImportNotBackupError);
       return;
     }
-    try {
-      final bundle = BackupBundle.parse(contents);
-      if (!mounted) return;
-      setState(() {
-        _packageController.text = bundle.wire;
-        // Bumping _pakeResetKey causes WordInput to re-run _reset, which
-        // now picks up the new prefillWords value below and populates
-        // the slots visibly (phase-1 bugfix — previously the slots
-        // rendered empty and only the internal _pakeWords cache held
-        // the loaded words, which was confusing to users who didn't
-        // realise UNLOCK would work without re-typing).
-        _pakeResetKey++;
-        _pakeWords = bundle.pakeWords;
-        _error = null;
-      });
-    } on FormatException catch (e) {
-      if (!mounted) return;
-      setState(
-        () => _error = AppLocalizations.of(context)
-            .backupImportInvalidFileError(e.message),
-      );
+    setState(() {
+      _packageCandidates = read.wireCandidates;
+      _packageController.text = read.wireCandidates.first;
+      _legacyBundle = read.isLegacyCombined;
+      // A package from a newer Signet says so now, not after the words.
+      _error = newerSignetPackageNotice(read.wireCandidates.first, l10n);
+    });
+    // An old combined backup carries its own words: they belong to this
+    // package, so they replace any words (and fingerprint) loaded before.
+    final words = read.pakeWords;
+    if (words != null) _setWords(words, null);
+  }
+
+  /// Take the 8 words from loaded or pasted text: a WORDS file, an old
+  /// combined backup, or a plain line of words.
+  void _applyWordsText(String text) {
+    final l10n = AppLocalizations.of(context);
+    final read = BackupText.read(text);
+    final words = read.pakeWords;
+    if (words == null) {
+      setState(() => _error = read.wireCandidates.isNotEmpty
+          ? l10n.backupImportIsPackageError
+          : l10n.backupImportNoWordsError);
+      return;
     }
+    _setWords(words, read.declaredFingerprint);
+    if (read.isLegacyCombined) {
+      setState(() => _legacyBundle = true);
+      if (_packageController.text.trim().isEmpty) _applyPackageText(text);
+    }
+  }
+
+  void _setWords(List<String> words, String? fingerprint) {
+    setState(() {
+      // Bumping _pakeResetKey makes WordInput re-run its reset, which
+      // fills the slots from prefillWords so the user sees the loaded
+      // words instead of empty slots.
+      _pakeResetKey++;
+      _pakeWords = words;
+      _loadedWords = words;
+      _wordsFingerprint = fingerprint;
+      _error = null;
+    });
+  }
+
+  /// Scan the package QR from a printout or another screen (plan Task
+  /// 3.9). Only transport packages are taken, of any scheme, so one from
+  /// a newer Signet gets the "update Signet" message (plan Task 1.7j).
+  Future<void> _scanPackage() async {
+    final l10n = AppLocalizations.of(context);
+    final text = await scanQrCode(
+      context,
+      accept: (t) => TransportPackage.isTransportWire(t.trim())
+          ? null
+          : l10n.scannerNotSignetPackage,
+    );
+    if (!mounted || text == null) return;
+    _applyPackageText(text);
+  }
+
+  Future<void> _pasteInto(void Function(String text) apply) async {
+    final l10n = AppLocalizations.of(context);
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final text = data?.text;
+    if (text == null || text.trim().isEmpty) {
+      setState(() => _error = l10n.backupImportClipboardEmptyError);
+      return;
+    }
+    apply(text);
+  }
+
+  /// Backups are a few hundred bytes of text; anything far larger is the
+  /// wrong file. Checked before Dart reads it, so a picked video is never
+  /// loaded into memory. (The native picker has already copied the file
+  /// into the app cache by then; [_loadFromFile] clears that copy.)
+  static const int _maxBackupFileBytes = 256 * 1024;
+
+  /// The file's bytes, or null if it is larger than [_maxBackupFileBytes].
+  /// Uses the size the picker already knows when available and otherwise
+  /// streams, stopping as soon as the cap is passed, so an oversized file
+  /// is never loaded whole.
+  static Future<List<int>?> _readCapped(PlatformFile file) async {
+    final known = file.lengthSync();
+    if (known != null && known > _maxBackupFileBytes) return null;
+    final out = <int>[];
+    await for (final chunk in file.readAsByteStream()) {
+      out.addAll(chunk);
+      if (out.length > _maxBackupFileBytes) return null;
+    }
+    return out;
+  }
+
+  Future<void> _loadFromFile(void Function(String text) apply) async {
+    try {
+      await _loadPickedFile(apply);
+    } finally {
+      // The native picker copies the chosen file into the app cache before
+      // Dart sees it, and never deletes it. For a backup that copy is half
+      // the secret (or, for an old backup, all of it) in plaintext, so
+      // remove it on every path.
+      try {
+        await FilePicker.clearTemporaryFiles();
+      } catch (_) {
+        // Best effort: the OS clears the cache eventually.
+      }
+    }
+  }
+
+  Future<void> _loadPickedFile(void Function(String text) apply) async {
+    final String contents;
+    try {
+      // Single file: pickFiles() allows multi-select by default since
+      // file_picker 12. Any type: Android's picker is flaky about .txt
+      // filtering.
+      final file = await FilePicker.pickFile(type: FileType.any);
+      if (!mounted || file == null) return;
+      final bytes = await _readCapped(file);
+      if (!mounted) return;
+      if (bytes == null) {
+        setState(() => _error =
+            AppLocalizations.of(context).backupImportFileTooLargeError);
+        return;
+      }
+      contents = decodeBackupText(bytes);
+    } catch (_) {
+      if (!mounted) return;
+      // No exception text: it can contain cache paths and is not for users.
+      setState(() =>
+          _error = AppLocalizations.of(context).backupImportFileReadError);
+      return;
+    }
+    apply(contents);
   }
 
   // ------------------------------------------------------------------
   // Unlock
   // ------------------------------------------------------------------
 
+  /// The package wires to try, longest join first. Reuses the candidates
+  /// from the last load or paste while the field still shows them;
+  /// otherwise parses whatever the user typed or pasted into the field.
+  List<String> _currentCandidates(String fieldText) {
+    final loaded = _packageCandidates;
+    if (loaded.isNotEmpty && fieldText == loaded.first) return loaded;
+    return BackupText.read(fieldText).wireCandidates;
+  }
+
+  /// Decrypt with each candidate in turn. If none works, rethrows the
+  /// error from the first (longest, most likely) candidate.
+  static Future<T> _decodeFirst<T>(
+    List<String> candidates,
+    Future<T> Function(String wire) decode,
+  ) async {
+    Object? firstError;
+    StackTrace? firstStack;
+    for (final wire in candidates) {
+      try {
+        return await decode(wire);
+      } on InvalidPakeException catch (e, st) {
+        firstError ??= e;
+        firstStack ??= st;
+      } on InvalidPackageException catch (e, st) {
+        firstError ??= e;
+        firstStack ??= st;
+      }
+    }
+    Error.throwWithStackTrace(firstError!, firstStack!);
+  }
+
   Future<void> _handleUnlock() async {
     if (_busy) return;
     final l10n = AppLocalizations.of(context);
-    final wire = _packageController.text.trim();
-    if (wire.isEmpty) {
+    final fieldText = _packageController.text.trim();
+    if (fieldText.isEmpty) {
       setState(() => _error = l10n.backupImportPasteEmptyError);
+      return;
+    }
+    var candidates = _currentCandidates(fieldText);
+    if (candidates.isEmpty) {
+      setState(() => _error = BackupText.read(fieldText).pakeWords != null
+          ? l10n.backupImportIsWordsError
+          : l10n.backupImportNotBackupError);
       return;
     }
     if (_pakeWords.length != 8) {
       setState(() => _error = l10n.backupImportWordsIncompleteError);
       return;
     }
+    // The words as they are now: the slots stay editable while this runs.
+    final pakeWords = _pakeWords;
+
+    // Match the words file to the package before decrypting, so a mix-up
+    // between two backups says so instead of "wrong words". The package
+    // fingerprint is always recomputed, never read from a header.
+    final wordsFingerprint = _wordsFingerprint;
+    if (wordsFingerprint != null) {
+      final fingerprints = <String?>[
+        for (final c in candidates) await BackupFiles.fingerprint(c),
+      ];
+      if (!mounted) return;
+      final matching = <String>[
+        for (var i = 0; i < candidates.length; i++)
+          if (fingerprints[i] == wordsFingerprint) candidates[i],
+      ];
+      final packageFingerprint =
+          fingerprints.firstWhere((f) => f != null, orElse: () => null);
+      if (matching.isEmpty && packageFingerprint != null) {
+        setState(() {
+          _error = l10n.backupImportFingerprintMismatchError(
+              packageFingerprint, wordsFingerprint);
+          // These words belong to another backup: clear them for the right
+          // ones.
+          _pakeWords = const <String>[];
+          _loadedWords = null;
+          _wordsFingerprint = null;
+          _pakeResetKey++;
+        });
+        return;
+      }
+      if (matching.isNotEmpty) candidates = matching;
+    }
 
     // Payload-type dispatch — branch between single-relationship (LPR) and
     // bulk (BLK) restores before attempting decryption. Reject LDP (pairing
     // invitations are not backups) and any unknown / malformed wire with
-    // a user-facing error.
-    final payloadType = TransportPackage.peekPayloadType(wire);
+    // a user-facing error. Candidates differ only in how many wrapped
+    // lines were joined, so they share the header; a join that took in a
+    // line too many may not parse at all and is dropped here.
+    TransportPayloadType? payloadType;
+    final parseable = <String>[];
+    try {
+      for (final c in candidates) {
+        final type = TransportPackage.peekPayloadType(c);
+        if (type == null) continue;
+        payloadType ??= type;
+        parseable.add(c);
+      }
+    } on UnsupportedPackageVersionException catch (e) {
+      setState(() => _error = packageErrorText(e, l10n));
+      return;
+    }
+    candidates = parseable;
     if (payloadType == null) {
       setState(() => _error = l10n.backupImportNotBackupError);
       return;
@@ -147,9 +344,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
 
     if (payloadType == TransportPayloadType.blk) {
       try {
-        final decoded = await TransportPackage.decodeBlk(
-          wire,
-          pakeWords: _pakeWords,
+        final decoded = await _decodeFirst(
+          candidates,
+          (wire) => TransportPackage.decodeBlk(wire, pakeWords: pakeWords),
         );
         if (!mounted) return;
         // Hand off to the bulk-import flow — the screen owns preview,
@@ -171,7 +368,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } on InvalidPackageException catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = e.message;
+          _error = packageErrorText(e, AppLocalizations.of(context));
           _busy = false;
         });
       } catch (e) {
@@ -187,9 +384,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
 
     // LPR — single-relationship restore, existing flow.
     try {
-      final decoded = await TransportPackage.decodeLpr(
-        wire,
-        pakeWords: _pakeWords,
+      final decoded = await _decodeFirst(
+        candidates,
+        (wire) => TransportPackage.decodeLpr(wire, pakeWords: pakeWords),
       );
       if (!mounted) return;
       setState(() {
@@ -207,7 +404,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = packageErrorText(e, AppLocalizations.of(context));
         _busy = false;
       });
     } catch (e) {
@@ -229,10 +426,13 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     if (decoded == null || _busy) return;
     setState(() => _busy = true);
     try {
+      // Keeps the original pairing date, as bulk restore does (a damaged
+      // date was already reset to today by the decoder).
       final fresh = Relationship.fresh(
-        label: decoded.label,
+        label: _restoredLabel(decoded),
         role: decoded.role,
         silentHaptics: decoded.silentHaptics,
+        now: decoded.pairedAt.toUtc(),
       );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             fresh,
@@ -282,19 +482,17 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
   Widget _buildUnlockPane() {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final muted = TextStyle(
+      fontSize: 13,
+      color: scheme.onSurfaceVariant,
+      height: 1.4,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _SectionHeader(l10n.commonBackupPackageHeader),
+        _SectionHeader(l10n.backupImportPackageHeader),
         const SizedBox(height: 6),
-        Text(
-          l10n.backupImportPasteInstruction,
-          style: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
+        Text(l10n.backupImportPasteInstruction, style: muted),
         const SizedBox(height: 10),
         TextField(
           controller: _packageController,
@@ -303,55 +501,77 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
           style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
           decoration: const InputDecoration(hintText: 'signet:tp1:...'),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        Wrap(
+          alignment: WrapAlignment.end,
           children: <Widget>[
             TextButton.icon(
-              onPressed: () async {
-                final data = await Clipboard.getData(Clipboard.kTextPlain);
-                if (!mounted) return;
-                final text = data?.text;
-                if (text == null || text.trim().isEmpty) {
-                  setState(
-                    () => _error = l10n.backupImportClipboardEmptyError,
-                  );
-                  return;
-                }
-                setState(() {
-                  _packageController.text = text;
-                  _error = null;
-                });
-              },
+              onPressed: () => _pasteInto(_applyPackageText),
               icon: const Icon(Icons.content_paste),
               label: Text(l10n.commonPasteFromClipboard),
             ),
             TextButton.icon(
-              onPressed: _handleLoadFromFile,
+              onPressed: () => _loadFromFile(_applyPackageText),
               icon: const Icon(Icons.folder_open),
-              label: Text(l10n.backupImportLoadFromFileButton),
+              label: Text(l10n.backupImportLoadPackageFile),
+            ),
+            TextButton.icon(
+              onPressed: _scanPackage,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(l10n.backupImportScanQr),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        _SectionHeader(l10n.commonPakeSecretHeader),
-        const SizedBox(height: 6),
-        Text(
-          l10n.backupImportWordsInstruction,
-          style: TextStyle(
-            fontSize: 12,
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
+        if (_legacyBundle) ...<Widget>[
+          const SizedBox(height: 8),
+          Semantics(
+            liveRegion: true,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                border:
+                    Border(left: BorderSide(color: scheme.secondary, width: 4)),
+              ),
+              child: Text(
+                l10n.backupImportLegacyNotice,
+                style: TextStyle(color: scheme.onSurface, height: 1.4),
+              ),
+            ),
           ),
-        ),
+        ],
+        const SizedBox(height: 20),
+        _SectionHeader(l10n.backupImportWordsHeader),
+        const SizedBox(height: 6),
+        Text(l10n.backupImportWordsInstruction, style: muted),
         const SizedBox(height: 12),
         WordInput(
           wordCount: 8,
           autofocus: false,
           resetKey: _pakeResetKey,
           prefillWords: _pakeWords.length == 8 ? _pakeWords : null,
-          onSubmit: (words) async {
-            setState(() => _pakeWords = words);
+          onWordsChanged: (words) {
+            setState(() {
+              _pakeWords = words ?? const <String>[];
+              // A loaded file's fingerprint only describes the words it
+              // came with.
+              if (!listEquals(words, _loadedWords)) _wordsFingerprint = null;
+            });
           },
+        ),
+        Wrap(
+          alignment: WrapAlignment.end,
+          children: <Widget>[
+            TextButton.icon(
+              onPressed: () => _pasteInto(_applyWordsText),
+              icon: const Icon(Icons.content_paste),
+              label: Text(l10n.commonPasteFromClipboard),
+            ),
+            TextButton.icon(
+              onPressed: () => _loadFromFile(_applyWordsText),
+              icon: const Icon(Icons.folder_open),
+              label: Text(l10n.backupImportLoadWordsFile),
+            ),
+          ],
         ),
         if (_error != null) ...<Widget>[
           const SizedBox(height: 12),
@@ -387,6 +607,26 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       children: <Widget>[
         _SectionHeader(l10n.backupImportRestoredPeerHeader),
         const SizedBox(height: 10),
+        // Informational, not an alarm: the secret is intact. A live region
+        // so TalkBack announces it when the commit pane appears.
+        for (final notice in <String>[
+          if (_labelReplaced(decoded))
+            l10n.backupImportReplacedLabelNotice(_restoredLabel(decoded))
+          else if (decoded.labelRepaired ||
+              LabelPolicy.clean(decoded.label) != decoded.label)
+            l10n.backupImportRepairedLabelNotice,
+          if (decoded.pairedAtRepaired) l10n.backupImportRepairedDateNotice,
+          if (_legacyBundle) l10n.backupImportLegacyNotice,
+        ]) ...<Widget>[
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              notice,
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Container(
           padding: const EdgeInsets.all(16),
           color: scheme.surfaceContainerHighest,
@@ -394,7 +634,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                decoded.label,
+                _restoredLabel(decoded),
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
@@ -442,7 +682,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                l10n.backupImportWhatItDoesBody(decoded.label),
+                l10n.backupImportWhatItDoesBody(_restoredLabel(decoded)),
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onSurface,
@@ -470,12 +710,22 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     );
   }
 
+  /// The name the contact is restored under (plan Task 3.6, S12): the
+  /// saved one with invisible characters removed, or a fallback if it is
+  /// unusable.
+  String _restoredLabel(LprPackage decoded) => LabelPolicy.forRestore(
+      decoded.label, AppLocalizations.of(context).labelRestoredFallback);
+
+  bool _labelReplaced(LprPackage decoded) =>
+      !LabelPolicy.isValid(LabelPolicy.clean(decoded.label));
+
+  /// A local date, matching the home screen.
   static String _formatDate(DateTime dt) {
-    final u = dt.toUtc();
+    final u = dt.toLocal();
     final y = u.year.toString().padLeft(4, '0');
     final m = u.month.toString().padLeft(2, '0');
     final d = u.day.toString().padLeft(2, '0');
-    return '$y-$m-$d UTC';
+    return '$y-$m-$d';
   }
 }
 

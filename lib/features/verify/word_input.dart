@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../core/crypto/bip39_english_wordlist.dart';
 import '../../l10n/app_localizations.dart';
 
-/// 4-slot BIP-39 word input used on the Verify screen.
+/// Multi-slot BIP-39 word input: 4 slots on the Verify screen, 8 for the
+/// PAKE words on the restore and long-distance pairing screens.
 ///
 /// Each slot shows a single-line text field. Once the user types 2+
 /// characters, a horizontal row of up to 6 matching wordlist chips appears.
@@ -15,23 +17,46 @@ import '../../l10n/app_localizations.dart';
 /// into exactly [wordCount] wordlist entries, all slots are filled in
 /// one stroke.
 ///
-/// When all [wordCount] slots hold valid wordlist entries the widget fires
-/// [onSubmit] exactly once. The parent decides what "once" means; after an
-/// async result comes back, it can either leave the filled entries in place
-/// (on ✅) or bump [resetKey] to clear every slot and refocus slot 0 (on ❌).
+/// Confirmation (plan Task 3.3): 49 wordlist words are also the start of
+/// longer ones ("act" / "action", "car" / "carbon"). A slot counts as
+/// confirmed when it holds a word that cannot be the start of another, or
+/// when the user picked it from a chip, pressed the keyboard's next/done
+/// key on it, pasted it, or it was prefilled. A typed prefix word stays
+/// unconfirmed and keeps its chips (the word itself first), so typing
+/// "act" on the way to "action" never fires a check.
+///
+/// Two ways out:
+/// - [onSubmit] (Verify): fired automatically after any edit that leaves
+///   every slot valid and confirmed, or by the large [submitLabel] button
+///   as soon as every slot is valid. The parent bumps [resetKey] after
+///   each result to clear the slots.
+/// - [onWordsChanged] (PAKE words): reports the current valid words, or
+///   null, after every edit, so the parent always unlocks with what is on
+///   screen.
 class WordInput extends StatefulWidget {
   const WordInput({
     super.key,
-    required this.onSubmit,
+    this.onSubmit,
+    this.onWordsChanged,
+    this.submitLabel,
     this.wordCount = 4,
     this.enabled = true,
     this.resetKey = 0,
     this.autofocus = true,
     this.prefillWords,
+    this.onTypingChanged,
+    this.focusOnReset = true,
   });
 
   final int wordCount;
-  final Future<void> Function(List<String> words) onSubmit;
+  final Future<void> Function(List<String> words)? onSubmit;
+
+  /// Called after every edit with the words when every slot holds a valid
+  /// word, otherwise null.
+  final ValueChanged<List<String>?>? onWordsChanged;
+
+  /// Label of the submit button, shown when non-null and [onSubmit] is set.
+  final String? submitLabel;
   final bool enabled;
 
   /// Incrementing this integer resets the slots and refocuses the first.
@@ -43,20 +68,44 @@ class WordInput extends StatefulWidget {
   /// length matches [wordCount], the slots render these values on first
   /// build and on every [resetKey] bump. Used by the "Load from file"
   /// path on the backup-import screen so users see the PAKE words
-  /// that came out of the bundle instead of empty slots with silently
-  /// cached state behind them.
+  /// that came out of the file instead of empty slots.
   final List<String>? prefillWords;
+
+  /// Called with true when the first character goes into an empty input,
+  /// and with false when every slot is empty again. Video-mode verify
+  /// freezes its WATCH FOR gesture while the user types.
+  final ValueChanged<bool>? onTypingChanged;
+
+  /// Whether a [resetKey] bump puts the cursor back in the first slot.
+  /// False dismisses the keyboard instead: on Verify, after a pass, or
+  /// while the gesture question is open, a keyboard would cover it.
+  final bool focusOnReset;
 
   @override
   State<WordInput> createState() => _WordInputState();
 }
 
+/// Wordlist words that are also the start of a longer wordlist word.
+final Set<String> _prefixWords = () {
+  final words = bip39EnglishWordlist.toSet();
+  return <String>{
+    for (final w in bip39EnglishWordlist)
+      for (var n = 3; n < w.length; n++)
+        if (words.contains(w.substring(0, n))) w.substring(0, n),
+  };
+}();
+
 class _WordInputState extends State<WordInput> {
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
+  late final List<bool> _confirmed;
   late final Set<String> _wordSet;
   bool _submitting = false;
-  int? _lastSubmittedOnResetKey;
+  bool _typing = false;
+
+  /// The words last handed to [WordInput.onSubmit] since the last reset,
+  /// so an edit that changes nothing does not check the same words twice.
+  List<String>? _lastSubmitted;
 
   @override
   void initState() {
@@ -69,6 +118,7 @@ class _WordInputState extends State<WordInput> {
       widget.wordCount,
       (_) => FocusNode(),
     );
+    _confirmed = List<bool>.filled(widget.wordCount, false);
     _wordSet = bip39EnglishWordlist.toSet();
     final didPrefill = _applyPrefill();
     // Don't steal focus into slot 0 when the slots are already populated;
@@ -82,7 +132,7 @@ class _WordInputState extends State<WordInput> {
     }
     if (didPrefill) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_maybeSubmit());
+        if (mounted) _afterChange();
       });
     }
   }
@@ -106,20 +156,30 @@ class _WordInputState extends State<WordInput> {
     super.dispose();
   }
 
-  void _reset() {
+  /// [fromParent]: a [WordInput.resetKey] bump, which re-applies
+  /// [WordInput.prefillWords]. The Clear all button empties the slots.
+  void _reset({bool fromParent = true}) {
     setState(() {
       for (final c in _controllers) {
         c.clear();
       }
+      _confirmed.fillRange(0, _confirmed.length, false);
       _submitting = false;
+      _lastSubmitted = null;
     });
-    final didPrefill = _applyPrefill();
+    final didPrefill = fromParent && _applyPrefill();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (didPrefill) {
-        unawaited(_maybeSubmit());
-      } else {
+      // After the frame: _reset runs inside didUpdateWidget, where the
+      // parent cannot setState.
+      _afterChange();
+      if (didPrefill) return;
+      if (widget.focusOnReset) {
         _focusNodes[0].requestFocus();
+      } else {
+        for (final node in _focusNodes) {
+          node.unfocus();
+        }
       }
     });
   }
@@ -132,6 +192,7 @@ class _WordInputState extends State<WordInput> {
     if (prefill == null || prefill.length != widget.wordCount) return false;
     for (var i = 0; i < widget.wordCount; i++) {
       _controllers[i].text = prefill[i];
+      _confirmed[i] = true;
     }
     return true;
   }
@@ -155,7 +216,7 @@ class _WordInputState extends State<WordInput> {
     return RegExp(r'[\s\-]').hasMatch(trimmed);
   }
 
-  bool _tryDistributePaste(int slotIndex, String pasted) {
+  bool _tryDistributePaste(String pasted) {
     final parts = pasted
         .toLowerCase()
         .split(RegExp(r'[\s\-]+'))
@@ -165,42 +226,60 @@ class _WordInputState extends State<WordInput> {
     if (!parts.every(_wordSet.contains)) return false;
     for (var i = 0; i < widget.wordCount; i++) {
       _controllers[i].text = parts[i];
+      _confirmed[i] = true;
     }
     _focusNodes[widget.wordCount - 1].unfocus();
-    _maybeSubmit();
     return true;
   }
 
   void _onSlotChanged(int index, String value) {
     if (_submitting) return;
-    if (_looksLikePaste(value)) {
-      if (_tryDistributePaste(index, value)) {
-        setState(() {});
-        return;
-      }
+    if (_looksLikePaste(value) && _tryDistributePaste(value)) {
+      setState(() {});
+      _afterChange();
+      return;
     }
     final trimmed = value.trim().toLowerCase();
+    // A space typed after a real word means "done with this word", like
+    // the keyboard's next key: it confirms even a prefix word ("act ").
+    if (value.endsWith(' ') && _wordSet.contains(trimmed)) {
+      _controllers[index].value = TextEditingValue(
+        text: trimmed,
+        selection: TextSelection.collapsed(offset: trimmed.length),
+      );
+      _confirmSlot(index, trimmed);
+      return;
+    }
     if (trimmed != value) {
       _controllers[index].value = TextEditingValue(
         text: trimmed,
         selection: TextSelection.collapsed(offset: trimmed.length),
       );
     }
-    setState(() {});
-    // Exact-match auto-advance: if the user types a full wordlist entry
-    // and there's no longer word starting with it, jump to next slot.
-    if (_wordSet.contains(trimmed) &&
-        !bip39EnglishWordlist.any(
-          (w) => w.length > trimmed.length && w.startsWith(trimmed),
-        )) {
-      _advanceFrom(index);
-    }
+    // A complete word that cannot be the start of a longer one is
+    // unambiguous: confirm it and move on.
+    final unambiguous =
+        _wordSet.contains(trimmed) && !_prefixWords.contains(trimmed);
+    setState(() => _confirmed[index] = unambiguous);
+    if (unambiguous) _advanceFrom(index);
+    _afterChange();
   }
 
-  void _commitChip(int index, String word) {
-    _controllers[index].text = word;
-    setState(() {});
+  /// A chip tap or the keyboard's next/done key on a valid word confirms
+  /// it, prefix word or not.
+  void _confirmSlot(int index, String word) {
+    if (_submitting) return;
+    if (_controllers[index].text != word) _controllers[index].text = word;
+    setState(() => _confirmed[index] = _wordSet.contains(word));
     _advanceFrom(index);
+    _afterChange();
+  }
+
+  void _clearSlot(int index) {
+    _controllers[index].clear();
+    setState(() => _confirmed[index] = false);
+    _focusNodes[index].requestFocus();
+    _afterChange();
   }
 
   void _advanceFrom(int index) {
@@ -208,7 +287,6 @@ class _WordInputState extends State<WordInput> {
       _focusNodes[index + 1].requestFocus();
     } else {
       _focusNodes[index].unfocus();
-      _maybeSubmit();
     }
   }
 
@@ -222,15 +300,30 @@ class _WordInputState extends State<WordInput> {
     return words;
   }
 
-  Future<void> _maybeSubmit() async {
-    if (_submitting) return;
+  /// Runs after every edit: report state to the parent and auto-submit when
+  /// every slot holds a confirmed word that has not been checked yet.
+  void _afterChange() {
+    final typing = _controllers.any((c) => c.text.isNotEmpty);
+    if (typing != _typing) {
+      _typing = typing;
+      widget.onTypingChanged?.call(typing);
+    }
     final words = _collectValidWords();
-    if (words == null) return;
-    if (_lastSubmittedOnResetKey == widget.resetKey) return;
-    _lastSubmittedOnResetKey = widget.resetKey;
+    widget.onWordsChanged?.call(words);
+    if (words != null &&
+        _confirmed.every((c) => c) &&
+        !listEquals(words, _lastSubmitted)) {
+      unawaited(_submit(words));
+    }
+  }
+
+  Future<void> _submit(List<String> words) async {
+    final onSubmit = widget.onSubmit;
+    if (onSubmit == null || _submitting) return;
+    _lastSubmitted = words;
     setState(() => _submitting = true);
     try {
-      await widget.onSubmit(words);
+      await onSubmit(words);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -239,31 +332,46 @@ class _WordInputState extends State<WordInput> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
+    final words = _collectValidWords();
+    final submitLabel = widget.submitLabel;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         for (var i = 0; i < widget.wordCount; i++) ...<Widget>[
           _slotField(context, i),
-          if (_controllers[i].text.length >= 2 &&
-              !_wordSet.contains(_controllers[i].text.trim().toLowerCase()))
+          if (_showsChips(i))
             _suggestionRow(i, _matchesFor(_controllers[i].text)),
           const SizedBox(height: 12),
         ],
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed:
-                _submitting || !widget.enabled ? null : _reset,
+            onPressed: _submitting || !widget.enabled
+                ? null
+                : () => _reset(fromParent: false),
             icon: const Icon(Icons.clear),
-            label: Text(AppLocalizations.of(context).wordInputClearAllButton),
+            label: Text(l10n.wordInputClearAllButton),
           ),
         ),
+        if (submitLabel != null && widget.onSubmit != null) ...<Widget>[
+          const SizedBox(height: 4),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+            ),
+            onPressed: words == null || _submitting || !widget.enabled
+                ? null
+                : () => unawaited(_submit(words)),
+            child: Text(submitLabel),
+          ),
+        ],
         if (_submitting)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Center(
               child: Text(
-                AppLocalizations.of(context).wordInputChecking,
+                l10n.wordInputChecking,
                 style: textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -272,6 +380,15 @@ class _WordInputState extends State<WordInput> {
           ),
       ],
     );
+  }
+
+  /// Chips show while a slot holds 2+ characters that are not yet a
+  /// confirmed word: a partial word, or a prefix word such as "act".
+  bool _showsChips(int index) {
+    final text = _controllers[index].text.trim().toLowerCase();
+    if (text.length < 2) return false;
+    if (!_wordSet.contains(text)) return true;
+    return !_confirmed[index];
   }
 
   Widget _slotField(BuildContext context, int index) {
@@ -316,15 +433,18 @@ class _WordInputState extends State<WordInput> {
               : IconButton(
                   tooltip: AppLocalizations.of(context).wordInputClearTooltip,
                   icon: const Icon(Icons.close),
-                  onPressed: () {
-                    controller.clear();
-                    setState(() {});
-                    _focusNodes[index].requestFocus();
-                  },
+                  onPressed: () => _clearSlot(index),
                 ),
         ),
         onChanged: (v) => _onSlotChanged(index, v),
-        onSubmitted: (_) => _advanceFrom(index),
+        onSubmitted: (v) {
+          final word = v.trim().toLowerCase();
+          if (_wordSet.contains(word)) {
+            _confirmSlot(index, word);
+          } else {
+            _advanceFrom(index);
+          }
+        },
       ),
     );
   }
@@ -342,7 +462,7 @@ class _WordInputState extends State<WordInput> {
                 padding: const EdgeInsets.only(right: 8),
                 child: ActionChip(
                   label: Text(w),
-                  onPressed: () => _commitChip(slot, w),
+                  onPressed: () => _confirmSlot(slot, w),
                 ),
               ),
           ],

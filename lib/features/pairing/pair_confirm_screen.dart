@@ -7,21 +7,50 @@ import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/big_button.dart';
-import 'pairing_controller.dart';
+import '../../shared/widgets/secure_screen.dart';
+import 'in_person_pairing_controller.dart';
 
 /// Step 3 of the pair flow: show the 4-word verification phrase derived from
 /// the shared secret and ask the user to visually confirm it matches the
 /// phrase on the other device. A mismatch means either a bad scan or a
 /// man-in-the-middle — we abort and clear state rather than save.
-class PairConfirmScreen extends ConsumerWidget {
+///
+/// Stateful (plan Task 3.5): [_busy] blocks a second "It matches" tap
+/// while the first is saving (P3, duplicate relationships), and keeps the
+/// screen from bouncing home when the pairing state is reset right after
+/// the save, while this route is still on screen during its exit
+/// transition (P2, the bounce used to win over the move to the practice
+/// screen).
+class PairConfirmScreen extends ConsumerStatefulWidget {
   const PairConfirmScreen({super.key});
 
+  @override
+  ConsumerState<PairConfirmScreen> createState() => _PairConfirmScreenState();
+}
+
+class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
+  bool _busy = false;
+  bool _bounced = false;
+
+  /// The phrase last shown, kept on screen while the route animates out
+  /// after the pairing state is reset.
+  List<String>? _shownPhrase;
+
   Future<void> _onMatch(BuildContext context, WidgetRef ref) async {
-    final pair = ref.read(pairingControllerProvider);
+    if (_busy) return;
+    // Stays busy: every way out of _commit leaves this screen (to the
+    // practice screen, or home with a message).
+    setState(() => _busy = true);
+    await _commit(context, ref);
+  }
+
+  Future<void> _commit(BuildContext context, WidgetRef ref) async {
+    final pair = ref.read(inPersonPairingControllerProvider);
     final label = pair.label;
     final secret = pair.totpSecret;
-    final ourPublicKey = pair.ourKeyPair?.publicKey;
+    final ourPublicKey = pair.ourPublicKey;
     final theirPublicKey = pair.theirPublicKey;
     if (label == null ||
         secret == null ||
@@ -61,7 +90,14 @@ class PairConfirmScreen extends ConsumerWidget {
           role: role,
           pairedAt: DateTime.now().toUtc(),
         );
-        await store.saveRelationshipV2(relationship, sharedSecret: secret);
+        // Keep the old secret for a while: if the other phone does not
+        // finish the rekey, its words can then be recognised as "old
+        // pairing" instead of looking like a stranger's (plan Task 3.10).
+        await store.saveRelationshipV2(
+          relationship,
+          sharedSecret: secret,
+          keepPrevious: true,
+        );
       } else {
         relationship = Relationship.fresh(label: label, role: role);
         await store.saveRelationshipV2(relationship, sharedSecret: secret);
@@ -69,7 +105,7 @@ class PairConfirmScreen extends ConsumerWidget {
       ref
           .read(debugLogProvider)
           .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
-      ref.read(pairingControllerProvider.notifier).reset();
+      ref.read(inPersonPairingControllerProvider.notifier).reset();
       ref.invalidate(relationshipsProvider);
       if (!context.mounted) return;
       final l10n = AppLocalizations.of(context);
@@ -88,17 +124,26 @@ class PairConfirmScreen extends ConsumerWidget {
         );
         context.go('/pair/complete/${relationship.id}');
       }
-    } catch (error) {
+    } catch (_) {
+      // Event only: the error text could carry key or label material.
+      ref.read(debugLogProvider).log(BreadcrumbEvent.pairingCommitFailed);
       if (!context.mounted) return;
+      // The save is journaled (SecureStore.saveRelationshipV2): if it got
+      // that far, it completes on the next launch. Tell the user how to
+      // check instead of showing a raw error that implies "pair again".
+      // A rekey needs different advice: the contact is listed either way.
+      final l10n = AppLocalizations.of(context);
       await _goBackWithError(
         context,
-        AppLocalizations.of(context)
-            .commonSaveFailedError(error.toString()),
+        pair.isRekey
+            ? l10n.pairConfirmRekeySaveIncompleteError
+            : l10n.pairConfirmSaveIncompleteError,
       );
     }
   }
 
   Future<void> _onMismatch(BuildContext context, WidgetRef ref) async {
+    if (_busy) return;
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -117,8 +162,9 @@ class PairConfirmScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true) return;
-    ref.read(pairingControllerProvider.notifier).reset();
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    ref.read(inPersonPairingControllerProvider.notifier).reset();
     if (!context.mounted) return;
     context.go('/');
   }
@@ -128,19 +174,46 @@ class PairConfirmScreen extends ConsumerWidget {
     context.go('/');
   }
 
+  // The pair-time phrase is derived from the shared secret, so this screen
+  // blocks screenshots and recording like every other secret-bearing
+  // screen (and keeps FLAG_SECURE held across the exchange → confirm
+  // transition).
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pair = ref.watch(pairingControllerProvider);
-    final phrase = pair.phrase;
+  Widget build(BuildContext context) => SecureScreen(
+        // System back means "abandon this pairing": drop it (its TOTP
+        // secret would otherwise stay in the long-lived controller) and go
+        // home. Intercepted because /pair/confirm is usually the only page,
+        // where back would close the app without telling us. Ignored while
+        // a save is in progress: _commit finishes and navigates itself.
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop || _busy) return;
+            ref.read(inPersonPairingControllerProvider.notifier).reset();
+            context.go('/');
+          },
+          child: _buildBody(context, ref),
+        ),
+      );
+
+  Widget _buildBody(BuildContext context, WidgetRef ref) {
+    final pair = ref.watch(inPersonPairingControllerProvider);
+    // While saving or leaving, the state may already be reset: keep
+    // showing the phrase the user confirmed.
+    final phrase = pair.phrase ?? (_busy ? _shownPhrase : null);
+    if (pair.phrase != null) _shownPhrase = pair.phrase;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context);
 
     if (phrase == null) {
-      // User got here without a derived phrase; bounce back home.
-      Future<void>.microtask(() {
-        if (context.mounted) context.go('/');
-      });
+      // User got here without a derived phrase; bounce back home, once.
+      if (!_bounced) {
+        _bounced = true;
+        Future<void>.microtask(() {
+          if (context.mounted) context.go('/');
+        });
+      }
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -151,11 +224,13 @@ class PairConfirmScreen extends ConsumerWidget {
             : l10n.pairConfirmTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => _onMismatch(context, ref),
+          onPressed: _busy ? null : () => _onMismatch(context, ref),
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        // Scrolls when large text or the keyboard leave too little room
+        // (plan Task 5.1).
+        child: FillOrScroll(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -205,13 +280,13 @@ class PairConfirmScreen extends ConsumerWidget {
               BigButton(
                 label: l10n.pairConfirmMatchButton,
                 icon: Icons.check_circle,
-                onPressed: () => _onMatch(context, ref),
+                onPressed: _busy ? null : () => _onMatch(context, ref),
               ),
               const SizedBox(height: 12),
               BigButton(
                 tone: BigButtonTone.destructive,
                 label: l10n.pairConfirmMismatchButton,
-                onPressed: () => _onMismatch(context, ref),
+                onPressed: _busy ? null : () => _onMismatch(context, ref),
               ),
               const SizedBox(height: 8),
             ],

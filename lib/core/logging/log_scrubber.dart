@@ -20,11 +20,27 @@ import '../crypto/bip39_english_wordlist.dart';
 /// have a **100% pass-or-fail-the-build** test bar (`test/logging/log_scrubber_test.dart`):
 ///
 ///   - Hex strings ≥ 16 chars (X25519 keys, AEAD ciphertexts, HKDF output).
-///   - Base64-like strings ≥ 16 chars (transport-package bodies).
+///   - Byte lists of 8+ bytes: `[71, 55, 86, ...]` (also signed, and also
+///     wrapped across lines), `0x47, 0x37, ...`, `47:37:56:...` and a
+///     hexdump's `47 37 56 ...` (how a `List<int>` or a key dump prints).
+///   - Base64url strings ≥ 16 chars (transport-package bodies), and
+///     standard base64 (`+`, `/`, `=`) ≥ 16 chars that looks like random
+///     data (what `SecureStore` writes).
 ///   - The literal `signet:tp1:` transport-wire prefix.
-///   - 4-tuple and 8-tuple clusters of BIP-39 words (verify codes and
-///     PAKE words). Single BIP-39 words pass through — "above", "abandon",
-///     "able" are common English and a 1-word match doesn't carry secret bits.
+///   - The source line a `FormatException` echoes (above its `^` caret,
+///     or right after the message when there is no offset).
+///   - Runs of 4+ BIP-39 words (verify codes, PAKE words) separated by
+///     spaces, tabs, newlines, hyphens, commas, periods, slashes, colons,
+///     semicolons, bars, plus signs, quotes, brackets, list numbers or a
+///     list-final "and", looked for across the whole text. Shorter runs
+///     pass through — "above", "abandon", "able" are common English.
+///   - Values after a name-like key (`label`, `labelHint`, `title`,
+///     `peer`, `displayName`, ...), quoted or not.
+///
+/// `package:<pkg>/<path>.dart` and `dart:<lib>` code paths (with an
+/// optional `:line:col`) are exempt from the base64 and BIP-39 rules, but
+/// only when the match lies wholly inside the path, so a secret glued onto
+/// one is still caught.
 ///
 /// Judgment patterns (pair labels in toString dumps, user clipboard pastes
 /// inside exception messages, novel sensitive formats) have a ~95% bar:
@@ -36,31 +52,78 @@ class LogScrubber {
   /// global state. Safe to call from any thread / isolate.
   static String scrub(String input) {
     if (input.isEmpty) return input;
-    return input.split('\n').map(_scrubLine).join('\n');
+    var text = _redactFormatSourceEchoes(input);
+    // Across line breaks: a byte list can be wrapped or printed one value
+    // per line.
+    text = text.replaceAllMapped(
+      _decimalByteListPattern,
+      (Match m) => _redactToken(m.group(0)!.length),
+    );
+    text = text.split('\n').map(_forcedRedactMechanical).join('\n');
+    // Across line breaks: PAKE words are often written one per line.
+    text = _redactBip39Clusters(text);
+    return text.split('\n').map(_scrubLineJudgment).join('\n');
   }
 
   // ===========================================================================
-  // Per-line pipeline
+  // Per-line judgment pipeline
   // ===========================================================================
 
-  static String _scrubLine(String line) {
+  static String _scrubLineJudgment(String line) {
     if (line.isEmpty) return line;
-    line = _forcedRedactMechanical(line);
-    line = _redactBip39Clusters(line);
+    line = _redactSingleQuotedLabels(line);
     line = _redactQuotedContent(line);
     line = _tokenLevelRedact(line);
     return line;
   }
 
   // ===========================================================================
+  // FormatException source echo (100% bar)
+  // ===========================================================================
+
+  static final _caretLinePattern = RegExp(r'^\s*\^\s*$');
+
+  /// `FormatException.toString()` prints the offending input on its own
+  /// line, with a `^` caret line under it. That input is whatever was being
+  /// parsed: a pasted package, a backup file, words. Redact the line whole.
+  static String _redactFormatSourceEchoes(String text) {
+    final lines = text.split('\n');
+    for (var i = 1; i < lines.length; i++) {
+      if (_caretLinePattern.hasMatch(lines[i]) && lines[i - 1].isNotEmpty) {
+        lines[i - 1] = _redactToken(lines[i - 1].length);
+      }
+    }
+    // Without an offset there is no caret: the source is simply the line
+    // after the message (as DateTime.parse, num.parse and others print it).
+    for (var i = 0; i + 1 < lines.length; i++) {
+      if (!_formatExceptionLine.hasMatch(lines[i])) continue;
+      final next = lines[i + 1];
+      if (next.isEmpty ||
+          _caretLinePattern.hasMatch(next) ||
+          _traceStructureLine.hasMatch(next) ||
+          next.startsWith('[redacted:')) {
+        continue;
+      }
+      lines[i + 1] = _redactToken(next.length);
+    }
+    return lines.join('\n');
+  }
+
+  static final _formatExceptionLine = RegExp(r'FormatException:');
+
+  /// A stack frame or trace marker, never an echoed source.
+  static final _traceStructureLine =
+      RegExp(r'^\s*(?:#\d+\s|<asynchronous|\(elided|When the exception)');
+
+  // ===========================================================================
   // Mechanical redact patterns (100% bar)
   // ===========================================================================
 
-  // signet:tp1: + base64url body — catastrophic if leaked. Order matters:
-  // run this before the base64 regex so the prefix and body are redacted as
-  // one unit with the recognizable length.
+  // signet:tp1: (or a later scheme) + base64url body — catastrophic if
+  // leaked. Order matters: run this before the base64 regex so the prefix
+  // and body are redacted as one unit with the recognizable length.
   static final _wirePrefixPattern =
-      RegExp(r'signet:tp1:[A-Za-z0-9+/_-]+={0,2}');
+      RegExp(r'signet:tp[0-9]+:[A-Za-z0-9+/_-]+={0,2}');
 
   // Hex run ≥ 16 chars — covers shared secrets, AEAD tags, HKDF outputs.
   static final _hexRunPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');
@@ -76,19 +139,72 @@ class LogScrubber {
   static final _allLettersPattern = RegExp(r'^[A-Za-z]+$');
   static final _identifierLikeRunPattern = RegExp(r'^[A-Za-z_]+$');
 
+  // Byte lists of 8+ bytes, as a `List<int>` or a key dump prints them:
+  // decimal `[71, 55, ...]`, `0x47, 0x37, ...`, and `47:37:56:...` /
+  // `47-37-56-...`. Fewer than 8 (an IP address, a MAC, a version, a
+  // `line:column`) is left alone.
+  // Signed values too (`Int8List`, Java's `Arrays.toString(byte[])` in a
+  // PlatformException). Applied to the whole text, so a list wrapped
+  // across lines is still one list.
+  static final _decimalByteListPattern = RegExp(
+      r'(?<![\d.])(?:-?\d{1,3}\s*,\s*){7,}-?\d{1,3}(?![\d.])');
+  static final _hexByteListPattern = RegExp(
+      r'(?:0[xX][0-9a-fA-F]{1,2}[,\s]\s*){7,}0[xX][0-9a-fA-F]{1,2}\b');
+  // `47:37:56:...`, `47-37-...` and a hexdump's `c8 c0 7a 69 ...`.
+  static final _pairedHexPattern = RegExp(
+      r'\b(?:[0-9a-fA-F]{2}[: -]){7,}[0-9a-fA-F]{2}\b');
+
+  // Standard base64 (with `+`, `/`, `=`), as SecureStore writes secrets.
+  // Only redacted when it looks like random data (a digit and both cases)
+  // and is not part of a package:/dart: path.
+  static final _standardBase64Pattern =
+      RegExp(r'(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{16,}={0,2}');
+  static final _hasDigit = RegExp(r'[0-9]');
+  static final _hasUpper = RegExp(r'[A-Z]');
+  static final _hasLower = RegExp(r'[a-z]');
+  static final _hasBase64Only = RegExp(r'[+/=]');
+
   static String _forcedRedactMechanical(String line) {
+    if (line.isEmpty) return line;
     line = line.replaceAllMapped(
       _wirePrefixPattern,
       (Match m) => _redactToken(m.group(0)!.length),
     );
+    for (final pattern in <RegExp>[
+      _hexByteListPattern,
+      _pairedHexPattern,
+    ]) {
+      line = line.replaceAllMapped(
+        pattern,
+        (Match m) => _redactToken(m.group(0)!.length),
+      );
+    }
+    final paths = _pathRanges(line);
+    line = line.replaceAllMapped(_standardBase64Pattern, (Match m) {
+      final s = m.group(0)!;
+      // Exempt only when the whole match lies within a code path, so a
+      // secret glued onto the end of one is still caught.
+      if (_withinAny(m.start, m.end, paths)) return s;
+      if (_looksLikeFilePath(s)) return s;
+      if (!_hasBase64Only.hasMatch(s) ||
+          !_hasDigit.hasMatch(s) ||
+          !_hasUpper.hasMatch(s) ||
+          !_hasLower.hasMatch(s)) {
+        return s;
+      }
+      return _redactToken(s.length);
+    });
     line = line.replaceAllMapped(
       _hexRunPattern,
       (Match m) => _redactToken(m.group(0)!.length),
     );
+    final codePaths = _pathRanges(line);
     line = line.replaceAllMapped(
       _base64RunPattern,
       (Match m) {
         final s = m.group(0)!;
+        // A package:/dart: path segment is code, not a payload.
+        if (_withinAny(m.start, m.end, codePaths)) return s;
         // Exempt pure-letter runs (English words, class names).
         if (_allLettersPattern.hasMatch(s)) return s;
         // Exempt pure letter+underscore runs (Dart identifiers like
@@ -112,19 +228,40 @@ class LogScrubber {
   // each match as a candidate word and checks ranges of ≥ 4 consecutive
   // BIP-39 matches separated only by whitespace/hyphen.
   static final RegExp _candidateWordPattern = RegExp(r'[A-Za-z]+');
-  static final RegExp _bip39SeparatorPattern = RegExp(r'^[\s\-]+$');
+  /// Between two words of a run: spaces, tabs, newlines, hyphens, commas,
+  /// periods, slashes, semicolons, colons, bars, plus signs, quotes and
+  /// brackets, optionally with a list number ("1. abandon\n2. ability") or
+  /// the word "and" ("able, about and above").
+  static const String _bip39SeparatorChars =
+      r'[\s\-,./;:|+' "'" r'"()\[\]{}]';
+  static final RegExp _andWord = RegExp(r'\band\b', caseSensitive: false);
+  static final RegExp _bip39SeparatorPattern = RegExp(
+    '^$_bip39SeparatorChars*'
+    '(?:(?:\\d{1,2}[.)]?|and)$_bip39SeparatorChars*)?\$',
+    caseSensitive: false,
+  );
 
-  /// Find runs of ≥ 4 consecutive BIP-39 words separated by whitespace or
-  /// hyphens; redact each word in any qualifying run. Single, double, or
+  /// Find runs of ≥ 4 consecutive BIP-39 words joined by
+  /// [_bip39SeparatorPattern] separators; redact each word in any
+  /// qualifying run. Single, double, or
   /// triple BIP-39 words are NOT redacted — they're common English and
   /// don't carry enough entropy to fingerprint a verify code or PAKE.
   static String _redactBip39Clusters(String line) {
-    final matches = _candidateWordPattern.allMatches(line).toList();
+    // "and" is never a code word itself: it is part of the separator in
+    // "able, about and above".
+    final matches = _candidateWordPattern
+        .allMatches(line)
+        .where((m) => m.group(0)!.toLowerCase() != 'and')
+        .toList();
     if (matches.length < 4) return line;
 
-    // Mark each candidate word as BIP-39-or-not.
+    // Mark each candidate word as BIP-39-or-not. Words in a package:/dart:
+    // path ("package:flutter/src/widgets/...") are code, never secrets.
+    final paths = _pathRanges(line);
     final isBip39 = matches
-        .map((m) => _bip39Set.contains(m.group(0)!.toLowerCase()))
+        .map((m) =>
+            _bip39Set.contains(m.group(0)!.toLowerCase()) &&
+            !_insideAny(m.start, paths))
         .toList();
 
     // Walk and find runs of BIP-39 words where adjacent words are separated
@@ -137,12 +274,17 @@ class LogScrubber {
         continue;
       }
       var runEnd = i + 1;
+      var sawComma = false;
       while (runEnd < matches.length && isBip39[runEnd]) {
         final between = line.substring(
           matches[runEnd - 1].end,
           matches[runEnd].start,
         );
         if (!_bip39SeparatorPattern.hasMatch(between)) break;
+        // "and" joins a run only in list grammar ("able, about and
+        // above"), not in prose ("... doctor and Anchor again").
+        if (_andWord.hasMatch(between) && !sawComma) break;
+        if (between.contains(',')) sawComma = true;
         runEnd++;
       }
       if (runEnd - i >= 4) ranges.add(<int>[i, runEnd]);
@@ -164,6 +306,46 @@ class LogScrubber {
     }
     buf.write(line.substring(cursor));
     return buf.toString();
+  }
+
+  // ===========================================================================
+  // Label values after a name-like key (100% bar)
+  // ===========================================================================
+
+  /// A key that names a person: anything containing label, name, contact,
+  /// title or peer (`label`, `labelHint`, `peerLabel`, `labelText`,
+  /// `displayName`, `title`, `peer`, `nickname`). The `\w*` on both sides
+  /// takes in camelCase keys whole.
+  static const String _nameKey =
+      r'\b(\w*(?:label|name|contact|title|peer)\w*)(\s*[:=]\s*)';
+
+  /// `label: 'Mom'`, `labelHint="Bob"`: the quoted value, either quote.
+  static final _quotedLabelPattern = RegExp(
+    '$_nameKey' r"""('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")""",
+    caseSensitive: false,
+  );
+
+  /// `{id: x, label: Mom, role: a}`, `(label: Aunt May, id: 3)`: how Dart
+  /// prints maps and records, without quotes. The value runs to the next
+  /// `,` `)` `}` `]`. A `<peer-N>` token from the export scrubber, or a
+  /// value already redacted, is left alone.
+  static final _unquotedLabelPattern = RegExp(
+    '$_nameKey' r"""((?![<\['"\s])[^,)}\]\n]*[^,)}\]\n\s])""",
+    caseSensitive: false,
+  );
+
+  static String _redactSingleQuotedLabels(String line) {
+    line = line.replaceAllMapped(_quotedLabelPattern, (Match m) {
+      final quoted = m.group(3)!;
+      final q = quoted[0];
+      return '${m.group(1)}${m.group(2)}$q'
+          '${_redactToken(quoted.length - 2)}$q';
+    });
+    return line.replaceAllMapped(
+      _unquotedLabelPattern,
+      (Match m) =>
+          '${m.group(1)}${m.group(2)}${_redactToken(m.group(3)!.length)}',
+    );
   }
 
   // ===========================================================================
@@ -280,16 +462,57 @@ class LogScrubber {
   /// allow-list. The signet codebase is open source (AGPL-3.0), so file
   /// structure is public.
   static final RegExp _packagePathRegionPattern = RegExp(
-    r'(?:package:[A-Za-z_][\w/\.]*|dart:[A-Za-z_][\w\.]*)',
+    r'\b(?:package:[A-Za-z_]\w*(?:/[\w.\-]+)*\.dart'
+    r'|dart:[A-Za-z_]\w*(?:/[\w.\-]+\.dart)?)(?::\d+(?::\d+)?)?',
   );
+
+  static List<List<int>> _pathRanges(String text) => _packagePathRegionPattern
+      .allMatches(text)
+      .map((m) => <int>[m.start, m.end])
+      .toList();
+
+  /// Index of the range containing [index] in [ranges] (sorted, not
+  /// overlapping), or -1. Binary search: the whole-text BIP-39 pass calls
+  /// this once per word, and a linear scan made a 2 MB log quadratic.
+  static int _rangeAt(int index, List<List<int>> ranges) {
+    var lo = 0;
+    var hi = ranges.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      final r = ranges[mid];
+      if (index < r[0]) {
+        hi = mid - 1;
+      } else if (index >= r[1]) {
+        lo = mid + 1;
+      } else {
+        return mid;
+      }
+    }
+    return -1;
+  }
+
+  static bool _insideAny(int index, List<List<int>> ranges) =>
+      _rangeAt(index, ranges) >= 0;
+
+  /// [start, end) lies wholly inside one range.
+  static bool _withinAny(int start, int end, List<List<int>> ranges) {
+    final i = _rangeAt(start, ranges);
+    return i >= 0 && end <= ranges[i][1];
+  }
+
+  /// `/storage/emulated/0/Download/SignetBackup.txt`: a run that starts
+  /// with `/` and whose segments are all short is a file path, not base64
+  /// (a random blob does not split into short slash-separated pieces).
+  static bool _looksLikeFilePath(String s) {
+    if (!s.startsWith('/')) return false;
+    final segments = s.split('/').where((e) => e.isNotEmpty).toList();
+    return segments.length >= 2 && segments.every((e) => e.length < 16);
+  }
 
   static String _tokenLevelRedact(String line) {
     // Pre-compute the ranges of package/dart paths — identifiers inside
     // them get kept verbatim.
-    final pathRanges = _packagePathRegionPattern
-        .allMatches(line)
-        .map((m) => <int>[m.start, m.end])
-        .toList();
+    final pathRanges = _pathRanges(line);
 
     return _identifierPattern.allMatches(line).fold<_RedactState>(
       _RedactState(line: line, cursor: 0, buf: StringBuffer()),

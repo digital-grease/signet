@@ -9,9 +9,9 @@ name: Release
 #   - AAB (.aab) — Play Console requires this for new-app submissions
 #                  since Aug 2021. Upload this at Play Console →
 #                  Testing → Internal testing → Create new release.
-#   - APK (.apk) — F-Droid submissions (F-Droid rebuilds from source
-#                  but the fingerprint in AllowedAPKSigningKeys comes
-#                  from our signed APK) + any direct sideload channel
+#   - APK (.apk) — direct sideload channel (F-Droid builds its own APK
+#                  from source and signs it with F-Droid's key, so it
+#                  does not use this one)
 #                  (GitHub Release download, manual install on the
 #                  owner's test device). Play Console will still
 #                  accept APKs for *existing* apps but not new ones.
@@ -45,9 +45,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  JAVA_VERSION: 17
+  # JDK that runs the Gradle build: 21, the F-Droid buildserver's JDK and the
+  # compile toolchain set in android/app/build.gradle.kts. The bytecode
+  # target stays at 17 there.
+  JAVA_VERSION: 21
 
 # Least-privilege default. The publish job overrides to `contents: write`
 # because it pushes assets to the GitHub Release via
@@ -59,6 +62,10 @@ permissions:
 jobs:
   build-android:
     name: Signed Android AAB + APK
+    # Tags only. workflow_dispatch can re-run a release, but only from a
+    # v* tag: dispatched from a branch it would get the signing secrets and
+    # publish a release named after the branch.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     outputs:
@@ -67,18 +74,19 @@ jobs:
 
     steps:
       - name: Checkout (full history for changelog)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           # Pinned literal (not ${{ env.FLUTTER_VERSION }}) so F-Droid's
           # prebuild can extract via the exact regex from
@@ -86,10 +94,9 @@ jobs:
           #   sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml
           # MUST stay in sync with FLUTTER_VERSION above and with the
           # second flutter-action step below.
-          flutter-version: '3.41.6'
+          flutter-version: '3.47.5'
           channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          cache: false
 
       - name: Stage keystore + key.properties from secrets
         env:
@@ -122,6 +129,9 @@ jobs:
         run: |
           flutter build appbundle --release
           flutter build apk --release
+
+      - name: Check APK manifest privacy properties
+        run: scripts/check-apk-manifest.sh build/app/outputs/flutter-apk/app-release.apk
 
       - name: Verify signatures are NOT debug
         # AAB and APK use different verification tools because of how
@@ -183,6 +193,10 @@ jobs:
 
       - name: Compute AAB + APK SHA-256
         id: checksum
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           aab=build/app/outputs/bundle/release/app-release.aab
           apk=build/app/outputs/flutter-apk/app-release.apk
@@ -190,16 +204,20 @@ jobs:
           apk_sha=$(sha256sum "$apk" | awk '{print $1}')
           echo "aab_sha256=$aab_sha" >> "$GITHUB_OUTPUT"
           echo "apk_sha256=$apk_sha" >> "$GITHUB_OUTPUT"
-          echo "$aab_sha  signet-${{ github.ref_name }}.aab" > "$aab.sha256"
-          echo "$apk_sha  signet-${{ github.ref_name }}.apk" > "$apk.sha256"
+          echo "$aab_sha  signet-$REF_NAME.aab" > "$aab.sha256"
+          echo "$apk_sha  signet-$REF_NAME.apk" > "$apk.sha256"
 
       - name: Rename artifacts with tag
         id: rename
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           aab_src=build/app/outputs/bundle/release/app-release.aab
           apk_src=build/app/outputs/flutter-apk/app-release.apk
-          aab_dst=build/app/outputs/bundle/release/signet-${{ github.ref_name }}.aab
-          apk_dst=build/app/outputs/flutter-apk/signet-${{ github.ref_name }}.apk
+          aab_dst="build/app/outputs/bundle/release/signet-$REF_NAME.aab"
+          apk_dst="build/app/outputs/flutter-apk/signet-$REF_NAME.apk"
           mv "$aab_src" "$aab_dst"
           mv "$aab_src.sha256" "$aab_dst.sha256"
           mv "$apk_src" "$apk_dst"
@@ -210,7 +228,7 @@ jobs:
           echo "apk-sha-path=$apk_dst.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Upload Android release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: android-release-${{ github.ref_name }}
           path: |
@@ -229,6 +247,7 @@ jobs:
 
   build-ios:
     name: iOS unsigned
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-latest
     timeout-minutes: 40
     outputs:
@@ -236,18 +255,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          cache: false
 
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cocoapods/repos
           key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
@@ -264,16 +284,20 @@ jobs:
 
       - name: Package .app as zip
         id: package
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           cd build/ios/iphoneos
           zip -qr Runner.app.zip Runner.app
           sha=$(sha256sum Runner.app.zip | awk '{print $1}')
-          mv Runner.app.zip signet-ios-${{ github.ref_name }}.zip
-          echo "$sha  signet-ios-${{ github.ref_name }}.zip" > signet-ios-${{ github.ref_name }}.zip.sha256
+          mv Runner.app.zip "signet-ios-$REF_NAME.zip"
+          echo "$sha  signet-ios-$REF_NAME.zip" > "signet-ios-$REF_NAME.zip.sha256"
           echo "sha256=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ios-release-${{ github.ref_name }}
           path: |
@@ -292,7 +316,7 @@ jobs:
     # (Flutter API shifts, Xcode upgrades on macos-latest, etc.) we
     # still publish Android. Android failure still gates everything.
     needs: [build-android, build-ios]
-    if: always() && needs.build-android.result == 'success'
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -302,32 +326,38 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download Android artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: android-release-${{ github.ref_name }}
           path: release-android
 
       - name: Download iOS artifact
         if: needs.build-ios.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ios-release-${{ github.ref_name }}
           path: release-ios
 
       - name: Assemble release body
         id: body
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          tag="${{ github.ref_name }}"
+          tag="$REF_NAME"
           {
             echo "## Signet $tag"
             echo ""
             echo "| Artifact | Use for | SHA-256 |"
             echo "|----------|---------|---------|"
             echo "| \`signet-$tag.aab\` | Play Console upload (required for new apps) | \`${{ needs.build-android.outputs.aab-sha256 }}\` |"
-            echo "| \`signet-$tag.apk\` | F-Droid fingerprint source + direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
+            echo "| \`signet-$tag.apk\` | direct sideload | \`${{ needs.build-android.outputs.apk-sha256 }}\` |"
             if [ "${{ needs.build-ios.result }}" = "success" ]; then
               echo "| \`signet-ios-$tag.zip\` | iOS archive (unsigned, verification only) | \`${{ needs.build-ios.outputs.ios-sha256 }}\` |"
             else
@@ -364,7 +394,7 @@ jobs:
           echo "path=$PWD/RELEASE_BODY.md" >> "$GITHUB_OUTPUT"
 
       - name: Create or update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ github.ref_name }}
           name: Signet ${{ github.ref_name }}

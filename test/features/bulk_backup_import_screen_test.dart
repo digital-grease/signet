@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/crypto/transport_package.dart';
+import 'package:signet/core/models/label_policy.dart';
 import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
@@ -195,7 +198,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: store, decoded: decoded));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.textContaining('Rename restored copy'));
+      await tester.tap(find.text('Restore it as "Mom (restored)"'));
       await tester.pumpAndSettle();
 
       expect(find.text('RESTORE 1'), findsOneWidget);
@@ -278,4 +281,257 @@ void main() {
       expect(filled.onPressed, isNull);
     },
   );
+
+  // Plan Task 1.6: per-record repairs and newer-version skips are visible.
+  // Pairing dates are local dates, like the home screen. (Run under a
+  // non-UTC TZ, e.g. TZ=America/Chicago, for this to tell local from UTC.)
+  testWidgets('preview shows each pairing date in local time',
+      (tester) async {
+    final when = DateTime.utc(2026, 4, 16, 3);
+    await tester.pumpWidget(_wrap(
+      store: FakeSecureStore(),
+      decoded: _blk([_record(seed: 1, label: 'Mom', pairedAt: when)]),
+    ));
+    await tester.pumpAndSettle();
+    final local = when.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    expect(find.textContaining('${local.year}-${two(local.month)}-${two(local.day)}'),
+        findsOneWidget);
+    if (local.day != 16) {
+      expect(find.textContaining('2026-04-16'), findsNothing);
+    }
+  });
+
+  testWidgets('preview tells the user about repaired and skipped records',
+      (tester) async {
+    final decoded = BlkPackage(
+      records: <BlkRelationshipRecord>[
+        _record(seed: 1, label: 'Mom'),
+        BlkRelationshipRecord(
+          sharedSecret: Uint8List.fromList(List<int>.filled(32, 9)),
+          role: PairRole.a,
+          label: 'Dad',
+          pairedAt: DateTime.utc(2026, 1, 1),
+          silentHaptics: false,
+          repaired: true,
+        ),
+      ],
+      timestamp: DateTime.utc(2026, 4, 22),
+      skippedNeedsNewerVersion: 2,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore(), decoded: decoded));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 relationship in this backup had an '
+        'unreadable'), findsOneWidget);
+    expect(find.text('FIXED'), findsOneWidget,
+        reason: 'the repaired row is marked, as the notice promises');
+    expect(find.textContaining('2 relationships in this backup need a newer'),
+        findsOneWidget);
+  });
+
+  testWidgets('a backup whose records all need a newer Signet shows only '
+      'the update notice', (tester) async {
+    final decoded = BlkPackage(
+      records: const <BlkRelationshipRecord>[],
+      timestamp: DateTime.utc(2026, 4, 22),
+      skippedNeedsNewerVersion: 1,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore(), decoded: decoded));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 relationship in this backup needs a newer'),
+        findsOneWidget);
+    expect(find.textContaining('Restore 0'), findsNothing);
+  });
+
+  group('restored names (plan Task 3.6)', () {
+    testWidgets(
+        'invisible characters are removed and an unusable name is replaced',
+        (tester) async {
+      final store = FakeSecureStore();
+      final decoded = _blk(<BlkRelationshipRecord>[
+        _record(seed: 1, label: '\u202EMom'),
+        _record(seed: 2, label: '0123456789abcdef0123'),
+      ]);
+      await tester.pumpWidget(_wrap(store: store, decoded: decoded));
+      await tester.pumpAndSettle();
+      expect(find.text('Restored contact'), findsOneWidget);
+
+      await tester.tap(find.text('RESTORE 2'));
+      await tester.pumpAndSettle();
+      final labels =
+          (await store.listRelationships()).map((r) => r.label).toSet();
+      expect(labels, <String>{'Mom', 'Restored contact'});
+    });
+
+    testWidgets('" (restored)" never pushes a name past the backup limit',
+        (tester) async {
+      final long = '\u5988' * 21; // 63 bytes
+      final existing = Relationship(
+        id: 'existing',
+        label: long,
+        pairedAt: DateTime.utc(2025, 1, 1),
+        role: PairRole.a,
+      );
+      final store = FakeSecureStore(
+          seeded: existing, secret: List<int>.generate(32, (_) => 0xAA));
+      final decoded = _blk(<BlkRelationshipRecord>[
+        _record(seed: 1, label: long),
+      ]);
+      await tester.pumpWidget(_wrap(store: store, decoded: decoded));
+      await tester.pumpAndSettle();
+      final rename = find.textContaining('(restored)');
+      await tester.ensureVisible(rename);
+      await tester.tap(rename);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('RESTORE 1'));
+      await tester.pumpAndSettle();
+
+      final restored = (await store.listRelationships())
+          .firstWhere((r) => r.id != 'existing');
+      expect(restored.label, endsWith(' (restored)'));
+      expect(LabelPolicy.isValid(restored.label), isTrue,
+          reason: 'fits the 64-byte limit, so it can be backed up again');
+    });
+  });
+
+  testWidgets(
+      'an existing contact saved with an invisible mark still counts as '
+      'the same name (plan Task 3.6 review)', (tester) async {
+    final existing = Relationship(
+      id: 'existing-mom',
+      label: 'Mom\u200E',
+      pairedAt: DateTime.utc(2025, 1, 1),
+      role: PairRole.a,
+    );
+    final store = FakeSecureStore(
+        seeded: existing, secret: List<int>.generate(32, (_) => 0xAA));
+    await tester.pumpWidget(_wrap(
+        store: store, decoded: _blk(<BlkRelationshipRecord>[
+      _record(seed: 1, label: 'Mom'),
+    ])));
+    await tester.pumpAndSettle();
+    expect(find.text('ALREADY PAIRED'), findsOneWidget);
+  });
+
+  testWidgets(
+      'when the name matches two existing contacts, Overwrite is not offered',
+      (tester) async {
+    final store = FakeSecureStore(
+        seeded: Relationship(
+          id: 'mom-1',
+          label: 'Mom',
+          pairedAt: DateTime.utc(2025, 1, 1),
+          role: PairRole.a,
+        ),
+        secret: List<int>.generate(32, (_) => 0xAA));
+    await store.saveRelationshipV2(
+      Relationship(
+        id: 'mom-2',
+        label: 'Mom\u200B',
+        pairedAt: DateTime.utc(2025, 1, 1),
+        role: PairRole.a,
+      ),
+      sharedSecret: List<int>.generate(32, (_) => 0xBB),
+    );
+    await tester.pumpWidget(_wrap(
+        store: store, decoded: _blk(<BlkRelationshipRecord>[
+      _record(seed: 1, label: 'Mom'),
+    ])));
+    await tester.pumpAndSettle();
+    expect(find.text('ALREADY PAIRED'), findsOneWidget);
+    expect(find.textContaining('Restore it as'), findsOneWidget);
+    expect(find.text('Overwrite existing pairing'), findsNothing);
+  });
+
+  group('robustness (plan Task 4.5)', () {
+    testWidgets('while saving, close and back are blocked', (tester) async {
+      final store = FakeSecureStore()..saveGate = Completer<void>();
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+          ])));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('RESTORE 1'));
+      await tester.pump();
+
+      final close = tester.widget<IconButton>(
+          find.widgetWithIcon(IconButton, Icons.close));
+      expect(close.onPressed, isNull);
+      final popScope = tester.widget<PopScope<dynamic>>(
+          find.byWidgetPredicate((w) => w is PopScope));
+      expect(popScope.canPop, isFalse);
+
+      store.saveGate!.complete();
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close))
+              .onPressed,
+          isNotNull);
+    });
+
+    testWidgets('one record that cannot be saved does not stop the others, '
+        'and the summary says so', (tester) async {
+      final store = FakeSecureStore()..failSaveForLabel = 'Dad';
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+            _record(seed: 2, label: 'Dad'),
+            _record(seed: 3, label: 'Kid'),
+          ])));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('RESTORE 3'));
+      await tester.pumpAndSettle();
+      expect((await store.listRelationships()).map((r) => r.label).toSet(),
+          <String>{'Mom', 'Kid'});
+      expect(find.textContaining('COULD NOT SAVE //', findRichText: true),
+          findsOneWidget);
+      expect(find.textContaining('Some contacts could not be saved'),
+          findsOneWidget);
+    });
+
+    testWidgets('two records cannot both overwrite the same contact',
+        (tester) async {
+      final store = FakeSecureStore(
+          seeded: Relationship(
+            id: 'existing-mom',
+            label: 'Mom',
+            pairedAt: DateTime.utc(2025, 1, 1),
+            role: PairRole.a,
+          ),
+          secret: List<int>.generate(32, (_) => 0xAA));
+      await tester.pumpWidget(_wrap(
+          store: store,
+          decoded: _blk(<BlkRelationshipRecord>[
+            _record(seed: 1, label: 'Mom'),
+            _record(seed: 2, label: 'Mom'),
+          ])));
+      await tester.pumpAndSettle();
+      expect(find.text('Overwrite existing pairing'), findsNWidgets(2));
+      await tester.tap(find.text('Overwrite existing pairing').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Overwrite existing pairing'), findsOneWidget,
+          reason: 'only the record that claimed it still offers it');
+    });
+  });
+
+  testWidgets('a save that reported an error but landed counts as restored',
+      (tester) async {
+    final store = FakeSecureStore()..failAfterSaveForLabel = 'Dad';
+    await tester.pumpWidget(_wrap(
+        store: store,
+        decoded: _blk(<BlkRelationshipRecord>[
+          _record(seed: 1, label: 'Mom'),
+          _record(seed: 2, label: 'Dad'),
+        ])));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('RESTORE 2'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('COULD NOT SAVE //', findRichText: true),
+        findsNothing);
+    expect(find.textContaining('RESTORED //', findRichText: true),
+        findsOneWidget);
+  });
 }

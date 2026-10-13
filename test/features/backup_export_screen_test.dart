@@ -49,7 +49,7 @@ Widget _wrap({required FakeSecureStore store, required String id}) {
 }
 
 void main() {
-  testWidgets('renders the three core sections after generation',
+  testWidgets('renders the warnings and both save steps after generation',
       (tester) async {
     await tester.pumpWidget(_wrap(
       store: FakeSecureStore(seeded: _mom, secret: _secret),
@@ -59,10 +59,11 @@ void main() {
 
     expect(find.text('Back up Mom'), findsOneWidget);
     expect(find.text('STORE THESE SEPARATELY //'), findsOneWidget);
-    expect(find.text('PAKE SECRET //'), findsOneWidget);
-    expect(find.text('BACKUP PACKAGE //'), findsOneWidget);
+    expect(find.text('STEP 1 // SAVE THE PACKAGE'), findsOneWidget);
+    expect(find.text('STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE'),
+        findsOneWidget);
     expect(find.text('REMEMBER //'), findsOneWidget);
-    expect(find.text("I'VE SAVED IT"), findsOneWidget);
+    expect(find.text("I'VE SAVED BOTH"), findsOneWidget);
   });
 
   testWidgets('the displayed package is a valid LPR that decodes back',
@@ -80,6 +81,11 @@ void main() {
         selectables.firstWhere((s) => (s.data ?? '').startsWith('signet:tp1:'));
     expect(wire.data, isNotNull);
 
+    // The words appear only once step 1 is done.
+    await tester.ensureVisible(find.text('I saved it another way'));
+    await tester.tap(find.text('I saved it another way'));
+    await tester.pumpAndSettle();
+
     // Pull the 8 PAKE words off screen (rendered at 16sp mono).
     final monoTexts = tester.widgetList<Text>(find.byType(Text)).where((t) {
       return t.style?.fontFamily == 'monospace' && t.style?.fontSize == 16;
@@ -93,6 +99,8 @@ void main() {
       wire.data!,
       pakeWords: pakeWords,
     );
+    // Backups are tp1 version 2 from 0.4.0 (plan Task 8.3).
+    expect(decoded.version, 2);
     expect(decoded.label, _mom.label);
     expect(decoded.role, _mom.role);
     expect(decoded.pairedAt.toUtc(), _mom.pairedAt.toUtc());
@@ -101,7 +109,7 @@ void main() {
   });
 
   testWidgets(
-    'Share package button is present alongside Copy package',
+    'Save package file button is present alongside Copy package',
     (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: _mom, secret: _secret),
@@ -110,12 +118,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Copy package'), findsOneWidget);
-      expect(find.text('Share package'), findsOneWidget);
+      expect(find.text('Save package file'), findsOneWidget);
     },
   );
 
   testWidgets(
-    "I'VE SAVED IT routes back to home",
+    "I'VE SAVED BOTH routes back to home once both steps are done",
     (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: _mom, secret: _secret),
@@ -123,9 +131,16 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text("I'VE SAVED IT"));
-      await tester.tap(find.text("I'VE SAVED IT"));
-      await tester.pumpAndSettle();
+      for (final label in <String>[
+        'I saved it another way',
+        'I wrote them on paper',
+        "I'VE SAVED BOTH",
+      ]) {
+        await tester.ensureVisible(find.text(label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+      }
 
       expect(find.text('HOME'), findsOneWidget);
     },
@@ -144,4 +159,21 @@ void main() {
           findsOneWidget);
     },
   );
+
+  testWidgets(
+      'a name saved before the 64-byte limit is cut to fit, not a failed '
+      'backup (plan Task 3.6 review)', (tester) async {
+    final longName = _mom.copyWith(label: '\u5988' * 30); // 90 bytes
+    await tester.pumpWidget(_wrap(
+      store: FakeSecureStore(seeded: longName, secret: _secret),
+      id: longName.id,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not generate backup'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is SelectableText && (w.data ?? '').startsWith('signet:tp1:')),
+      findsOneWidget,
+    );
+  });
 }

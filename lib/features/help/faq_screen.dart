@@ -31,11 +31,13 @@ class FaqScreen extends StatelessWidget {
       _FaqEntry(question: l10n.faqQ4, answer: l10n.faqA4),
       _FaqEntry(question: l10n.faqQ5, answer: l10n.faqA5),
       _FaqEntry(question: l10n.faqQ6, answer: l10n.faqA6),
+      _FaqEntry(question: l10n.faqQ12, answer: l10n.faqA12),
       _FaqEntry(question: l10n.faqQ7, answer: l10n.faqA7),
       _FaqEntry(question: l10n.faqQ8, answer: l10n.faqA8),
       _FaqEntry(question: l10n.faqQ9, answer: l10n.faqA9),
       _FaqEntry(question: l10n.faqQ10, answer: l10n.faqA10),
       _FaqEntry(question: l10n.faqQ11, answer: l10n.faqA11),
+      _FaqEntry(question: l10n.faqQ13, answer: l10n.faqA13),
     ];
   }
 
@@ -95,11 +97,12 @@ class FaqScreen extends StatelessWidget {
               );
             }
             final entry = entries[i];
-            return Container(
-              decoration: BoxDecoration(
-                color: panelColor,
-                border: Border.all(color: borderColor),
-              ),
+            // A Material, not a coloured box: the tile paints on the
+            // nearest Material, and a coloured box in between trips a
+            // ListTile assertion.
+            return Material(
+              color: panelColor,
+              shape: Border.all(color: borderColor),
               child: Theme(
                 data: theme.copyWith(
                   dividerColor: Colors.transparent,

@@ -1,14 +1,36 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Signet only ever uses the camera to scan pairing QR codes in person.
          No INTERNET permission is declared anywhere — the app is offline by
          construction. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Merged in by libraries but never used (plan Task 7.1). The camera
+         plugin asks for audio and storage for video recording; Signet only
+         scans QR codes (flutter_zxing opens the camera with audio off).
+         A library also asks for network state; Signet has no network
+         (build/app/outputs/logs/manifest-merger-release-report.txt names
+         the source). Removed so
+         the install screen and F-Droid list only what Signet uses;
+         scripts/check-apk-manifest.sh enforces the allowlist. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <!-- The camera plugin declares any camera as required, which would hide
+         Signet from devices without one; long-distance pairing and restore
+         work without a camera. -->
+    <uses-feature android:name="android.hardware.camera.any" android:required="false"
+        tools:node="replace" />
+
     <application
         android:label="Signet"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"

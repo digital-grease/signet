@@ -146,23 +146,119 @@ abstract class AppLocalizations {
   /// **'Copy package'**
   String get commonCopyPackage;
 
-  /// SnackBar after copying the package wire text.
+  /// Two-step backup export: first step header. Keep the ' //' operator styling.
   ///
   /// In en, this message translates to:
-  /// **'Package copied to clipboard'**
-  String get commonPackageCopiedSnackbar;
+  /// **'STEP 1 // SAVE THE PACKAGE'**
+  String get backupStep1Header;
 
-  /// Text button with share icon on backup export and bulk backup export; opens the OS share sheet.
+  /// Two-step backup export: what the package is and where to keep it.
   ///
   /// In en, this message translates to:
-  /// **'Share package'**
-  String get commonSharePackage;
+  /// **'Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.'**
+  String get backupStep1Body;
 
-  /// Filled button at the bottom of backup export / bulk export after the user has stored the paper backup.
+  /// Step 1 text for a bulk backup, which has no QR code.
   ///
   /// In en, this message translates to:
-  /// **'I\'VE SAVED IT'**
-  String get commonIveSavedIt;
+  /// **'Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.'**
+  String get backupStep1BodyNoQr;
+
+  /// Opens the share sheet with the PACKAGE file (no words in it).
+  ///
+  /// In en, this message translates to:
+  /// **'Save package file'**
+  String get backupSavePackageFile;
+
+  /// Marks step 1 done when the user saved the package without the buttons (for example printed or photographed the QR).
+  ///
+  /// In en, this message translates to:
+  /// **'I saved it another way'**
+  String get backupSavedAnotherWay;
+
+  /// Two-step backup export: second step header. Keep the ' //' operator styling.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE'**
+  String get backupStep2Header;
+
+  /// Shown in step 2 until step 1 is done; the words stay hidden until then.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish step 1 first. The 8 words appear here after the package is saved.'**
+  String get backupStep2Locked;
+
+  /// Two-step backup export: paper is the main way to keep the words.
+  ///
+  /// In en, this message translates to:
+  /// **'Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.'**
+  String get backupStep2Body;
+
+  /// Primary button in step 2: marks the words as saved on paper.
+  ///
+  /// In en, this message translates to:
+  /// **'I wrote them on paper'**
+  String get backupWroteOnPaper;
+
+  /// Secondary button in step 2: opens the share sheet with the WORDS file (no package in it).
+  ///
+  /// In en, this message translates to:
+  /// **'Save words file instead'**
+  String get backupSaveWordsFile;
+
+  /// Shown under the words-file button.
+  ///
+  /// In en, this message translates to:
+  /// **'If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.'**
+  String get backupWordsFileWarning;
+
+  /// Six-digit fingerprint shared by the PACKAGE and WORDS files so they can be matched later.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint: {fingerprint} (the package and the words show the same one)'**
+  String backupFingerprintLine(String fingerprint);
+
+  /// Marker next to a finished step header.
+  ///
+  /// In en, this message translates to:
+  /// **'DONE'**
+  String get backupStepDone;
+
+  /// Final button, enabled once both steps are done.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'VE SAVED BOTH'**
+  String get backupSavedBoth;
+
+  /// Snackbar when writing or sharing a backup file fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the share sheet. Try again.'**
+  String get backupShareFailed;
+
+  /// Snackbar after copying a package to the clipboard with timed clearing. On Android the clear runs only while Signet is open, hence the second clause.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.'**
+  String get commonCopiedProtected;
+
+  /// Snackbar after a copy that Signet cannot clear later.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to the clipboard.'**
+  String get commonCopiedPlain;
+
+  /// Snackbar when copying to the clipboard failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Try again.'**
+  String get commonCopyFailed;
+
+  /// Snackbar after copying the backup package; copying alone does not finish step 1. {copied} is commonCopiedProtected or commonCopiedPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'{copied} Paste it somewhere off this phone now, then tap \"I saved it another way\".'**
+  String backupPackageCopiedSnackbar(String copied);
 
   /// Red warning block headline on backup export and bulk export. Keep the ' //' structure.
   ///
@@ -182,13 +278,7 @@ abstract class AppLocalizations {
   /// **'PAKE SECRET //'**
   String get commonPakeSecretHeader;
 
-  /// Section header above the package wire text / QR on backup export and import screens. Keep the ' //' structure.
-  ///
-  /// In en, this message translates to:
-  /// **'BACKUP PACKAGE //'**
-  String get commonBackupPackageHeader;
-
-  /// Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure.
+  /// Section header above the pair-time phrase (4 words on the binding phrase screen, 8 on the transport in/out confirm panes). Keep the ' //' structure.
   ///
   /// In en, this message translates to:
   /// **'PAIR-TIME PHRASE //'**
@@ -205,6 +295,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g. Alice'**
   String get commonNameHintExample;
+
+  /// A contact name was empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name for this contact.'**
+  String get labelRejectEmpty;
+
+  /// A contact name contained a signet:tp1: package.
+  ///
+  /// In en, this message translates to:
+  /// **'That looks like Signet data, not a name. Try something like \"Mom\".'**
+  String get labelRejectData;
+
+  /// A contact name was a long hex string.
+  ///
+  /// In en, this message translates to:
+  /// **'That looks like a key, not a name. Try something like \"Mom\".'**
+  String get labelRejectKey;
+
+  /// A contact name was over the byte limit.
+  ///
+  /// In en, this message translates to:
+  /// **'That name is too long. Use a shorter one.'**
+  String get labelRejectTooLong;
+
+  /// Name given to a restored contact whose saved name was empty or unusable. The user can rename it.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored contact'**
+  String get labelRestoredFallback;
+
+  /// Appended to a restored contact's name when a contact with that name already exists. Keep the leading space if your language uses one.
+  ///
+  /// In en, this message translates to:
+  /// **' (restored)'**
+  String get labelRestoredSuffix;
+
+  /// QR scanner: the camera failed for a reason other than permission, or never started.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera didn\'t start'**
+  String get scannerCameraErrorTitle;
+
+  /// QR scanner camera error help.
+  ///
+  /// In en, this message translates to:
+  /// **'Close any other app that is using the camera and try again.'**
+  String get scannerCameraErrorBody;
+
+  /// QR scanner camera error help when a paste path exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Close any other app that is using the camera and try again, or paste the text instead.'**
+  String get scannerCameraErrorBodyPaste;
+
+  /// QR scanner: restart the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get scannerRetry;
+
+  /// QR scanner: give up on the camera and paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste instead'**
+  String get scannerUsePaste;
+
+  /// Restore scanner: a QR code that is not a signet:tp1: package.
+  ///
+  /// In en, this message translates to:
+  /// **'That QR code isn\'t a Signet package. Scan the code from your backup.'**
+  String get scannerNotSignetPackage;
+
+  /// Title of the full-screen QR scanner page.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN QR'**
+  String get scannerTitle;
+
+  /// Restore screen: scan the backup package QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get backupImportScanQr;
+
+  /// Restore preview: the saved contact name was empty or looked like data and was replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'The name saved in this backup could not be used, so this contact is restored as \"{label}\". You can rename it afterwards.'**
+  String backupImportReplacedLabelNotice(String label);
+
+  /// Counter under a name field. Counts space used (UTF-8 bytes), not letters, since that is what the limit is.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {max}'**
+  String labelLengthCounter(int used, int max);
+
+  /// Optional field on the long-distance pairing send screen.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR NAME, AS THEY\'LL SEE IT //'**
+  String get pairTransportOutYourNameHeader;
+
+  /// Help text for the sender's own-name hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Their phone suggests this as the name for you; they can change it. Chinese, Arabic and some other scripts use more space per letter, so keep it short.'**
+  String get pairTransportOutYourNameDescription;
+
+  /// The sender pasted their own outgoing package as the response.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the package you created. Paste the one your contact sent back.'**
+  String get pairTransportOutOwnPackageError;
 
   /// Text button with paste icon that reads the clipboard into the package input. Used on backup import and both transport screens.
   ///
@@ -248,11 +452,23 @@ abstract class AppLocalizations {
   /// **'Could not unlock: {error}'**
   String commonUnlockFailedError(String error);
 
-  /// Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.
+  /// Inline error / SnackBar when persisting a relationship fails (transport in/out, backup import). Shows the underlying exception message.
   ///
   /// In en, this message translates to:
   /// **'Could not save: {error}'**
   String commonSaveFailedError(String error);
+
+  /// Shown when committing a pair or rekey hits a storage error. The save is journaled and may complete on next launch, so the user is told how to check rather than to re-pair immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet couldn\'t finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.'**
+  String get pairConfirmSaveIncompleteError;
+
+  /// Shown when committing a rekey hits a storage error. The contact stays listed either way, so the user is told to repeat the rekey (safe to repeat).
+  ///
+  /// In en, this message translates to:
+  /// **'The rekey didn\'t finish. Do the rekey again on both phones before you rely on Signet to verify this contact.'**
+  String get pairConfirmRekeySaveIncompleteError;
 
   /// Validation error shown when the contact-name field is empty on transport in/out.
   ///
@@ -839,8 +1055,20 @@ abstract class AppLocalizations {
   /// FAQ answer 6.
   ///
   /// In en, this message translates to:
-  /// **'If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.'**
+  /// **'If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.'**
   String get faqA6;
+
+  /// FAQ question about storing the two backup parts.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I keep a backup safe?'**
+  String get faqQ12;
+
+  /// FAQ answer about storing the two backup parts.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.'**
+  String get faqA12;
 
   /// FAQ question 7.
   ///
@@ -887,7 +1115,7 @@ abstract class AppLocalizations {
   /// FAQ answer 10.
   ///
   /// In en, this message translates to:
-  /// **'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.'**
+  /// **'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.'**
   String get faqA10;
 
   /// FAQ question 11.
@@ -901,6 +1129,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Do not skip it. A real paired contact understands why verification exists and won\'t pressure you to bypass it. Urgency plus a request to skip verification is the exact pattern a scammer uses to short-circuit the safety net. If you\'re being pressured, assume the call is hostile until proven otherwise.'**
   String get faqA11;
+
+  /// FAQ question about the 'needs a newer / older version of Signet' messages (plan Task 1.7j).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet says it needs an update.'**
+  String get faqQ13;
+
+  /// FAQ answer about update messages. Must not suggest any update source other than the store the app came from (scam lever).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.'**
+  String get faqA13;
 
   /// Monospace headline above the issue-filing block at the end of the FAQ. Keep the ' //' structure.
   ///
@@ -1040,71 +1280,287 @@ abstract class AppLocalizations {
   /// **'contact'**
   String get pairExchangeFallbackContact;
 
-  /// Intro line at the top of the exchange overview pane.
+  /// Intro on the in-person pairing role choice. Keeps the safety rule from the old exchange intro (Task 1.7a): scan the phone itself, never a photo or video call.
   ///
   /// In en, this message translates to:
-  /// **'Hold your phones together. Each of you needs to do both of these.'**
-  String get pairExchangeIntro;
+  /// **'Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.'**
+  String get pairInPersonIntro;
 
-  /// Step card 1 title: display my pairing QR.
+  /// Explains the two roles above the Start and Join buttons.
   ///
   /// In en, this message translates to:
-  /// **'Show my QR'**
-  String get pairExchangeStep1Title;
+  /// **'Decide out loud who goes first. That phone taps Start. The other phone taps Join.'**
+  String get pairInPersonRoleHint;
 
-  /// Step card 1 subtitle.
+  /// Moves on after this phone's code was scanned.
   ///
   /// In en, this message translates to:
-  /// **'Let the other person scan your code.'**
-  String get pairExchangeStep1Subtitle;
+  /// **'NEXT'**
+  String get pairInPersonNextButton;
 
-  /// Step card 2 title: scan the other device's QR.
+  /// Under NEXT: the visible cue that the other phone scanned this one (a phone cannot detect it).
   ///
   /// In en, this message translates to:
-  /// **'Scan their QR'**
-  String get pairExchangeStep2Title;
+  /// **'Tap when the other phone shows its own code.'**
+  String get pairInPersonNextHint;
 
-  /// Step card 2 subtitle.
+  /// Start's last tap, after the other phone scanned the last code.
   ///
   /// In en, this message translates to:
-  /// **'Point your camera at their code.'**
-  String get pairExchangeStep2Subtitle;
+  /// **'SHOW THE WORDS'**
+  String get pairInPersonShowWordsButton;
 
-  /// Dev-only step card 3 title (paste-exchange pane, compile-time flag).
+  /// Under SHOW THE WORDS: the visible cue that the other phone scanned the last code.
   ///
   /// In en, this message translates to:
-  /// **'Paste string (dev)'**
-  String get pairExchangeStep3Title;
+  /// **'Tap when the other phone shows 4 words.'**
+  String get pairInPersonFinishHint;
 
-  /// Dev-only step card 3 subtitle.
+  /// On a scan step: go back and show this phone's code again, for when NEXT was tapped too early.
   ///
   /// In en, this message translates to:
-  /// **'Two-emulator testing only. Bypasses the camera.'**
-  String get pairExchangeStep3Subtitle;
+  /// **'Show my code again'**
+  String get pairInPersonShowAgainButton;
 
-  /// Status line under the step cards once both steps are complete.
+  /// Screen-reader label of the pairing QR image.
   ///
   /// In en, this message translates to:
-  /// **'Deriving shared secret…'**
-  String get pairExchangeDerivingStatus;
+  /// **'Pairing QR code'**
+  String get pairInPersonQrLabel;
 
-  /// Status line under the step cards while steps are incomplete.
+  /// The camera read a code this phone already used (the other phone has not moved on yet).
   ///
   /// In en, this message translates to:
-  /// **'Waiting for both steps…'**
-  String get pairExchangeWaitingStatus;
+  /// **'Already scanned. Wait for the other phone\'s next code.'**
+  String get pairCodeAlreadyScannedNotice;
 
-  /// Headline above the fullscreen pairing QR.
+  /// Fills the paste field from the clipboard in one tap.
   ///
   /// In en, this message translates to:
-  /// **'Let them scan this.'**
-  String get pairExchangeShowHeading;
+  /// **'PASTE FROM CLIPBOARD'**
+  String get pairInPersonPasteFromClipboard;
 
-  /// BigButton under the QR confirming the other side has scanned.
+  /// Snackbar after copying a pairing code. {status} is the clipboard result (commonCopiedProtected or commonCopiedPlain). Must not suggest sending the code over a messaging app.
   ///
   /// In en, this message translates to:
-  /// **'They scanned — I\'m done'**
-  String get pairExchangeShowDoneButton;
+  /// **'{status} Get it to the other phone yourself, then check the 4 words together in person.'**
+  String pairInPersonCopiedSnackbar(String status);
+
+  /// Role button: this phone shows its code first.
+  ///
+  /// In en, this message translates to:
+  /// **'START'**
+  String get pairInPersonStartButton;
+
+  /// Line under the START button.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone shows its code first.'**
+  String get pairInPersonStartSubtitle;
+
+  /// Role button: this phone scans first.
+  ///
+  /// In en, this message translates to:
+  /// **'JOIN'**
+  String get pairInPersonJoinButton;
+
+  /// Line under the JOIN button.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scans the other phone first.'**
+  String get pairInPersonJoinSubtitle;
+
+  /// Progress label above each in-person pairing step.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of 3'**
+  String pairInPersonStepLabel(int step);
+
+  /// Heading over a QR code this phone shows (steps 1 and 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Let the other phone scan this.'**
+  String get pairInPersonShowHeading;
+
+  /// Heading over the last QR code Start shows (step 3).
+  ///
+  /// In en, this message translates to:
+  /// **'Let the other phone scan this one too.'**
+  String get pairInPersonShowRevealHeading;
+
+  /// Heading over the camera (steps 1 and 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the other phone.'**
+  String get pairInPersonScanHeading;
+
+  /// Heading over the camera for Join's last scan (step 3).
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the other phone once more.'**
+  String get pairInPersonScanRevealHeading;
+
+  /// Shown while this phone makes its pairing code.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready…'**
+  String get pairInPersonPreparing;
+
+  /// Shown while the 4 words are computed (about a second).
+  ///
+  /// In en, this message translates to:
+  /// **'Working out the words…'**
+  String get pairInPersonDeriving;
+
+  /// Hint after about 20 s with nothing scanned on Join's first step.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.'**
+  String get pairInPersonJoinIdleHint;
+
+  /// Hint after about 20 s with nothing scanned on Start's scan step (two Start phones just face each other).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.'**
+  String get pairInPersonStartIdleHint;
+
+  /// Accessibility fallback: show this phone's code as text to copy instead of a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the code as text'**
+  String get pairInPersonShowAsText;
+
+  /// Switch back from the text form to the QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the QR code'**
+  String get pairInPersonShowAsQr;
+
+  /// Copies this phone's pairing code (public, not secret).
+  ///
+  /// In en, this message translates to:
+  /// **'COPY CODE'**
+  String get pairInPersonCopyCode;
+
+  /// Accessibility fallback on scan steps: type or paste the other phone's code.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a code instead'**
+  String get pairInPersonPasteInstead;
+
+  /// Heading of the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the other phone\'s code'**
+  String get pairInPersonPasteHeading;
+
+  /// Label of the paste field.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get pairInPersonPasteLabel;
+
+  /// Submit button of the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'USE THIS CODE'**
+  String get pairInPersonPasteSubmit;
+
+  /// Paste fallback submitted with an empty field.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the other phone\'s code first.'**
+  String get pairInPersonPasteEmptyError;
+
+  /// Leave the paste fallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the camera'**
+  String get pairInPersonBackToCamera;
+
+  /// Button on a failed attempt; returns to the Start/Join choice with new keys.
+  ///
+  /// In en, this message translates to:
+  /// **'START OVER'**
+  String get pairInPersonStartOverButton;
+
+  /// Shown under every failure: the other phone does not know this attempt ended.
+  ///
+  /// In en, this message translates to:
+  /// **'On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.'**
+  String get pairInPersonStartOverBoth;
+
+  /// A scanned or pasted pairing code is damaged (usually a broken paste). Must not say tampered.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is incomplete or damaged. Scan or paste it again.'**
+  String get pairCodeMalformedNotice;
+
+  /// The camera read a QR code that is not a Signet pairing code.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a Signet pairing code. Scan the code on the other phone\'s pairing screen.'**
+  String get pairCodeNotPairingNotice;
+
+  /// More than one pairing code in one paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste one code at a time.'**
+  String get pairCodeMultipleNotice;
+
+  /// The other phone showed an older-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source.
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.'**
+  String get pairCodePeerNeedsUpdateNotice;
+
+  /// The other phone showed a newer-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.'**
+  String get pairCodeThisNeedsUpdateNotice;
+
+  /// Start scanned another Start code (or its own code in a reflection). Neutral wording: must not accuse the other person.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scanned a Start code. One phone must tap Start and the other Join.'**
+  String get pairFailStartStart;
+
+  /// Join scanned another Join code before any Start code.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone scanned a Join code. One phone must tap Start and the other Join.'**
+  String get pairFailJoinJoin;
+
+  /// A second, different code arrived after one was accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'A different code was scanned partway through, so this attempt ended to keep it safe.'**
+  String get pairFailSecondCode;
+
+  /// A valid code of a kind this step never accepts.
+  ///
+  /// In en, this message translates to:
+  /// **'That code belongs to a different step, so this attempt ended to keep it safe.'**
+  String get pairFailWrongCode;
+
+  /// Join's last code does not open the step-1 commitment: possible tampering. Must not reassure.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.'**
+  String get pairFailRevealMismatch;
+
+  /// The attempt's idle timer ran out.
+  ///
+  /// In en, this message translates to:
+  /// **'This took too long, so the attempt ended.'**
+  String get pairFailTimedOut;
+
+  /// Key generation or the word computation failed unexpectedly.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong on this phone.'**
+  String get pairFailInternal;
 
   /// Title of the camera-permission-denied pane.
   ///
@@ -1129,90 +1585,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apps → Signet → Permissions → Camera'**
   String get pairCameraSettingsPathAndroid;
-
-  /// Dev-only pane headline (paste string instead of camera).
-  ///
-  /// In en, this message translates to:
-  /// **'Dev: paste-exchange'**
-  String get pairExchangeDevHeading;
-
-  /// Dev-only pane instructions; references the two field labels below.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy the \"Your string\" value into the other emulator\'s paste box, then paste theirs below.'**
-  String get pairExchangeDevInstructions;
-
-  /// Label above our own pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Your string'**
-  String get pairExchangeDevYourString;
-
-  /// Copy button next to our pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy'**
-  String get pairExchangeDevCopyButton;
-
-  /// SnackBar after copying our pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Copied to clipboard'**
-  String get pairExchangeDevCopiedSnackbar;
-
-  /// Label above the input for the other device's pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Their string'**
-  String get pairExchangeDevTheirString;
-
-  /// BigButton submitting the pasted pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get pairExchangeDevSubmitButton;
-
-  /// Disabled state of the dev-pane submit button.
-  ///
-  /// In en, this message translates to:
-  /// **'Submitting…'**
-  String get pairExchangeDevSubmittingButton;
-
-  /// Validation error when submitting an empty pairing string in the dev pane.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste the other device’s pairing string.'**
-  String get pairExchangePasteEmptyError;
-
-  /// FormatException message from the pairing codec; shown in the scan pane and dev paste pane when the payload has the wrong prefix.
-  ///
-  /// In en, this message translates to:
-  /// **'Not a Signet pairing QR (wrong scheme / version).'**
-  String get pairingErrorNotPairingQr;
-
-  /// FormatException message from the pairing codec when the decoded key length is wrong.
-  ///
-  /// In en, this message translates to:
-  /// **'Decoded payload is {actual} bytes, expected 32.'**
-  String pairingErrorBadPayloadLength(int actual);
-
-  /// FormatException message from the pairing codec wrapping a base64 decode failure.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not decode pairing QR: {error}'**
-  String pairingErrorDecodeFailed(String error);
-
-  /// Error stored in pairing state when the scanned key has the wrong length; shown in the exchange overview error box.
-  ///
-  /// In en, this message translates to:
-  /// **'Scanned key is {actual} bytes; expected {expected}.'**
-  String pairingErrorBadKeyLength(int actual, int expected);
-
-  /// Error stored in pairing state when ECDH derivation throws; shown in the exchange overview error box.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to derive shared secret: {error}'**
-  String pairingErrorDeriveFailed(String error);
 
   /// AppBar title of the phrase-confirmation step during a fresh pair.
   ///
@@ -1391,7 +1763,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on transport in.
   ///
   /// In en, this message translates to:
-  /// **'Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.'**
+  /// **'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.'**
   String get pairTransportInPhraseInstruction;
 
   /// Section header above the response package on transport in. Keep the ' //' structure.
@@ -1412,12 +1784,6 @@ abstract class AppLocalizations {
   /// **'Copy response'**
   String get pairTransportInCopyResponseButton;
 
-  /// SnackBar after copying the response package.
-  ///
-  /// In en, this message translates to:
-  /// **'Response copied to clipboard'**
-  String get pairTransportInResponseCopiedSnackbar;
-
   /// AppBar title of the transport-out setup phase.
   ///
   /// In en, this message translates to:
@@ -1433,7 +1799,7 @@ abstract class AppLocalizations {
   /// Helper text under the NAME THIS CONTACT header on transport out.
   ///
   /// In en, this message translates to:
-  /// **'The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.'**
+  /// **'The name that will appear on your home screen for this contact. Only you see it.'**
   String get pairTransportOutNameDescription;
 
   /// FilledButton generating the outgoing package on transport out.
@@ -1460,22 +1826,10 @@ abstract class AppLocalizations {
   /// **'Send this text to {label}. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.'**
   String pairTransportOutOutgoingInstruction(String label);
 
-  /// Copy button next to the 8 PAKE words on transport out.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy words'**
-  String get pairTransportOutCopyWordsButton;
-
-  /// SnackBar after copying the PAKE words on transport out.
-  ///
-  /// In en, this message translates to:
-  /// **'PAKE words copied'**
-  String get pairTransportOutWordsCopiedSnackbar;
-
   /// Warning box about out-of-band PAKE delivery on transport out.
   ///
   /// In en, this message translates to:
-  /// **'Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.'**
+  /// **'Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.'**
   String get pairTransportOutChannelWarning;
 
   /// Section header above the response input on transport out. Keep the ' //' structure.
@@ -1508,10 +1862,22 @@ abstract class AppLocalizations {
   /// **'Could not unlock response: {error}'**
   String pairTransportOutUnlockFailedError(String error);
 
+  /// In-person QR pairing: the scanned code carries a low-order or reflected public key (possible tampering). Must not reassure; tells both people to cancel and restart.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.'**
+  String get pairingWeakKeyInPersonError;
+
+  /// Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel.
+  ///
+  /// In en, this message translates to:
+  /// **'This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.'**
+  String get pairingWeakKeyRemoteError;
+
   /// Instruction above the phrase card on transport out.
   ///
   /// In en, this message translates to:
-  /// **'Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.'**
+  /// **'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.'**
   String pairTransportOutPhraseInstruction(String label);
 
   /// AppBar title of the single-relationship paper backup export.
@@ -1535,37 +1901,19 @@ abstract class AppLocalizations {
   /// Explanatory body under the export headline.
   ///
   /// In en, this message translates to:
-  /// **'Writing this down lets you restore this pairing on a new phone if you lose this one. {label}\'s phone won\'t know anything changed.'**
+  /// **'A backup lets you restore this pairing on a new phone if you lose this one. {label}\'s phone won\'t know anything changed.'**
   String backupExportIntro(String label);
 
   /// Body of the STORE THESE SEPARATELY warning on single export.
   ///
   /// In en, this message translates to:
-  /// **'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.'**
+  /// **'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.'**
   String get backupExportStoreSeparatelyBody;
-
-  /// Instruction above the numbered PAKE word list on single export.
-  ///
-  /// In en, this message translates to:
-  /// **'Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.'**
-  String get backupExportWordsInstruction;
-
-  /// Instruction above the package QR + text on single export.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.'**
-  String get backupExportPackageInstruction;
-
-  /// Subject line handed to the OS share sheet for a single backup.
-  ///
-  /// In en, this message translates to:
-  /// **'Signet backup - {label}'**
-  String backupExportShareSubject(String label);
 
   /// Body of the REMEMBER warning on single export.
   ///
   /// In en, this message translates to:
-  /// **'If this paper is ever found by someone else, UNPAIR {label} immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.'**
+  /// **'If someone else ever finds both the package and the 8 words, unpair {label} right away and pair again in person. The backup holds the same secret your current pairing uses.'**
   String backupExportRememberBody(String label);
 
   /// AppBar title of the backup-import unlock pane.
@@ -1580,35 +1928,83 @@ abstract class AppLocalizations {
   /// **'CONFIRM IMPORT'**
   String get backupImportConfirmTitle;
 
-  /// Error when the picked backup file has neither bytes nor a readable path.
+  /// The picked file is larger than any backup could be (checked before reading it).
   ///
   /// In en, this message translates to:
-  /// **'Could not read the selected file.'**
+  /// **'That file is too large to be a Signet backup. Pick the small text file you saved when you made the backup.'**
+  String get backupImportFileTooLargeError;
+
+  /// Picking or reading the backup file failed. Never shows exception text (it can contain cache paths).
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the selected file. Try picking it again.'**
   String get backupImportFileReadError;
-
-  /// Error when reading the picked backup file throws.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not read the file: {error}'**
-  String backupImportFileReadFailedError(String error);
-
-  /// Error when the picked file fails bundle parsing.
-  ///
-  /// In en, this message translates to:
-  /// **'File is not a valid Signet backup: {message}'**
-  String backupImportInvalidFileError(String message);
 
   /// Validation error when unlocking with an empty package field.
   ///
   /// In en, this message translates to:
-  /// **'Paste your backup package.'**
+  /// **'Load or paste your backup package first.'**
   String get backupImportPasteEmptyError;
 
   /// Validation error when the 8 PAKE words aren't complete on backup import.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 8 PAKE words you stored separately.'**
+  /// **'Enter all 8 backup words.'**
   String get backupImportWordsIncompleteError;
+
+  /// Restore screen: header above the package input.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 1 // THE PACKAGE'**
+  String get backupImportPackageHeader;
+
+  /// Restore screen: opens the file picker for the PACKAGE file.
+  ///
+  /// In en, this message translates to:
+  /// **'Load PACKAGE file'**
+  String get backupImportLoadPackageFile;
+
+  /// Restore screen: header above the 8-word input.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP 2 // THE 8 WORDS'**
+  String get backupImportWordsHeader;
+
+  /// Restore screen: opens the file picker for the WORDS file.
+  ///
+  /// In en, this message translates to:
+  /// **'Load WORDS file'**
+  String get backupImportLoadWordsFile;
+
+  /// The package input was given the words file.
+  ///
+  /// In en, this message translates to:
+  /// **'Those are the 8 words, not the package. Put them under step 2.'**
+  String get backupImportIsWordsError;
+
+  /// The words input was given the package file.
+  ///
+  /// In en, this message translates to:
+  /// **'That is the package, not the words. Put it under step 1.'**
+  String get backupImportIsPackageError;
+
+  /// The words input was given text without 8 backup words.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup words found there. Look for a line of 8 words.'**
+  String get backupImportNoWordsError;
+
+  /// The words file's fingerprint does not match the package. Fingerprints are 6 digits shown as "123 456".
+  ///
+  /// In en, this message translates to:
+  /// **'These words belong to a different backup (package {package}, words {words}). Find the words with fingerprint {package}.'**
+  String backupImportFingerprintMismatchError(String package, String words);
+
+  /// Shown when an old combined backup file is loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.'**
+  String get backupImportLegacyNotice;
 
   /// Error when the payload type can't be recognized.
   ///
@@ -1625,25 +2021,19 @@ abstract class AppLocalizations {
   /// Error when paste-from-clipboard finds nothing on backup import.
   ///
   /// In en, this message translates to:
-  /// **'Clipboard is empty. Copy your backup package first.'**
+  /// **'The clipboard is empty.'**
   String get backupImportClipboardEmptyError;
 
   /// Helper text above the package input on backup import; the wire prefix stays literal.
   ///
   /// In en, this message translates to:
-  /// **'Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.'**
+  /// **'Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".'**
   String get backupImportPasteInstruction;
-
-  /// Button opening the file picker on backup import.
-  ///
-  /// In en, this message translates to:
-  /// **'Load from file'**
-  String get backupImportLoadFromFileButton;
 
   /// Helper text above the PAKE word input on backup import.
   ///
   /// In en, this message translates to:
-  /// **'The 8 words from your paper or password manager — stored separately from the package above.'**
+  /// **'Type the 8 words you wrote down, or load the WORDS file if you saved one.'**
   String get backupImportWordsInstruction;
 
   /// FilledButton unlocking the pasted backup.
@@ -1751,7 +2141,7 @@ abstract class AppLocalizations {
   /// Body under the bulk-export pre-generation headline.
   ///
   /// In en, this message translates to:
-  /// **'Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.'**
+  /// **'Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.'**
   String get bulkBackupExportReadyBody;
 
   /// FilledButton generating the bulk backup.
@@ -1769,7 +2159,7 @@ abstract class AppLocalizations {
   /// Body of the STORE THESE SEPARATELY warning on bulk export (every-pairing variant).
   ///
   /// In en, this message translates to:
-  /// **'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.'**
+  /// **'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.'**
   String get bulkBackupExportStoreSeparatelyBody;
 
   /// Instruction above the PAKE word list on bulk export.
@@ -1778,29 +2168,11 @@ abstract class AppLocalizations {
   /// **'Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.'**
   String get bulkBackupExportWordsInstruction;
 
-  /// Copy button next to the PAKE words on bulk export.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy PAKE'**
-  String get bulkBackupExportCopyPakeButton;
-
-  /// SnackBar after copying the PAKE words on bulk export.
-  ///
-  /// In en, this message translates to:
-  /// **'PAKE words copied to clipboard'**
-  String get bulkBackupExportPakeCopiedSnackbar;
-
   /// Instruction above the bulk package text on bulk export.
   ///
   /// In en, this message translates to:
   /// **'The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.'**
   String get bulkBackupExportPackageInstruction;
-
-  /// peerLabel embedded in the shared bulk-bundle text.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 relationship (bulk)} other{{count} relationships (bulk)}}'**
-  String bulkBackupExportShareLabel(int count);
 
   /// Subject line handed to the OS share sheet for a bulk backup.
   ///
@@ -1811,7 +2183,7 @@ abstract class AppLocalizations {
   /// Body of the REMEMBER warning on bulk export.
   ///
   /// In en, this message translates to:
-  /// **'If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.'**
+  /// **'If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.'**
   String get bulkBackupExportRememberBody;
 
   /// AppBar title of the bulk-import preview pane.
@@ -1837,6 +2209,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore {count, plural, =1{1 relationship} other{{count} relationships}}'**
   String bulkBackupImportPreviewHeading(int count);
+
+  /// A package's unauthenticated version or type byte says it needs a newer Signet. Anyone can trigger this without the 8 words, so it must steer users only to their normal install source and warn against links or files (scam lever).
+  ///
+  /// In en, this message translates to:
+  /// **'This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.'**
+  String get packageNeedsNewerSignetError;
+
+  /// A package unlocked with the correct 8 words contains a must-understand field this build does not know. Only the holder of the words can produce this, so plain wording is fine.
+  ///
+  /// In en, this message translates to:
+  /// **'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.'**
+  String get packageNeedsNewerSignetVerifiedError;
+
+  /// A long-distance pairing package without the strong-phrase tag (made by Signet 0.3.6 or older, or with the tag stripped). There is no way to continue with it.
+  ///
+  /// In en, this message translates to:
+  /// **'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.'**
+  String get packageFromOlderSignetError;
+
+  /// Any malformed transport package (backup or pairing): replaces English developer error text.
+  ///
+  /// In en, this message translates to:
+  /// **'This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.'**
+  String get packageDamagedError;
+
+  /// Single-backup restore: the stored pairing date was invalid and was reset to the import time. The secret is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.'**
+  String get backupImportRepairedDateNotice;
+
+  /// Single-backup restore: the stored name was not valid text and some characters were replaced. The secret is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.'**
+  String get backupImportRepairedLabelNotice;
+
+  /// Bulk restore preview: records whose pairing date or label was repaired on decode. Matches the FIXED badge on each row.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.} other{{count} relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.}}'**
+  String bulkBackupImportRepairedNotice(int count);
+
+  /// Bulk restore preview and summary: records skipped because they carry a must-understand field this build does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.} other{{count} relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.}}'**
+  String bulkBackupImportSkippedNewerNotice(int count);
+
+  /// Small badge on a bulk-restore row whose date or name was repaired on decode.
+  ///
+  /// In en, this message translates to:
+  /// **'FIXED'**
+  String get bulkBackupImportRepairedBadge;
+
+  /// Bulk-restore summary row label: records not restored because they need a newer Signet. Operator-style header with the trailing ' //'.
+  ///
+  /// In en, this message translates to:
+  /// **'NEEDS NEWER SIGNET //'**
+  String get bulkBackupImportSummarySkippedNewer;
 
   /// Body when no restored label collides with an existing pairing.
   ///
@@ -1880,12 +2312,6 @@ abstract class AppLocalizations {
   /// **'ALREADY PAIRED'**
   String get bulkBackupImportAlreadyPairedChip;
 
-  /// Placeholder shown when a bulk record has an empty label.
-  ///
-  /// In en, this message translates to:
-  /// **'(no label)'**
-  String get bulkBackupImportNoLabel;
-
   /// Monospace metadata line on each bulk-import row: wire role letter and pairing date.
   ///
   /// In en, this message translates to:
@@ -1901,7 +2327,7 @@ abstract class AppLocalizations {
   /// Conflict radio option: import under a suffixed label; the suffix is stored on the contact name.
   ///
   /// In en, this message translates to:
-  /// **'Rename restored copy to \"{label} (restored)\"'**
+  /// **'Restore it as \"{label}\"'**
   String bulkBackupImportRenameOption(String label);
 
   /// Conflict radio option: replace the existing pairing's secret.
@@ -1909,6 +2335,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Overwrite existing pairing'**
   String get bulkBackupImportOverwriteOption;
+
+  /// Shown in place of the Overwrite option when it cannot be offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.'**
+  String get bulkBackupImportOverwriteUnavailable;
 
   /// Headline of the bulk-import success pane.
   ///
@@ -1940,6 +2372,18 @@ abstract class AppLocalizations {
   /// **'SKIPPED //'**
   String get bulkBackupImportSummarySkipped;
 
+  /// Summary row: records that failed to save during a bulk restore.
+  ///
+  /// In en, this message translates to:
+  /// **'COULD NOT SAVE //'**
+  String get bulkBackupImportSummaryFailed;
+
+  /// Shown under the summary when some records failed to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.'**
+  String get bulkBackupImportFailedNote;
+
   /// Success-pane body when zero records were committed.
   ///
   /// In en, this message translates to:
@@ -1967,7 +2411,7 @@ abstract class AppLocalizations {
   /// Instruction above the phrase card on the binding-phrase screen.
   ///
   /// In en, this message translates to:
-  /// **'These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.'**
+  /// **'These 4 words come from the secret you and {label} share. They may not be the words you checked when you first paired; that is normal. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.'**
   String bindingPhraseExplanation(String label);
 
   /// Red warning headline on the binding-phrase screen. Keep the ' //' structure.
@@ -2153,7 +2597,7 @@ abstract class AppLocalizations {
   /// Body of the bulk-backup section when relationships exist.
   ///
   /// In en, this message translates to:
-  /// **'Back up all {count, plural, =1{1 relationship} other{{count} relationships}} into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.'**
+  /// **'Back up {count, plural, =1{your 1 relationship} other{all {count} relationships}} in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.'**
   String settingsBulkBackupBody(int count);
 
   /// Outlined action button of the bulk-backup section.
@@ -2185,6 +2629,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ENABLE DEBUG LOGGING'**
   String get settingsDebugEnableAction;
+
+  /// Snackbar when starting a debug-logging session fails (e.g. the secure key store is unavailable). Logging stays off.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t turn on debug logging. Nothing was recorded. Try again.'**
+  String get settingsDebugEnableFailed;
 
   /// Outlined button opening the debug-log export sheet.
   ///
@@ -2258,10 +2708,58 @@ abstract class AppLocalizations {
   /// **'BACK UP EVERYTHING?'**
   String get settingsBulkConfirmTitle;
 
+  /// Settings section shown only when stored contacts cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTACTS THAT COULD NOT BE READ'**
+  String get settingsUnreadableSection;
+
+  /// Explains unreadable (quarantined) contacts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 paired contact} other{{count} paired contacts}} could not be read. A newer version of Signet may have saved {count, plural, =1{it} other{them}}; update Signet to see {count, plural, =1{it} other{them}} again. {count, plural, =1{It is} other{They are}} not shown on Home and not included in backups.'**
+  String settingsUnreadableBody(int count);
+
+  /// Unpairs every unreadable contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove unreadable contacts'**
+  String get settingsUnreadableRemove;
+
+  /// Confirm dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE THEM?'**
+  String get settingsUnreadableConfirmTitle;
+
+  /// Confirm dialog body.
+  ///
+  /// In en, this message translates to:
+  /// **'These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.'**
+  String get settingsUnreadableConfirmBody;
+
+  /// Confirm button.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsUnreadableConfirmButton;
+
+  /// Snackbar when removing unreadable contacts failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some of them could not be removed. Try again.'**
+  String get settingsUnreadableRemoveFailed;
+
+  /// Warning on the bulk backup screen.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 contact} other{{count} contacts}} could not be read and will not be in this backup. See Settings.'**
+  String bulkBackupExportSkipsUnreadable(int count);
+
   /// Body of the bulk-export confirm dialog.
   ///
   /// In en, this message translates to:
-  /// **'This exports the shared secret for all {count, plural, =1{1 relationship} other{{count} relationships}} into one file. Losing the 8-word PAKE means losing all {count} backups. The PAKE will be shown once — write it down before closing the screen.'**
+  /// **'This puts the shared secret for {count, plural, =1{your 1 relationship} other{all {count} relationships}} into one backup. Without its 8 words the backup cannot be opened, so losing them loses {count, plural, =1{the backup} other{all {count} backups}}. The words are shown once: write them down before leaving the screen.'**
   String settingsBulkConfirmBody(int count);
 
   /// Filled confirm button of the bulk-export dialog.
@@ -2378,11 +2876,17 @@ abstract class AppLocalizations {
   /// **'If {label} does not answer, call a family member or someone close who can physically check on them. A real {label} will never be upset that you checked.'**
   String verifyFailStep3(String label);
 
-  /// Education sheet step 04; SHOW BINDING PHRASE refers to the Home row-menu item.
+  /// Education sheet step 04; refers to the verifyFailCheckBindingButton button right below it.
   ///
   /// In en, this message translates to:
-  /// **'If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.'**
+  /// **'If you are unsure whether Signet itself is broken: tap \"Check the binding phrase\" below and compare it with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.'**
   String verifyFailStep4(String label);
+
+  /// Button in the NOT VERIFIED help sheet that opens the binding phrase screen for this contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the binding phrase'**
+  String get verifyFailCheckBindingButton;
 
   /// Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure.
   ///
@@ -2498,6 +3002,12 @@ abstract class AppLocalizations {
   /// **'Words ✅. Did you see {label}: {action}?'**
   String verifyActionJudgmentPrompt(String label, String action);
 
+  /// Spoken by the screen reader when the words pass in video mode. Deliberately does not name the gesture: the phone may be on speaker during the video call, where the other side could hear it.
+  ///
+  /// In en, this message translates to:
+  /// **'Words matched. Did {label} do the action shown on screen? Answer SAW IT or DID NOT SEE.'**
+  String verifyActionJudgmentAnnouncement(String label);
+
   /// Destructive judgment button: the action was not performed.
   ///
   /// In en, this message translates to:
@@ -2509,6 +3019,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SAW IT'**
   String get verifyActionSeenButton;
+
+  /// Under the SAW IT / DID NOT SEE question in video mode.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} should do exactly one gesture. If they did several, tap DID NOT SEE.'**
+  String verifyActionOneGesture(String label);
+
+  /// Video mode: the words matched a neighbouring 30-second window whose gesture differs from the WATCH FOR row the user saw while typing.
+  ///
+  /// In en, this message translates to:
+  /// **'The gesture to watch for has changed: the words {label} read were from the previous or next 30 seconds, and this is their gesture.'**
+  String verifyActionChangedNote(String label);
+
+  /// Large button under the 4 word slots on the verify screen; enabled once all 4 slots hold real words.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK THE WORDS'**
+  String get verifyCheckWordsButton;
+
+  /// Secondary note on a NOT VERIFIED result when the words match the secret replaced by a recent rekey. Must never sound reassuring: a thief with the old phone produces exactly these words.
+  ///
+  /// In en, this message translates to:
+  /// **'These words match the pairing you had with {label} before a rekey. If you and {label} just rekeyed, do it again together, in person. Otherwise treat this call as a scam.'**
+  String verifyOldPairingNote(String label);
 
   /// Collapsible section title: my own rotating words.
   ///

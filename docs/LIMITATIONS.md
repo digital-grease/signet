@@ -301,14 +301,18 @@ Each limitation carries four fields:
 
 ### L-BUILD-1 · Non-reproducible builds
 
-- **Scope:** two builds of the same commit on two different
-  machines will not produce byte-identical APKs in v0.2.
-- **Why:** Gradle embeds build timestamps; NDK paths are baked in.
-  Fixable but not fixed in v0.2.
-- **User mitigation:** none; this is a build-verification concern,
-  not a runtime concern.
-- **Status:** deferred to v0.2.1 / v1.0. See Phase 12.15 in the
-  current plan for the fix.
+- **Scope:** nobody independently checks that a published APK was
+  built from the published source. The Dart snapshot embeds the
+  build path, so our GitHub release (built on a GitHub runner) and
+  F-Droid's build (on F-Droid's buildserver) differ in bytes.
+- **Why:** F-Droid builds from source and signs with its own key, so
+  F-Droid users get F-Droid's build, not ours; the recipe has no
+  `Binaries` / `AllowedAPKSigningKeys` for F-Droid to verify ours
+  against. Our builds compile with JDK 21, the F-Droid buildserver's
+  JDK, which is a prerequisite for that.
+- **User mitigation:** install from F-Droid (built from source by a
+  third party), or check the SHA-256 in the GitHub release notes.
+- **Status:** F-Droid verified builds are a v1.0 candidate.
 
 ### L-BUILD-2 · Debug-signed release fallback
 

@@ -77,7 +77,10 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
           title: Text(l10n.bindingPhraseTitle),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.go('/'),
+            // Back to where it was opened from (Home's menu, or the verify
+            // help sheet); Home if there is nowhere to go back to.
+            onPressed: () =>
+                context.canPop() ? context.pop() : context.go('/'),
           ),
         ),
         body: SafeArea(

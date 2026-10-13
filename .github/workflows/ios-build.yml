@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
 
 # Least-privilege default. Closes a CodeQL
@@ -32,9 +32,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
@@ -103,13 +105,17 @@ jobs:
           if-no-files-found: error
 
       - name: Summarize build
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF: ${{ github.ref }}
         run: |
           {
             echo "### iOS build (unsigned)"
             echo ""
             echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
             echo "- Commit: \`${{ github.sha }}\`"
-            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Ref: \`$REF\`"
             echo "- Runner.app.zip SHA-256: \`${{ steps.package.outputs.sha256 }}\`"
             echo "- Signing: **none** — for compile-verification only"
           } >> "$GITHUB_STEP_SUMMARY"

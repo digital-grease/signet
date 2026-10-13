@@ -13,19 +13,19 @@ import 'package:signet/core/crypto/verification.dart';
 void main() {
   group('LDP round-trip: Alice ↔ Bob', () {
     test(
-      'both sides derive identical shared secret + pair-time phrase',
+      'both sides derive identical shared secret + 8-word pair-time phrase',
       () async {
-        // --- Alice mints package + PAKE ---
+        // --- Alice mints a request + PAKE ---
         final aliceKp = await PairingHandshake.generateEphemeralKeyPair();
         final pake = TransportPackage.mintPakeWords();
-        final aliceWire = await TransportPackage.encodeLdp(
+        final aliceWire = await TransportPackage.encodeLdpRequest(
           publicKey: aliceKp.publicKey,
           labelHint: 'Alice',
           pakeWords: pake,
         );
 
-        // --- Bob receives Alice's package, unlocks, mints his own ---
-        final aliceLdp = await TransportPackage.decodeLdp(
+        // --- Bob receives Alice's request, unlocks, mints his response ---
+        final aliceLdp = await TransportPackage.decodeLdpStrict(
           aliceWire,
           pakeWords: pake,
         );
@@ -37,17 +37,18 @@ void main() {
           ours: bobKp,
           theirPublicKey: aliceLdp.publicKey,
         );
-        final bobPhrase = await PairingVerification.derivePhrase(
+        final bobPhrase = await PairingVerification.deriveLongDistancePhrase(
           sharedSecret: bobSharedSecret,
+          ownPublicKey: bobKp.publicKey,
+          peerPublicKey: aliceLdp.publicKey,
         );
-        final bobResponse = await TransportPackage.encodeLdp(
+        final bobResponse = await TransportPackage.encodeLdpResponse(
           publicKey: bobKp.publicKey,
-          labelHint: '',
           pakeWords: pake,
         );
 
         // --- Alice unlocks Bob's response, derives her side ---
-        final bobLdp = await TransportPackage.decodeLdp(
+        final bobLdp = await TransportPackage.decodeLdpStrict(
           bobResponse,
           pakeWords: pake,
         );
@@ -55,12 +56,16 @@ void main() {
           ours: aliceKp,
           theirPublicKey: bobLdp.publicKey,
         );
-        final alicePhrase = await PairingVerification.derivePhrase(
+        final alicePhrase = await PairingVerification.deriveLongDistancePhrase(
           sharedSecret: aliceSharedSecret,
+          ownPublicKey: aliceKp.publicKey,
+          peerPublicKey: bobLdp.publicKey,
         );
 
-        // Sanity: the shared secrets match (X25519 ECDH round-trip).
+        // Sanity: the shared secrets match (X25519 ECDH round-trip), and
+        // the phrase does not depend on which side derives it.
         expect(aliceSharedSecret, bobSharedSecret);
+        expect(alicePhrase, hasLength(8));
         expect(alicePhrase, bobPhrase);
       },
     );

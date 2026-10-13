@@ -1,9 +1,36 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
   "minimumReleaseAge": "7 days",
   "internalChecksFilter": "strict",
   "dependencyDashboard": true,
-  "labels": ["dependencies"],
-  "prConcurrentLimit": 5
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "androidx.test versions forced in android/build.gradle.kts track what Flutter's integration_test plugin resolves to, not upstream releases; change them only with a Flutter bump.",
+      "matchManagers": [
+        "gradle"
+      ],
+      "matchPackageNames": [
+        "androidx.test:runner",
+        "androidx.test:rules",
+        "androidx.test.espresso:espresso-core"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Hold AGP 10: it removes the old variant API (android.newDsl=false) that Flutter's Gradle plugin and our per-ABI versionCode override still use. Lift when the pinned Flutter supports the new DSL.",
+      "matchPackageNames": [
+        "com.android.application",
+        "com.android.tools.build:gradle"
+      ],
+      "allowedVersions": "<10"
+    }
+  ]
 }

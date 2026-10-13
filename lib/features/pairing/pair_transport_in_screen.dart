@@ -12,6 +12,9 @@ import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/label_input.dart';
+import '../../shared/secure_clipboard.dart';
+import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../verify/word_input.dart';
 
@@ -22,7 +25,7 @@ import '../verify/word_input.dart';
 ///    AES-GCM authentication either succeeds (proceed) or fails
 ///    (InvalidPakeException → inline error).
 /// 2. **Confirm**: we derive the shared secret via ECDH against our fresh
-///    ephemeral key pair, compute the pair-time 4-word phrase, and
+///    ephemeral key pair, compute the pair-time 8-word phrase, and
 ///    display it alongside a response LDP package. The user confirms
 ///    the phrase matches on the sender's screen (via the same trusted
 ///    channel) AND sends the response package back. Tap COMMIT to write
@@ -46,6 +49,10 @@ class _PairTransportInScreenState
   int _pakeResetKey = 0;
 
   String? _unlockError;
+
+  /// The "update Signet" notice last shown for the package field, so a
+  /// later edit can clear it without clearing other errors.
+  String? _formatNotice;
   bool _unlocking = false;
 
   _UnlockedState? _unlocked;
@@ -62,6 +69,23 @@ class _PairTransportInScreenState
   // Unlock phase
   // ------------------------------------------------------------------
 
+  /// Say "update Signet" as soon as a package from a newer Signet is
+  /// pasted, instead of after the 8 words (plan Task 1.7j); a later edit
+  /// clears only that notice.
+  void _checkPackageFormat(String text) {
+    final notice =
+        newerSignetPackageNotice(text, AppLocalizations.of(context));
+    if (notice == _formatNotice) return;
+    setState(() {
+      if (notice != null) {
+        _unlockError = notice;
+      } else if (_unlockError == _formatNotice) {
+        _unlockError = null;
+      }
+      _formatNotice = notice;
+    });
+  }
+
   Future<void> _handleUnlock() async {
     if (_unlocking) return;
     final wire = _packageController.text.trim();
@@ -77,14 +101,19 @@ class _PairTransportInScreenState
               AppLocalizations.of(context).pairTransportInWordsIncompleteError);
       return;
     }
+    // The words as they are now: the slots stay editable while this runs.
+    final pakeWords = _pakeWords;
     setState(() {
       _unlocking = true;
       _unlockError = null;
     });
     try {
-      final ldp = await TransportPackage.decodeLdp(
+      // Strict: a request without the strong-phrase tag is from an older
+      // Signet (or had the tag stripped) and is refused, never answered
+      // with the weak phrase.
+      final ldp = await TransportPackage.decodeLdpStrict(
         wire,
-        pakeWords: _pakeWords,
+        pakeWords: pakeWords,
       );
       final ourKeyPair = await PairingHandshake.generateEphemeralKeyPair();
       final sharedSecret = await PairingHandshake.deriveSharedSecret(
@@ -93,13 +122,15 @@ class _PairTransportInScreenState
       );
       final totpSecret =
           await PairingHandshake.deriveTotpSecret(sharedSecret: sharedSecret);
-      final phrase = await PairingVerification.derivePhrase(
+      // 8 words bound to both keys (plan Task 1.7g).
+      final phrase = await PairingVerification.deriveLongDistancePhrase(
         sharedSecret: sharedSecret,
+        ownPublicKey: ourKeyPair.publicKey,
+        peerPublicKey: ldp.publicKey,
       );
-      final responseWire = await TransportPackage.encodeLdp(
+      final responseWire = await TransportPackage.encodeLdpResponse(
         publicKey: ourKeyPair.publicKey,
-        labelHint: '', // receiver hint is not useful to the sender
-        pakeWords: _pakeWords,
+        pakeWords: pakeWords,
       );
       if (!mounted) return;
       setState(() {
@@ -110,7 +141,11 @@ class _PairTransportInScreenState
           phrase: phrase,
           responseWire: responseWire,
         );
-        _labelController.text = ldp.labelHint;
+        // The sender's name for themselves (plan Task 3.6, P6), cleaned of
+        // invisible and direction-changing characters, and only if it is
+        // a usable name.
+        final hint = LabelPolicy.clean(ldp.labelHint);
+        _labelController.text = LabelPolicy.isValid(hint) ? hint : '';
         _unlocking = false;
       });
     } on InvalidPakeException catch (e) {
@@ -121,10 +156,16 @@ class _PairTransportInScreenState
         _unlocking = false;
         _pakeResetKey++;
       });
+    } on WeakPublicKeyException {
+      if (!mounted) return;
+      setState(() {
+        _unlockError = AppLocalizations.of(context).pairingWeakKeyRemoteError;
+        _unlocking = false;
+      });
     } on InvalidPackageException catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = e.message;
+        _unlockError = packageErrorText(e, AppLocalizations.of(context));
         _unlocking = false;
       });
     } catch (e) {
@@ -144,15 +185,13 @@ class _PairTransportInScreenState
   Future<void> _handleCommit() async {
     final unlocked = _unlocked;
     if (unlocked == null || _committing) return;
-    final label = _labelController.text.trim();
-    if (label.isEmpty) {
-      setState(() =>
-          _unlockError = AppLocalizations.of(context).commonGiveContactName);
-      return;
-    }
-    final labelReason = LabelPolicy.rejectionReason(label);
-    if (labelReason != null) {
-      setState(() => _unlockError = labelReason);
+    final label = LabelPolicy.clean(_labelController.text);
+    final l10n = AppLocalizations.of(context);
+    final rejection = LabelPolicy.check(label);
+    if (rejection != null) {
+      setState(() => _unlockError = rejection == LabelRejection.empty
+          ? l10n.commonGiveContactName
+          : labelRejectionText(rejection, l10n));
       return;
     }
     setState(() => _committing = true);
@@ -230,6 +269,7 @@ class _PairTransportInScreenState
         const SizedBox(height: 10),
         TextField(
           controller: _packageController,
+          onChanged: _checkPackageFormat,
           minLines: 3,
           maxLines: 5,
           style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
@@ -244,6 +284,7 @@ class _PairTransportInScreenState
               final data = await Clipboard.getData(Clipboard.kTextPlain);
               if (data?.text == null) return;
               setState(() => _packageController.text = data!.text!);
+              _checkPackageFormat(data!.text!);
             },
             icon: const Icon(Icons.content_paste),
             label: Text(l10n.commonPasteFromClipboard),
@@ -265,9 +306,8 @@ class _PairTransportInScreenState
           wordCount: 8,
           autofocus: false,
           resetKey: _pakeResetKey,
-          onSubmit: (words) async {
-            setState(() => _pakeWords = words);
-          },
+          onWordsChanged: (words) =>
+              setState(() => _pakeWords = words ?? const <String>[]),
         ),
         if (_unlockError != null) ...<Widget>[
           const SizedBox(height: 12),
@@ -326,8 +366,10 @@ class _PairTransportInScreenState
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: <Widget>[
-                      SizedBox(
-                        width: 28,
+                      // Grows with large text instead of wrapping "8.".
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 28),
+                        padding: const EdgeInsetsDirectional.only(end: 6),
                         child: Text(
                           '${i + 1}.',
                           style: TextStyle(
@@ -380,16 +422,14 @@ class _PairTransportInScreenState
           child: TextButton.icon(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              final copied = l10n.pairTransportInResponseCopiedSnackbar;
-              await Clipboard.setData(
-                ClipboardData(text: unlocked.responseWire),
-              );
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(copied),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              final result = await SecureClipboard.copy(unlocked.responseWire);
+              messenger.showSnackBar(SnackBar(
+                content: Text(switch (result) {
+                  SecureCopyResult.protected => l10n.commonCopiedProtected,
+                  SecureCopyResult.plain => l10n.commonCopiedPlain,
+                  SecureCopyResult.failed => l10n.commonCopyFailed,
+                }),
+              ));
             },
             icon: const Icon(Icons.copy),
             label: Text(l10n.pairTransportInCopyResponseButton),
@@ -400,7 +440,11 @@ class _PairTransportInScreenState
         const SizedBox(height: 8),
         TextField(
           controller: _labelController,
-          maxLength: 32,
+          inputFormatters: <TextInputFormatter>[
+            Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+          ],
+          buildCounter:
+              utf8ByteCounter(_labelController, LabelPolicy.maxBytes),
           decoration: InputDecoration(
             hintText: l10n.commonNameHintExample,
           ),

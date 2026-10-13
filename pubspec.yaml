@@ -16,10 +16,15 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.3.6+30006
+version: 0.4.0+40000
 
 environment:
-  sdk: ^3.11.4
+  sdk: ^3.12.0
+  # camera_android_camerax >= 0.7.3 (the camera-core 1.6.2 fix for JDK 22+
+  # builds, plan Task 7.6) needs Flutter >= 3.44. Keep this floor so a lock
+  # regenerated on an older SDK fails loudly instead of resolving the
+  # broken 0.7.2.
+  flutter: ">=3.44.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,9 +39,15 @@ dependencies:
   # template language; zh is the first contributed translation.
   flutter_localizations:
     sdk: flutter
-  # Pinned to the version flutter_localizations pins in the Flutter SDK
-  # (0.20.2 on 3.41.6). Bump together with the Flutter pin.
-  intl: ^0.20.2
+  # Must satisfy the constraint flutter_localizations sets in the pinned
+  # Flutter SDK (^0.20.3 on 3.47.5). Bump together with the Flutter pin.
+  intl: ^0.20.3
+  # @visibleForTesting for the pure-Dart crypto module (which must not
+  # import Flutter). Version is pinned by the Flutter SDK.
+  meta: ^1.17.0
+  # Grapheme clusters, so shortening a contact name never splits an emoji
+  # or an accented letter. Version is pinned by the Flutter SDK.
+  characters: ^1.4.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -44,7 +55,6 @@ dependencies:
   flutter_riverpod: ^3.3.1
   go_router: ^17.2.1
   cryptography: ^2.9.0
-  cryptography_flutter: ^2.3.4
   flutter_secure_storage: ^10.0.0
   # FOSS QR scanner: ZXing C++ via FFI. Replaced mobile_scanner in v0.3.1
   # because mobile_scanner bundles Google ML Kit + Play Services as native
@@ -54,7 +64,7 @@ dependencies:
   # Direct dep on `camera` so we can name `CameraException` in the
   # permission-denial fallback. flutter_zxing pulls camera in transitively
   # but its `export` clause omits CameraException specifically.
-  camera: ^0.12.0
+  camera: ^0.12.1
   qr_flutter: ^4.1.0
   bip39: ^1.0.6
   # Non-sensitive app prefs (onboarding-completed flag etc.). Secrets
@@ -68,31 +78,22 @@ dependencies:
   # Platform share sheet for exporting backup packages + PAKE to a
   # destination of the user's choice (Files / Drive / Notes / etc.).
   # Share sheet is OS-mediated; we don't make network calls.
-  # Pinned at ^12 (not 13). v13 requires win32 ^6.0.0, which transitively
-  # conflicts with file_picker 11.0.2 (latest available, requires
-  # win32 ^5.9.0). flutter_secure_storage_windows 4.2.2 already supports
-  # win32 ^6, so the chain is single-blocked on file_picker upstream.
-  # Coupled with package_info_plus below — bumping share_plus to 13
-  # forces package_info_plus to 10 (also win32 ^6), and vice versa.
-  # Revisit when file_picker ships a win32-6-compatible release.
-  share_plus: ^12.0.2
+  # share_plus, package_info_plus and device_info_plus move together: their
+  # current majors share the win32 ^6 dependency. file_picker 13's Windows
+  # implementation moved to win32 ^6 as well, so it no longer blocks them.
+  share_plus: ^13.3.1
   # File picker for importing a saved backup. User opens a picker,
   # chooses a .txt file, we read it locally. No network.
-  file_picker: ^11.0.2
+  file_picker: ^13.1.0
   # Launches external URLs from the About screen (source, privacy,
   # support/donate). Hands off to the OS browser; no network calls
   # from Signet itself.
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
-  # Pinned at ^9. v10 requires win32 ^6.0.0; see share_plus comment
-  # above — coupled blocker via file_picker upstream.
-  package_info_plus: ^9.0.1
-  # Pinned at ^11.x: 12.x uses `NSProcessInfo.isiOSAppOnVision`
-  # (iOS 17 / Xcode 15 SDK), which the macos-latest GitHub runner's
-  # default Xcode doesn't yet ship. v11.x supplies the same fields
-  # we consume (manufacturer/model/version) and builds clean on the
-  # runner. Bump back to ^12 once macos-latest defaults to Xcode 16+.
-  device_info_plus: ^11.0.0
+  package_info_plus: ^10.2.2
+  # 12.x+ needs the iOS 17 SDK (`NSProcessInfo.isiOSAppOnVision`); the
+  # macos-latest runner ships Xcode 26.x, so that hold is gone.
+  device_info_plus: ^13.3.0
 
 dev_dependencies:
   flutter_test:
@@ -101,6 +102,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  # Test fakes for the share sheet and temporary directory (backup export
+  # tests). Already resolved transitively; listed so tests may import them.
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
+  share_plus_platform_interface: ^7.2.0
   # Generates the full iOS + Android icon asset set from a single source
   # image. Config lives in flutter_launcher_icons.yaml alongside this
   # file. Run: `dart run flutter_launcher_icons`.

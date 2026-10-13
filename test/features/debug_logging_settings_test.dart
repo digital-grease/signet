@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:signet/core/logging/breadcrumb.dart';
 import 'package:signet/core/logging/crashlog_cipher.dart';
 import 'package:signet/core/logging/debug_log.dart';
 import 'package:signet/core/logging/debug_session.dart';
@@ -20,13 +21,14 @@ import 'package:signet/l10n/app_localizations.dart';
 import '../support/fake_secure_store.dart';
 import '../support/in_memory_secure_storage.dart';
 
-DebugLog _wiredDebugLog(Directory dir) {
+DebugLog _wiredDebugLog(Directory dir, {DateTime Function()? now}) {
   final cipher = CrashlogCipher(
     storage: InMemoryFlutterSecureStorage() as FlutterSecureStorage,
     random: Random(1),
     keyStorageKey: 'debuglog.aead_key.v1',
   );
-  return DebugLog(session: DebugSession(cipher: cipher, debugDir: dir));
+  return DebugLog(
+      session: DebugSession(cipher: cipher, debugDir: dir, now: now));
 }
 
 void main() {
@@ -57,6 +59,79 @@ void main() {
       expect(container.read(debugLoggingProvider).expiresAt, isNotNull);
 
       await ctl.stop();
+      expect(container.read(debugLoggingProvider).active, isFalse);
+    });
+  });
+
+  group('24-hour expiry while the app is open (plan Task 5.3)', () {
+    Directory tempDir() {
+      final dir = Directory.systemTemp.createTempSync('signet_dlx_');
+      addTearDown(() {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+      return dir;
+    }
+
+    test('the state clears when the 24 hours run out', () async {
+      // Start "23:59:59.7 ago", then let the clock run normally: the
+      // session expires about 0.3 s later.
+      var offset = const Duration(hours: -24) + const Duration(milliseconds: 300);
+      final container = ProviderContainer(overrides: [
+        debugLogProvider.overrideWithValue(_wiredDebugLog(tempDir(),
+            now: () => DateTime.now().toUtc().add(offset))),
+      ]);
+      addTearDown(container.dispose);
+      await container.read(debugLoggingProvider.notifier).enable();
+      offset = Duration.zero;
+      expect(container.read(debugLoggingProvider).active, isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      expect(container.read(debugLoggingProvider).active, isFalse);
+    });
+
+    test('a breadcrumb written after the expiry, which wipes the session '
+        'itself, still clears the state (Phase 5 review)', () async {
+      var offset = Duration.zero;
+      final log = _wiredDebugLog(tempDir(),
+          now: () => DateTime.now().toUtc().add(offset));
+      final container = ProviderContainer(
+          overrides: [debugLogProvider.overrideWithValue(log)]);
+      addTearDown(container.dispose);
+      await container.read(debugLoggingProvider.notifier).enable();
+      offset = const Duration(hours: 25);
+      log.log(BreadcrumbEvent.appStart); // wipes the expired session
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(log.session!.isActive, isFalse);
+      final binding = TestWidgetsFlutterBinding.instance;
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(container.read(debugLoggingProvider).active, isFalse);
+    });
+
+    test('coming back to the app after the 24 hours clears it', () async {
+      var offset = Duration.zero;
+      final container = ProviderContainer(overrides: [
+        debugLogProvider.overrideWithValue(_wiredDebugLog(tempDir(),
+            now: () => DateTime.now().toUtc().add(offset))),
+      ]);
+      addTearDown(container.dispose);
+      await container.read(debugLoggingProvider.notifier).enable();
+      expect(container.read(debugLoggingProvider).active, isTrue);
+
+      // A day passes with the app in the background (no timer ran).
+      offset = const Duration(hours: 25);
+      final binding = TestWidgetsFlutterBinding.instance;
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       expect(container.read(debugLoggingProvider).active, isFalse);
     });
   });

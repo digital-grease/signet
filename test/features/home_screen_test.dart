@@ -115,6 +115,30 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
+    // The pairing date is the phone's local date: 03:00 UTC on 16 April is
+    // still 15 April in the Americas. (Run under a non-UTC TZ, e.g.
+    // TZ=America/Chicago, for this to tell local from UTC.)
+    testWidgets('shows the pairing date in local time', (tester) async {
+      final late = Relationship(
+        id: 'ab123cdef',
+        label: 'Mom',
+        pairedAt: DateTime.utc(2026, 4, 16, 3),
+        role: PairRole.a,
+      );
+      await tester.pumpWidget(_wrap(
+        store: FakeSecureStore(seeded: late, secret: secret),
+      ));
+      await tester.pumpAndSettle();
+
+      final local = late.pairedAt.toLocal();
+      String two(int n) => n.toString().padLeft(2, '0');
+      final expected = '${local.year}-${two(local.month)}-${two(local.day)}';
+      expect(find.textContaining(expected), findsOneWidget);
+      if (local.day != 16) {
+        expect(find.textContaining('2026-04-16'), findsNothing);
+      }
+    });
+
     testWidgets('shows the OFFLINE-FREE chip and a PAIR FAB', (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: mom, secret: secret),
@@ -247,6 +271,59 @@ void main() {
         final stored = await store.getRelationship();
         expect(stored?.label, 'Mother');
         expect(find.text('Mother'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Rename: pressing Enter checks the name too (plan Task 3.6)',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Rename Mom'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), 'signet:tp1:AAAA');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('looks like Signet data'), findsOneWidget);
+        expect((await store.getRelationship())?.label, 'Mom');
+      },
+    );
+
+    testWidgets(
+      'UNDO works after leaving Home, and Home shows the contact again '
+      '(plan Task 3.7)',
+      (tester) async {
+        final store = FakeSecureStore(seeded: mom, secret: secret);
+        await tester.pumpWidget(_wrap(store: store));
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Unpair from Mom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Unpair'),
+        ));
+        await tester.pumpAndSettle();
+
+        // Leave Home while the snackbar is still up.
+        final router = GoRouter.of(tester.element(find.byType(HomeScreen)));
+        router.go('/pair/start');
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsNothing);
+        await tester.tap(find.text('UNDO'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(await store.hasRelationship(), isTrue);
+
+        router.go('/');
+        await tester.pumpAndSettle();
+        expect(find.text('Mom'), findsOneWidget);
       },
     );
 

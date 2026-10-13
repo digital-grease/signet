@@ -882,6 +882,13 @@ void main() {
       'ACTION // judgment panel is a liveRegion when it appears post-words-✅',
       (tester) async {
         final handle = tester.ensureSemantics();
+        // Android, where Flutter reports no announcement support: the live
+        // region is the cue there. (Where announcements are supported the
+        // screen announces instead; see verify_announce_test.dart.)
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            const FakeAccessibilityFeatures();
+        addTearDown(
+            tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
         // Dispose inline at test end — addTearDown runs AFTER
         // _endOfTestVerifications, which is what checks for leaked handles,
         // so tearDown-based disposal trips the sanity check.

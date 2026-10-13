@@ -33,13 +33,70 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonCopyPackage => '复制传输包';
 
   @override
-  String get commonPackageCopiedSnackbar => '传输包已复制到剪贴板';
+  String get backupStep1Header => '第 1 步 // 保存传输包';
 
   @override
-  String get commonSharePackage => '分享传输包';
+  String get backupStep1Body =>
+      '把这个传输包保存到这部手机以外的地方，比如电脑或 U 盘，或者把二维码打印出来。手机丢失时，存在手机里的副本也会一起丢失。传输包不包含那 8 个单词，单独存在时无法恢复任何内容。';
 
   @override
-  String get commonIveSavedIt => '已保存';
+  String get backupStep1BodyNoQr =>
+      '把这个传输包保存到这部手机以外的地方，比如电脑或 U 盘。手机丢失时，存在手机里的副本也会一起丢失。传输包不包含那 8 个单词，单独存在时无法恢复任何内容。';
+
+  @override
+  String get backupSavePackageFile => '保存传输包文件（PACKAGE）';
+
+  @override
+  String get backupSavedAnotherWay => '我已用其他方式保存';
+
+  @override
+  String get backupStep2Header => '第 2 步 // 把 8 个单词放在别处';
+
+  @override
+  String get backupStep2Locked => '请先完成第 1 步。保存传输包后，这里会显示 8 个单词。';
+
+  @override
+  String get backupStep2Body =>
+      '把这 8 个单词写在纸上，并写下下方的指纹，以便知道它们对应哪个传输包。把纸与传输包分开存放，例如放在钱包里。同时拥有两者的人可以恢复你的配对。';
+
+  @override
+  String get backupWroteOnPaper => '我已写在纸上';
+
+  @override
+  String get backupSaveWordsFile => '改为保存单词文件（WORDS）';
+
+  @override
+  String get backupWordsFileWarning =>
+      '如果把单词保存为文件，请放在与传输包不同的地方：不要放在同一个文件夹、同一部手机或同一个云账号里。';
+
+  @override
+  String backupFingerprintLine(String fingerprint) {
+    return '指纹：$fingerprint（传输包和单词显示同一个指纹）';
+  }
+
+  @override
+  String get backupStepDone => '已完成';
+
+  @override
+  String get backupSavedBoth => '两者都已保存';
+
+  @override
+  String get backupShareFailed => '无法打开分享面板。请重试。';
+
+  @override
+  String get commonCopiedProtected =>
+      '已复制。一分钟后，或你下次回到 Signet 时，Signet 会把它从剪贴板清除。';
+
+  @override
+  String get commonCopiedPlain => '已复制到剪贴板。';
+
+  @override
+  String get commonCopyFailed => '无法复制，请重试。';
+
+  @override
+  String backupPackageCopiedSnackbar(String copied) {
+    return '$copied请现在把它粘贴到这部手机以外的地方，然后点“我已用其他方式保存”。';
+  }
 
   @override
   String get commonStoreSeparatelyHeader => '分开存放 //';
@@ -51,9 +108,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonPakeSecretHeader => 'PAKE 密语 //';
 
   @override
-  String get commonBackupPackageHeader => '备份包 //';
-
-  @override
   String get commonPairTimePhraseHeader => '配对短语 //';
 
   @override
@@ -61,6 +115,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonNameHintExample => '例如：Alice';
+
+  @override
+  String get labelRejectEmpty => '请输入联系人名称。';
+
+  @override
+  String get labelRejectData => '这看起来像 Signet 数据，不像名字。试试“妈妈”这样的名称。';
+
+  @override
+  String get labelRejectKey => '这看起来像密钥，不像名字。试试“妈妈”这样的名称。';
+
+  @override
+  String get labelRejectTooLong => '名称太长了，请换一个短一点的。';
+
+  @override
+  String get labelRestoredFallback => '已恢复的联系人';
+
+  @override
+  String get labelRestoredSuffix => '（已恢复）';
+
+  @override
+  String get scannerCameraErrorTitle => '相机没有启动';
+
+  @override
+  String get scannerCameraErrorBody => '请关闭正在使用相机的其他应用，然后重试。';
+
+  @override
+  String get scannerCameraErrorBodyPaste => '请关闭正在使用相机的其他应用，然后重试，或者改为粘贴文本。';
+
+  @override
+  String get scannerRetry => '重试';
+
+  @override
+  String get scannerUsePaste => '改为粘贴';
+
+  @override
+  String get scannerNotSignetPackage => '这个二维码不是 Signet 传输包。请扫描备份中的二维码。';
+
+  @override
+  String get scannerTitle => '扫描二维码';
+
+  @override
+  String get backupImportScanQr => '扫描二维码';
+
+  @override
+  String backupImportReplacedLabelNotice(String label) {
+    return '备份中保存的名称无法使用，因此该联系人将以“$label”恢复。恢复后可以改名。';
+  }
+
+  @override
+  String labelLengthCounter(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get pairTransportOutYourNameHeader => '你的名字（对方看到的）//';
+
+  @override
+  String get pairTransportOutYourNameDescription =>
+      '可选。对方手机会把它建议为你的名字，对方可以修改。中文等文字每个字占用更多空间，请尽量简短。';
+
+  @override
+  String get pairTransportOutOwnPackageError => '这是你自己创建的传输包。请粘贴对方发回的那个。';
 
   @override
   String get commonPasteFromClipboard => '从剪贴板粘贴';
@@ -89,6 +205,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String commonSaveFailedError(String error) {
     return '无法保存：$error';
   }
+
+  @override
+  String get pairConfirmSaveIncompleteError =>
+      'Signet 未能完成保存此配对。请关闭 Signet 后重新打开。如果联系人出现在列表中，说明已保存；如果没有，请一起重新配对。';
+
+  @override
+  String get pairConfirmRekeySaveIncompleteError =>
+      '轮换密钥未完成。在依靠 Signet 验证此联系人之前，请在两部手机上重新进行轮换密钥。';
 
   @override
   String get commonGiveContactName => '请为这个联系人起个名字。';
@@ -409,7 +533,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get faqA6 =>
-      '如果丢失前做过纸质备份，可以用“从备份恢复”流程把配对联系人恢复到新手机 — 对方什么都不用做，甚至不会察觉发生过恢复。如果没有备份，配对就丢失了，需要在新设备上与该联系人当面重新配对。';
+      '如果丢失前做过备份，可以用“从备份恢复”把配对联系人恢复到新手机。对方什么都不用做，甚至不会察觉发生过恢复。如果没有备份，配对就丢失了，需要在新设备上与该联系人当面重新配对。';
+
+  @override
+  String get faqQ12 => '怎样安全地保存备份？';
+
+  @override
+  String get faqA12 =>
+      '备份分两部分：传输包文件（PACKAGE，已加密）和用来解锁它的 8 个单词。两者要分开存放。把传输包文件存到手机以外的地方，比如电脑或 U 盘。把 8 个单词写在纸上，放在别处，比如钱包里。同时拿到两部分的人就能向你的联系人冒充你，所以不要把它们放在一起，也不要用消息发送这些单词。恢复时，点“从备份恢复”，载入传输包文件，再输入 8 个单词。';
 
   @override
   String get faqQ7 => '可以和多个人配对吗？';
@@ -436,7 +567,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get faqA10 =>
-      '账号意味着服务器、密码，以及攻击者（或传票）可以绕过你的手机触达配对数据的通路。Signet 的存在正是因为其他认证工具都有这样的通路。恢复是手动的：趁现在一切正常，导出纸质备份，放在手机丢失时你能拿到的地方。';
+      '账号意味着服务器、密码，以及攻击者（或传票）可以绕过你的手机触达配对数据的通路。Signet 的存在正是因为其他认证工具都有这样的通路。恢复是手动的：趁现在一切正常，做一份备份，放在手机丢失时你能拿到的地方。';
 
   @override
   String get faqQ11 => '有人要求我跳过验证步骤。';
@@ -444,6 +575,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get faqA11 =>
       '不要跳过。真实的配对联系人明白验证存在的意义，不会施压让你绕过它。制造紧迫感并要求跳过验证，正是骗子瓦解安全防线的惯用手法。如果你正被施压，在证明清白之前，默认这通电话是恶意的。';
+
+  @override
+  String get faqQ13 => 'Signet says it needs an update.';
+
+  @override
+  String get faqA13 =>
+      'Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.';
 
   @override
   String get faqStillStuckHeader => '仍未解决 //';
@@ -523,37 +661,169 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairExchangeFallbackContact => '联系人';
 
   @override
-  String get pairExchangeIntro => '把两部手机放在一起。双方都需要完成以下两步。';
+  String get pairInPersonIntro =>
+      'Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.';
 
   @override
-  String get pairExchangeStep1Title => '出示我的二维码';
+  String get pairInPersonRoleHint =>
+      'Decide out loud who goes first. That phone taps Start. The other phone taps Join.';
 
   @override
-  String get pairExchangeStep1Subtitle => '让对方扫描你的二维码。';
+  String get pairInPersonNextButton => 'NEXT';
 
   @override
-  String get pairExchangeStep2Title => '扫描对方二维码';
+  String get pairInPersonNextHint =>
+      'Tap when the other phone shows its own code.';
 
   @override
-  String get pairExchangeStep2Subtitle => '把相机对准对方的二维码。';
+  String get pairInPersonShowWordsButton => 'SHOW THE WORDS';
 
   @override
-  String get pairExchangeStep3Title => '粘贴字符串（开发）';
+  String get pairInPersonFinishHint =>
+      'Tap when the other phone shows 4 words.';
 
   @override
-  String get pairExchangeStep3Subtitle => '仅用于双模拟器测试。跳过相机。';
+  String get pairInPersonShowAgainButton => 'Show my code again';
 
   @override
-  String get pairExchangeDerivingStatus => '正在派生共享密钥…';
+  String get pairInPersonQrLabel => 'Pairing QR code';
 
   @override
-  String get pairExchangeWaitingStatus => '等待两步都完成…';
+  String get pairCodeAlreadyScannedNotice =>
+      'Already scanned. Wait for the other phone\'s next code.';
 
   @override
-  String get pairExchangeShowHeading => '让对方扫描这个。';
+  String get pairInPersonPasteFromClipboard => 'PASTE FROM CLIPBOARD';
 
   @override
-  String get pairExchangeShowDoneButton => '对方已扫描 — 我这边完成';
+  String pairInPersonCopiedSnackbar(String status) {
+    return '$status Get it to the other phone yourself, then check the 4 words together in person.';
+  }
+
+  @override
+  String get pairInPersonStartButton => 'START';
+
+  @override
+  String get pairInPersonStartSubtitle => 'This phone shows its code first.';
+
+  @override
+  String get pairInPersonJoinButton => 'JOIN';
+
+  @override
+  String get pairInPersonJoinSubtitle =>
+      'This phone scans the other phone first.';
+
+  @override
+  String pairInPersonStepLabel(int step) {
+    return 'Step $step of 3';
+  }
+
+  @override
+  String get pairInPersonShowHeading => 'Let the other phone scan this.';
+
+  @override
+  String get pairInPersonShowRevealHeading =>
+      'Let the other phone scan this one too.';
+
+  @override
+  String get pairInPersonScanHeading => 'Scan the other phone.';
+
+  @override
+  String get pairInPersonScanRevealHeading => 'Scan the other phone once more.';
+
+  @override
+  String get pairInPersonPreparing => 'Getting ready…';
+
+  @override
+  String get pairInPersonDeriving => 'Working out the words…';
+
+  @override
+  String get pairInPersonJoinIdleHint =>
+      'Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.';
+
+  @override
+  String get pairInPersonStartIdleHint =>
+      'Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.';
+
+  @override
+  String get pairInPersonShowAsText => 'Show the code as text';
+
+  @override
+  String get pairInPersonShowAsQr => 'Show the QR code';
+
+  @override
+  String get pairInPersonCopyCode => 'COPY CODE';
+
+  @override
+  String get pairInPersonPasteInstead => 'Paste a code instead';
+
+  @override
+  String get pairInPersonPasteHeading => 'Paste the other phone\'s code';
+
+  @override
+  String get pairInPersonPasteLabel => 'Code';
+
+  @override
+  String get pairInPersonPasteSubmit => 'USE THIS CODE';
+
+  @override
+  String get pairInPersonPasteEmptyError =>
+      'Paste the other phone\'s code first.';
+
+  @override
+  String get pairInPersonBackToCamera => 'Back to the camera';
+
+  @override
+  String get pairInPersonStartOverButton => 'START OVER';
+
+  @override
+  String get pairInPersonStartOverBoth =>
+      'On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.';
+
+  @override
+  String get pairCodeMalformedNotice =>
+      'This code is incomplete or damaged. Scan or paste it again.';
+
+  @override
+  String get pairCodeNotPairingNotice =>
+      'That is not a Signet pairing code. Scan the code on the other phone\'s pairing screen.';
+
+  @override
+  String get pairCodeMultipleNotice => 'Paste one code at a time.';
+
+  @override
+  String get pairCodePeerNeedsUpdateNotice =>
+      'The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairCodeThisNeedsUpdateNotice =>
+      'This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairFailStartStart =>
+      'This phone scanned a Start code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailJoinJoin =>
+      'This phone scanned a Join code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailSecondCode =>
+      'A different code was scanned partway through, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailWrongCode =>
+      'That code belongs to a different step, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailRevealMismatch =>
+      'Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.';
+
+  @override
+  String get pairFailTimedOut => 'This took too long, so the attempt ended.';
+
+  @override
+  String get pairFailInternal => 'Something went wrong on this phone.';
 
   @override
   String get pairExchangeCameraPermissionTitle => '相机权限已关闭。';
@@ -568,56 +838,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairCameraSettingsPathAndroid => '应用 → Signet → 权限 → 相机';
-
-  @override
-  String get pairExchangeDevHeading => '开发：粘贴交换';
-
-  @override
-  String get pairExchangeDevInstructions => '把“你的字符串”复制到另一台模拟器的粘贴框，再把对方的粘贴到下面。';
-
-  @override
-  String get pairExchangeDevYourString => '你的字符串';
-
-  @override
-  String get pairExchangeDevCopyButton => '复制';
-
-  @override
-  String get pairExchangeDevCopiedSnackbar => '已复制到剪贴板';
-
-  @override
-  String get pairExchangeDevTheirString => '对方的字符串';
-
-  @override
-  String get pairExchangeDevSubmitButton => '提交';
-
-  @override
-  String get pairExchangeDevSubmittingButton => '提交中…';
-
-  @override
-  String get pairExchangePasteEmptyError => '请粘贴另一台设备的配对字符串。';
-
-  @override
-  String get pairingErrorNotPairingQr => '不是 Signet 配对二维码（协议或版本不对）。';
-
-  @override
-  String pairingErrorBadPayloadLength(int actual) {
-    return '解码结果为 $actual 字节，应为 32 字节。';
-  }
-
-  @override
-  String pairingErrorDecodeFailed(String error) {
-    return '无法解码配对二维码：$error';
-  }
-
-  @override
-  String pairingErrorBadKeyLength(int actual, int expected) {
-    return '扫描到的密钥为 $actual 字节，应为 $expected 字节。';
-  }
-
-  @override
-  String pairingErrorDeriveFailed(String error) {
-    return '派生共享密钥失败：$error';
-  }
 
   @override
   String get pairConfirmTitle => '确认';
@@ -720,7 +940,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      '通过你接收 PAKE 密语的同一条可信渠道，请发件人确认他们的屏幕上出现这 4 个单词。一致即表示传输包真实可信。';
+      'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
 
   @override
   String get pairTransportInResponseHeader => '你的响应包 //';
@@ -733,17 +953,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairTransportInCopyResponseButton => '复制响应包';
 
   @override
-  String get pairTransportInResponseCopiedSnackbar => '响应包已复制到剪贴板';
-
-  @override
   String get pairTransportOutNewPackageTitle => '新建传输包';
 
   @override
   String get pairTransportOutShareWaitTitle => '分享并等待';
 
   @override
-  String get pairTransportOutNameDescription =>
-      '这是配对后显示在你主页上的名称。对方导入传输包时会看到它作为提示，但可以在其设备上改名。';
+  String get pairTransportOutNameDescription => '这是配对后在你主页上显示的联系人名称，只有你能看到。';
 
   @override
   String get pairTransportOutGenerateButton => '生成传输包';
@@ -762,14 +978,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pairTransportOutCopyWordsButton => '复制单词';
-
-  @override
-  String get pairTransportOutWordsCopiedSnackbar => 'PAKE 单词已复制';
-
-  @override
   String get pairTransportOutChannelWarning =>
-      '这 8 个单词务必通过与传输包不同的渠道发送。绝不要通过临时拨通的语音电话。纸质、事先见面的约定，或另一段已配对的 Signet 关系，都比口头念出来更安全。';
+      '这 8 个单词务必通过与传输包不同的渠道发送。绝不要使用别人提供的电话或号码。纸质、事先见面的约定，或另一段已配对的 Signet 关系，都比口头念出来更安全。';
 
   @override
   String get pairTransportOutReceiveHeader => '接收响应包 //';
@@ -791,8 +1001,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pairingWeakKeyInPersonError =>
+      '停止。这个配对码不安全。请在两部手机上都取消配对，然后重新开始。不要相信任何一部手机上显示的单词。';
+
+  @override
+  String get pairingWeakKeyRemoteError =>
+      '这个配对包不安全，可能已被篡改。请关闭此页面，重新生成配对包，并换一种与之前不同的方式发送。不要相信任何一部手机上显示的单词。';
+
+  @override
   String pairTransportOutPhraseInstruction(String label) {
-    return '通过传递 PAKE 密语的同一条可信渠道，请 $label 确认这 4 个单词与屏幕上一致。一致即表示配对真实有效。';
+    return 'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
   }
 
   @override
@@ -810,29 +1028,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String backupExportIntro(String label) {
-    return '把这些写下来，手机丢失后就能在新手机上恢复这段配对。$label 的手机不会察觉任何变化。';
+    return '有了备份，手机丢失后就能在新手机上恢复这段配对。$label 的手机不会察觉任何变化。';
   }
 
   @override
   String get backupExportStoreSeparatelyBody =>
-      'PAKE 密语和备份包必须存放在不同的物理载体上。如果有人同时拿到两者，就能在自己的手机上恢复这段配对。纸质分放两处（家里 + 保管箱）是合理的起点；同步到云端的密码管理器则不行。';
-
-  @override
-  String get backupExportWordsInstruction =>
-      '把这 8 个单词写到安全的地方。在新手机上输入它们即可解锁传输包。';
-
-  @override
-  String get backupExportPackageInstruction =>
-      '在新手机上扫描这个二维码，或复制粘贴下面的文本。它与上面的 PAKE 密语是不同的载体 — 不要存放在一起。';
-
-  @override
-  String backupExportShareSubject(String label) {
-    return 'Signet 备份 - $label';
-  }
+      '这份备份分两部分：传输包，以及解锁它的 8 个单词。请分开存放。如果有人同时拿到两者，就能在自己的手机上恢复这段配对。';
 
   @override
   String backupExportRememberBody(String label) {
-    return '如果这张纸被别人发现，请立即解除与 $label 的配对并当面重新配对。备份里包含与当前配对相同的共享密钥。';
+    return '如果有别人同时拿到了传输包和这 8 个单词，请立即解除与 $label 的配对并当面重新配对。备份里包含与当前配对相同的密钥。';
   }
 
   @override
@@ -842,23 +1047,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportConfirmTitle => '确认导入';
 
   @override
-  String get backupImportFileReadError => '无法读取所选文件。';
+  String get backupImportFileTooLargeError =>
+      '这个文件太大，不可能是 Signet 备份。请选择你创建备份时保存的那个小文本文件。';
 
   @override
-  String backupImportFileReadFailedError(String error) {
-    return '无法读取文件：$error';
+  String get backupImportFileReadError => '无法读取所选文件。请重新选择。';
+
+  @override
+  String get backupImportPasteEmptyError => '请先载入或粘贴你的备份传输包。';
+
+  @override
+  String get backupImportWordsIncompleteError => '请输入全部 8 个备份单词。';
+
+  @override
+  String get backupImportPackageHeader => '第 1 步 // 传输包';
+
+  @override
+  String get backupImportLoadPackageFile => '载入传输包文件（PACKAGE）';
+
+  @override
+  String get backupImportWordsHeader => '第 2 步 // 8 个单词';
+
+  @override
+  String get backupImportLoadWordsFile => '载入单词文件（WORDS）';
+
+  @override
+  String get backupImportIsWordsError => '这是 8 个单词，不是传输包。请放在第 2 步。';
+
+  @override
+  String get backupImportIsPackageError => '这是传输包，不是单词。请放在第 1 步。';
+
+  @override
+  String get backupImportNoWordsError => '那里没有找到备份单词。请找一行 8 个单词。';
+
+  @override
+  String backupImportFingerprintMismatchError(String package, String words) {
+    return '这些单词属于另一个备份（传输包 $package，单词 $words）。请找指纹为 $package 的单词。';
   }
 
   @override
-  String backupImportInvalidFileError(String message) {
-    return '该文件不是有效的 Signet 备份：$message';
-  }
-
-  @override
-  String get backupImportPasteEmptyError => '请粘贴你的备份包。';
-
-  @override
-  String get backupImportWordsIncompleteError => '请输入你分开存放的 8 个 PAKE 单词。';
+  String get backupImportLegacyNotice =>
+      '这是旧版备份，单词和传输包保存在同一个文件里。恢复后，请重新备份并删除此文件。';
 
   @override
   String get backupImportNotBackupError => '不是有效的 Signet 备份。';
@@ -867,18 +1096,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportInvitationError => '这是配对邀请，不是备份。请从主页使用配对流程。';
 
   @override
-  String get backupImportClipboardEmptyError => '剪贴板是空的。请先复制你的备份包。';
+  String get backupImportClipboardEmptyError => '剪贴板是空的。';
 
   @override
   String get backupImportPasteInstruction =>
-      '粘贴纸上的备份包。以“signet:tp1:”开头。如果扫的是二维码，请粘贴扫出的文本。';
+      '载入传输包文件（PACKAGE），或粘贴传输包文本。它以“signet:tp1:”开头。';
 
   @override
-  String get backupImportLoadFromFileButton => '从文件载入';
-
-  @override
-  String get backupImportWordsInstruction =>
-      '来自你纸质记录或密码管理器的 8 个单词 — 与上面的传输包分开存放。';
+  String get backupImportWordsInstruction => '输入你记下的 8 个单词，或载入你保存的单词文件（WORDS）。';
 
   @override
   String get backupImportUnlockButton => '解锁备份';
@@ -945,7 +1170,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportReadyBody =>
-      '下面所有配对联系人会打包进一个加密文件，配一个 8 单词 PAKE。文件和单词分开存放，之后用它们把所有配对迁移到新手机。';
+      '下面所有配对联系人会放进同一份备份：一个传输包，以及解锁它的 8 个单词。两者分开存放，之后用它们把所有配对迁移到新手机。';
 
   @override
   String get bulkBackupExportGenerateButton => '生成批量备份';
@@ -963,32 +1188,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportStoreSeparatelyBody =>
-      'PAKE 密语和备份包必须存放在不同的物理载体上。如果有人同时拿到两者，就能在自己的手机上恢复所有配对。纸质分放两处（家里 + 保管箱）是合理的起点；同步到云端的密码管理器则不行。';
+      '这份备份分两部分：传输包，以及解锁它的 8 个单词。请分开存放。如果有人同时拿到两者，就能在自己的手机上恢复所有配对。';
 
   @override
   String get bulkBackupExportWordsInstruction =>
       '把这 8 个单词写到安全的地方。在新手机上输入它们即可一次性解锁全部内容。';
 
   @override
-  String get bulkBackupExportCopyPakeButton => '复制 PAKE';
-
-  @override
-  String get bulkBackupExportPakeCopiedSnackbar => 'PAKE 单词已复制到剪贴板';
-
-  @override
   String get bulkBackupExportPackageInstruction =>
       '全部配对的集合，用上面的 8 个单词加密。可通过任何渠道分享 — 单词是它的封印。';
-
-  @override
-  String bulkBackupExportShareLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 个配对关系（批量）',
-      one: '1 个配对关系（批量）',
-    );
-    return '$_temp0';
-  }
 
   @override
   String bulkBackupExportShareSubject(int count) {
@@ -997,7 +1205,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bulkBackupExportRememberBody =>
-      '如果这个文件和这 8 个单词同时被别人发现，请解除其中所有配对关系并当面重新配对。备份包含与你当前配对相同的共享密钥。';
+      '如果有别人同时拿到了传输包和这 8 个单词，请解除其中所有联系人的配对并当面重新配对。备份里包含与你当前配对相同的密钥。';
 
   @override
   String get bulkBackupImportTitle => '批量恢复';
@@ -1020,6 +1228,56 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '恢复 $_temp0';
   }
+
+  @override
+  String get packageNeedsNewerSignetError =>
+      '需要较新版本的 Signet。请只通过您最初安装 Signet 的应用商店更新。Signet 从不通过链接或文件发送更新。如果您没有预料到这条消息，请当面向发送者确认。';
+
+  @override
+  String get packageNeedsNewerSignetVerifiedError =>
+      '这是由较新版本的 Signet 生成的。请通过您安装 Signet 的应用商店更新后再试一次。';
+
+  @override
+  String get packageFromOlderSignetError =>
+      'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.';
+
+  @override
+  String get packageDamagedError => '此包已损坏或不完整。请检查是否完整复制，或请对方重新发送。';
+
+  @override
+  String get backupImportRepairedDateNotice =>
+      '此备份中有部分内容无法读取，已修复：配对日期已重置为今天。配对本身不受影响。';
+
+  @override
+  String get backupImportRepairedLabelNotice =>
+      '此备份中有部分内容无法读取，已修复：名称中的少数字符已被替换。恢复前请检查名称。配对本身不受影响。';
+
+  @override
+  String bulkBackupImportRepairedNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '此备份中有 $count 个关系的日期或名称无法读取，已修复，并在下方标记为“已修复”。恢复前请检查其名称。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkBackupImportSkippedNewerNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '此备份中有 $count 个关系需要较新版本的 Signet，因此未显示。在完成恢复之前请保留旧手机。请只通过您最初安装 Signet 的应用商店更新，然后重新恢复。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkBackupImportRepairedBadge => '已修复';
+
+  @override
+  String get bulkBackupImportSummarySkippedNewer => '需要较新版本 //';
 
   @override
   String get bulkBackupImportNoConflictBody => '勾选要恢复的行。下面每个配对都会以原名称和原配对日期恢复。';
@@ -1047,9 +1305,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkBackupImportAlreadyPairedChip => '已配对';
 
   @override
-  String get bulkBackupImportNoLabel => '（无名称）';
-
-  @override
   String bulkBackupImportRecordMeta(String role, String date) {
     return '角色 $role · 配对于 $date';
   }
@@ -1059,11 +1314,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String bulkBackupImportRenameOption(String label) {
-    return '将恢复的副本重命名为“$label（已恢复）”';
+    return '恢复为“$label”';
   }
 
   @override
   String get bulkBackupImportOverwriteOption => '覆盖现有配对';
+
+  @override
+  String get bulkBackupImportOverwriteUnavailable =>
+      '这里不提供替换：有多个联系人使用这个名称，或者这份备份中的另一条已经在替换它。';
 
   @override
   String get bulkBackupImportCompleteHeading => '恢复完成。';
@@ -1081,6 +1340,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkBackupImportSummarySkipped => '已跳过 //';
 
   @override
+  String get bulkBackupImportSummaryFailed => '无法保存 //';
+
+  @override
+  String get bulkBackupImportFailedNote =>
+      '有些联系人无法保存到这部手机。请再次恢复同一份备份来重试；已恢复的联系人会显示为已配对。';
+
+  @override
   String get bulkBackupImportNothingChangedBody => '本机没有任何改动。';
 
   @override
@@ -1095,7 +1361,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return '这 4 个单词在你和 $label 配对的那一刻生成。请 $label 打开 Signet 进入同一个界面。两台设备上的 4 个单词一致，即表示配对完好。';
+    return 'These 4 words come from the secret you and $label share. They may not be the words you checked when you first paired; that is normal. Ask $label to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.';
   }
 
   @override
@@ -1207,9 +1473,9 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '全部 $count 个配对关系',
-      one: '1 个配对关系',
+      one: '你的 1 个配对关系',
     );
-    return '把$_temp0备份到一个加密文件，配一个 8 单词 PAKE。换手机时使用 — 新手机可一步解锁所有配对。';
+    return '一次备份$_temp0：一个传输包和一组 8 个单词。换手机时使用：新手机可一步恢复所有配对。';
   }
 
   @override
@@ -1231,6 +1497,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDebugEnableAction => '开启调试日志';
+
+  @override
+  String get settingsDebugEnableFailed => '无法开启调试日志，未记录任何内容。请重试。';
 
   @override
   String get settingsDebugExportButton => '导出调试日志';
@@ -1271,14 +1540,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBulkConfirmTitle => '全部备份？';
 
   @override
+  String get settingsUnreadableSection => '无法读取的联系人';
+
+  @override
+  String settingsUnreadableBody(int count) {
+    return '有 $count 个配对联系人无法读取。可能是较新版本的 Signet 保存的，更新 Signet 后即可重新看到。它们不会显示在主页上，也不会包含在备份中。';
+  }
+
+  @override
+  String get settingsUnreadableRemove => '移除无法读取的联系人';
+
+  @override
+  String get settingsUnreadableConfirmTitle => '要移除吗？';
+
+  @override
+  String get settingsUnreadableConfirmBody =>
+      '这些联系人将在这部手机上解除配对，和在主页上解除配对一样。要再次与他们核验，需要重新配对。';
+
+  @override
+  String get settingsUnreadableConfirmButton => '移除';
+
+  @override
+  String get settingsUnreadableRemoveFailed => '有些无法移除，请重试。';
+
+  @override
+  String bulkBackupExportSkipsUnreadable(int count) {
+    return '有 $count 个联系人无法读取，不会包含在这份备份中。请查看设置。';
+  }
+
+  @override
   String settingsBulkConfirmBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '全部 $count 个配对关系',
-      one: '1 个配对关系',
+      one: '你的 1 个配对关系',
     );
-    return '这会把$_temp0的共享密钥导出到一个文件。丢失 8 单词 PAKE 就等于丢失全部 $count 份备份。PAKE 只会显示一次 — 关闭屏幕前请先抄写下来。';
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '全部 $count 份备份',
+      one: '这份备份',
+    );
+    return '这会把$_temp0的共享密钥放进同一份备份。没有那 8 个单词就无法打开备份，丢失它们就等于丢失$_temp1。单词只显示一次：离开屏幕前请先写下来。';
   }
 
   @override
@@ -1347,8 +1651,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String verifyFailStep4(String label) {
-    return '如果不确定是不是 Signet 本身出了问题：进入主页，点“查看绑定短语”，通过你信任的渠道与 $label 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。';
+    return '如果不确定是不是 Signet 本身出了问题：点下方的“核对绑定短语”，通过你信任的渠道与 $label 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。';
   }
+
+  @override
+  String get verifyFailCheckBindingButton => '核对绑定短语';
 
   @override
   String get verifyStatusOk => '状态 // 200 正常';
@@ -1414,10 +1721,33 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String verifyActionJudgmentAnnouncement(String label) {
+    return '单词相符。$label 做了屏幕上显示的动作吗？请回答“看到了”或“没看到”。';
+  }
+
+  @override
   String get verifyActionNotSeenButton => '没看到';
 
   @override
   String get verifyActionSeenButton => '看到了';
+
+  @override
+  String verifyActionOneGesture(String label) {
+    return '$label 应该只做一个动作。如果对方做了好几个，请点“没看到”。';
+  }
+
+  @override
+  String verifyActionChangedNote(String label) {
+    return '要观察的动作已更改：$label 读出的单词来自前一个或后一个 30 秒，这是对应的动作。';
+  }
+
+  @override
+  String get verifyCheckWordsButton => '核对单词';
+
+  @override
+  String verifyOldPairingNote(String label) {
+    return '这些单词与你和 $label 重新配对之前的旧配对相符。如果你们刚刚重新配对过，请当面一起再做一次。否则请把这通电话当作诈骗。';
+  }
 
   @override
   String get verifyShowMyWords => '显示我的 4 个单词';

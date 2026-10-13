@@ -1,15 +1,20 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
+import 'package:signet/core/crypto/verification.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_out_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/secure_clipboard_recorder.dart';
 
 Widget _wrap({required FakeSecureStore store}) {
   final router = GoRouter(
@@ -85,12 +90,19 @@ Future<String> _craftReceiverResponse({
   required List<String> pakeWords,
 }) async {
   final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
-  return TransportPackage.encodeLdp(
+  return TransportPackage.encodeLdpResponse(
     publicKey: receiverKp.publicKey,
-    labelHint: '',
     pakeWords: pakeWords,
   );
 }
+
+/// The pair-time phrase as shown, in order (the 22-point monospace rows).
+List<String> _shownPhrase(WidgetTester tester) => tester
+    .widgetList<Text>(find.byType(Text))
+    .where((t) =>
+        t.style?.fontFamily == 'monospace' && t.style?.fontSize == 22)
+    .map((t) => t.data ?? '')
+    .toList();
 
 void main() {
   testWidgets('setup pane renders and blocks empty label on GENERATE',
@@ -113,7 +125,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -131,8 +143,50 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Only the package can be copied; the 8 words cannot (bug R4).
+      expect(find.byIcon(Icons.copy), findsOneWidget);
+      expect(find.text('Copy package'), findsOneWidget);
     },
   );
+
+  // The response uses the same LDP format and PAKE words as the outgoing
+  // package, so anyone on the channel can echo the sender's own package back
+  // as the "response". The self-key check must stop the sender pairing with
+  // herself; a low-order key must be refused too.
+  for (final scenario in ['own package echoed back', 'low-order key']) {
+    testWidgets('UNLOCK RESPONSE refuses $scenario', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+
+      final extracted = await _extractOutgoing(tester);
+      final responseWire = scenario == 'own package echoed back'
+          ? extracted.outgoing
+          : await TransportPackage.encodeLdpResponse(
+              publicKey: Uint8List(32),
+              pakeWords: extracted.pake,
+            );
+
+      await tester.enterText(find.byType(TextField).first, responseWire);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+
+      // An echo is refused with what it is and what to do (plan Task 3.6,
+      // P8); a low-order key is refused as unsafe.
+      expect(
+          find.textContaining(scenario == 'own package echoed back'
+              ? 'This is the package you created'
+              : 'not safe to use'),
+          findsOneWidget);
+      expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+      expect(find.text('COMMIT PAIR'), findsNothing);
+    });
+  }
 
   testWidgets(
     'UNLOCK RESPONSE with matching PAKE reveals the pair-time phrase',
@@ -140,13 +194,15 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
 
       final extracted = await _extractOutgoing(tester);
-      final responseWire = await _craftReceiverResponse(
+      final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
+      final responseWire = await TransportPackage.encodeLdpResponse(
+        publicKey: receiverKp.publicKey,
         pakeWords: extracted.pake,
       );
 
@@ -163,8 +219,122 @@ void main() {
 
       expect(find.text('PAIR-TIME PHRASE //'), findsOneWidget);
       expect(find.text('COMMIT PAIR'), findsOneWidget);
+
+      // The words are the 8-word phrase over both keys: the receiver (this
+      // test holds its private key) derives the same ones.
+      final request = await TransportPackage.decodeLdpStrict(
+        extracted.outgoing,
+        pakeWords: extracted.pake,
+      );
+      final shared = await PairingHandshake.deriveSharedSecret(
+        ours: receiverKp,
+        theirPublicKey: request.publicKey,
+      );
+      final expected = await PairingVerification.deriveLongDistancePhrase(
+        sharedSecret: shared,
+        ownPublicKey: receiverKp.publicKey,
+        peerPublicKey: request.publicKey,
+      );
+      expect(expected, hasLength(8));
+      expect(_shownPhrase(tester), expected);
     },
   );
+
+  // Plan Task 1.7j: a response from a newer Signet asks to update.
+  Future<void> unlockResponse(
+      WidgetTester tester, Future<String> Function(List<String> pake) make) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+    final extracted = await _extractOutgoing(tester);
+    await tester.enterText(
+        find.byType(TextField).first, await make(extracted.pake));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+    await tester.tap(find.text('UNLOCK RESPONSE'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a pasted response from a newer Signet says so at once',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextField).first, 'signet:tp2:AQIDBAUGBwgJ');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsNothing);
+  });
+
+  testWidgets('UNLOCK RESPONSE: a later scheme asks to update',
+      (tester) async {
+    await unlockResponse(tester, (_) async => 'signet:tp2:AQIDBAUGBwgJ');
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
+
+  testWidgets('UNLOCK RESPONSE: an unknown field (unlocked) asks to update',
+      (tester) async {
+    await unlockResponse(
+      tester,
+      (pake) async => TransportPackage.encodeLdp(
+        publicKey: Uint8List(32)..[0] = 9,
+        labelHint: '',
+        pakeWords: pake,
+        version: 2,
+        extensions: const [
+          TransportExtension(TransportPackage.ldpStrongPhraseTag, [0x01]),
+          TransportExtension(0x8F, [1]),
+        ],
+      ),
+    );
+    expect(find.textContaining('made by a newer version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
+
+  // Plan Task 1.7g: a response without the strong-phrase tag (an older
+  // Signet, or the tag stripped by someone holding the words) is refused;
+  // the requester never falls back to the weak 4-word phrase.
+  testWidgets('UNLOCK RESPONSE refuses a response from an older Signet',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+
+    final extracted = await _extractOutgoing(tester);
+    final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
+    final oldResponse = await TransportPackage.encodeLdp(
+      publicKey: receiverKp.publicKey,
+      labelHint: '',
+      pakeWords: extracted.pake,
+      version: 1,
+    );
+    await tester.enterText(find.byType(TextField).first, oldResponse);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+    await tester.tap(find.text('UNLOCK RESPONSE'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('made by an older version of Signet'),
+        findsOneWidget);
+    expect(find.text('PAIR-TIME PHRASE //'), findsNothing);
+  });
 
   testWidgets(
     'COMMIT writes the relationship and routes to /pair/complete/:id',
@@ -173,7 +343,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: store));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -208,7 +378,7 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Alice');
+      await tester.enterText(find.byType(TextField).first, 'Alice');
       await tester.pumpAndSettle();
       await tester.tap(find.text('GENERATE PACKAGE'));
       await tester.pumpAndSettle();
@@ -237,4 +407,158 @@ void main() {
       );
     },
   );
+
+  testWidgets('Copy package uses the sensitive, timed clipboard',
+      (tester) async {
+    final clip = recordClipboard();
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE PACKAGE'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Copy package'));
+    await tester.tap(find.text('Copy package'));
+    await tester.pumpAndSettle();
+
+    expect(clip.sensitive.single, startsWith('signet:tp1:'));
+    expect(clip.plain, isEmpty);
+    expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
+    SecureClipboard.resetForTesting();
+  });
+
+  group('names (plan Task 3.6)', () {
+    Future<_Extracted> generate(WidgetTester tester,
+        {String contact = 'Alice', String? ownName}) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), contact);
+      if (ownName != null) {
+        await tester.enterText(find.byType(TextField).at(1), ownName);
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      return _extractOutgoing(tester);
+    }
+
+    testWidgets(
+        'the package carries the sender\'s own name, not the name they '
+        'chose for the contact (P6)', (tester) async {
+      final out = await generate(tester, contact: 'Bob', ownName: 'Alice');
+      final ldp = await TransportPackage.decodeLdp(out.outgoing,
+          pakeWords: out.pake);
+      expect(ldp.labelHint, 'Alice');
+    });
+
+    testWidgets('no own name: the package carries no name', (tester) async {
+      final out = await generate(tester, contact: 'Bob');
+      final ldp = await TransportPackage.decodeLdp(out.outgoing,
+          pakeWords: out.pake);
+      expect(ldp.labelHint, isEmpty);
+    });
+
+    testWidgets('the own-name field stops at the 32-byte package limit (P7)',
+        (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      final field = find.byType(TextField).at(1);
+      await tester.enterText(field, '\u5988' * 10); // 30 bytes: fits
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, '\u5988' * 10);
+      await tester.enterText(field, '\u5988' * 11); // 33 bytes
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, '\u5988' * 10,
+          reason: 'cut back to what fits');
+    });
+
+    testWidgets('an own name past the limit (e.g. from an input method) is '
+        'refused under its field, not as a raw error', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'Bob');
+      // Set directly, as an IME commit can, past the field's formatter.
+      tester
+          .widget<TextField>(find.byType(TextField).at(1))
+          .controller!
+          .text = '\u5988' * 12;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.text('That name is too long. Use a shorter one.'),
+          findsOneWidget);
+      expect(find.textContaining('Invalid argument'), findsNothing);
+      expect(find.text('OUTGOING PACKAGE //'), findsNothing);
+    });
+
+    testWidgets('a data-shaped contact name is refused in the user\'s words',
+        (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'signet:tp1:AAAA');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('looks like Signet data'), findsOneWidget);
+    });
+
+    testWidgets('pasting your own package as the response says so (P8)',
+        (tester) async {
+      final out = await generate(tester);
+      await tester.enterText(find.byType(TextField).first, out.outgoing);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('This is the package you created'),
+          findsOneWidget);
+      expect(find.text('COMMIT PAIR'), findsNothing);
+    });
+  });
+
+  // Large text (CLAUDE.md: large-text mode is first-class): the 8-word
+  // confirm pane fits or scrolls, the number labels stay on one line, and
+  // COMMIT stays reachable.
+  for (final (size, scale) in const [
+    (Size(360, 640), 1.3),
+    (Size(360, 640), 2.0),
+    (Size(412, 915), 2.0),
+  ]) {
+    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    testWidgets('the 8-word confirm pane works at large text, $tag',
+        (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('GENERATE PACKAGE'));
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'package pane');
+      final extracted = await _extractOutgoing(tester);
+      final responseWire = await _craftReceiverResponse(
+        pakeWords: extracted.pake,
+      );
+      await tester.enterText(find.byType(TextField).first, responseWire);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(_shownPhrase(tester), hasLength(8));
+      final label = find.byWidgetPredicate(
+          (w) => w is Text && w.data == '8.' && w.style?.fontSize == 16);
+      expect(tester.getSize(label).height, lessThan(16 * scale * 1.8),
+          reason: '"8." on one line');
+      await tester.ensureVisible(find.text('COMMIT PAIR'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

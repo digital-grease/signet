@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,7 +9,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
-import '../pairing/pairing_controller.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
+import '../../core/models/label_policy.dart';
+import '../../shared/label_input.dart';
+import '../pairing/in_person_pairing_controller.dart';
 import '../settings/debug_logging_controller.dart';
 
 /// Home — "operator" layout, multi-peer capable (Phase 10.4).
@@ -44,38 +48,45 @@ class HomeScreen extends ConsumerWidget {
         String? errorText;
         return StatefulBuilder(
           builder: (stfContext, setState) {
+            final l10n = AppLocalizations.of(stfContext);
+            // Enter and Save both go through the same check (plan Task
+            // 3.6, S12): the label rules apply to renames too.
+            void submit() {
+              final value = LabelPolicy.clean(controller.text);
+              final rejection = LabelPolicy.check(value);
+              if (rejection != null) {
+                setState(() => errorText = rejection == LabelRejection.empty
+                    ? l10n.homeRenameEmptyError
+                    : labelRejectionText(rejection, l10n));
+                return;
+              }
+              Navigator.of(dialogContext).pop(value);
+            }
+
             return AlertDialog(
-              title: Text(
-                AppLocalizations.of(stfContext).homeRenameDialogTitle,
-              ),
+              title: Text(l10n.homeRenameDialogTitle),
               content: TextField(
                 controller: controller,
                 autofocus: true,
-                maxLength: 32,
+                inputFormatters: <TextInputFormatter>[
+                  Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+                ],
+                buildCounter:
+                    utf8ByteCounter(controller, LabelPolicy.maxBytes),
                 decoration: InputDecoration(
-                  labelText:
-                      AppLocalizations.of(stfContext).homeRenameFieldLabel,
+                  labelText: l10n.homeRenameFieldLabel,
                   errorText: errorText,
                 ),
-                onSubmitted: (_) => Navigator.of(dialogContext)
-                    .pop(controller.text.trim()),
+                onSubmitted: (_) => submit(),
               ),
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(null),
-                  child: Text(AppLocalizations.of(stfContext).commonCancel),
+                  child: Text(l10n.commonCancel),
                 ),
                 FilledButton(
-                  onPressed: () {
-                    final value = controller.text.trim();
-                    if (value.isEmpty) {
-                      setState(() => errorText =
-                          AppLocalizations.of(stfContext).homeRenameEmptyError);
-                      return;
-                    }
-                    Navigator.of(dialogContext).pop(value);
-                  },
-                  child: Text(AppLocalizations.of(stfContext).homeSaveButton),
+                  onPressed: submit,
+                  child: Text(l10n.homeSaveButton),
                 ),
               ],
             );
@@ -137,6 +148,11 @@ class HomeScreen extends ConsumerWidget {
     await store.deleteRelationshipById(relationship.id);
     ref.invalidate(relationshipsProvider);
     if (!context.mounted) return;
+    // The snackbar outlives Home when the user navigates on (it belongs to
+    // the app-wide ScaffoldMessenger), and `ref` dies with Home. Capture
+    // the container now so UNDO can refresh the list from any screen
+    // (plan Task 3.7).
+    final container = ProviderScope.containerOf(context, listen: false);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -153,7 +169,7 @@ class HomeScreen extends ConsumerWidget {
                     relationship,
                     sharedSecret: secretSnapshot,
                   );
-                  ref.invalidate(relationshipsProvider);
+                  container.invalidate(relationshipsProvider);
                 },
               ),
       ),
@@ -347,7 +363,7 @@ class HomeScreen extends ConsumerWidget {
       case 'cr-grid':
         context.go('/inspect/cr-grid/${relationship.id}');
       case 'rekey':
-        ref.read(pairingControllerProvider.notifier).startRekey(
+        ref.read(inPersonPairingControllerProvider.notifier).startRekey(
               id: relationship.id,
               label: relationship.label,
             );
@@ -535,7 +551,8 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
+    // Scrolls when large text does not fit (plan Task 5.1).
+    return FillOrScroll(child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const Spacer(),
@@ -599,7 +616,7 @@ class _EmptyState extends StatelessWidget {
               Text(AppLocalizations.of(context).homeEmptyRestoreBackupButton),
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -660,8 +677,10 @@ class _RelationshipRow extends StatelessWidget {
     return bytes.join(':');
   }
 
+  /// The pairing date as the phone's local date: stored in UTC, but an
+  /// evening pairing should not show tomorrow's date.
   String get _boundAt {
-    final dt = relationship.pairedAt.toUtc();
+    final dt = relationship.pairedAt.toLocal();
     final y = dt.year.toString().padLeft(4, '0');
     final mo = dt.month.toString().padLeft(2, '0');
     final d = dt.day.toString().padLeft(2, '0');

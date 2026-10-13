@@ -4,7 +4,10 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    // No kotlin-android: Kotlin is compiled by AGP's built-in Kotlin
+    // (android.builtInKotlin=true in gradle.properties), and AGP 9 errors if
+    // kotlin-android is applied with it on. The `kotlin {}` block below
+    // still configures it.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -22,6 +25,28 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
 
+// Kotlin compiler options live in the top-level `kotlin {}` block. The old
+// `android { kotlinOptions { jvmTarget = ... } }` form is deprecated and is
+// a compile error from Kotlin 2.4 (it blocked the Kotlin update). The
+// target matches compileOptions below.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+// Compile with JDK 21 LTS whatever JDK runs Gradle. This matches the F-Droid
+// buildserver's `default-jdk-headless` (Debian Trixie), so our builds and
+// F-Droid's use the same compiler. Do not bump above 21 without checking
+// what the F-Droid buildserver ships. Gradle finds a local JDK 21 or one in
+// ~/.gradle/jdks; android/build.gradle.kts applies the same compiler to the
+// plugin modules. The bytecode target stays 17 (above).
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 android {
     namespace = "dev.digitalgrease.signet"
     compileSdk = flutter.compileSdkVersion
@@ -30,10 +55,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {

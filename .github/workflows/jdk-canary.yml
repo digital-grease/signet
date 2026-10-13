@@ -1,0 +1,70 @@
+name: JDK Canary
+
+# Runs Gradle on the newest GA JDK so Gradle/AGP/jlink changes surface here
+# before they break a developer's local build (plan Task 7.6). Java still
+# compiles with the JDK 21 toolchain (android/app/build.gradle.kts), which
+# the runner image has preinstalled.
+# Weekly and on demand only. (It was red on JDK 26 under AGP 8.11, whose
+# jlink step rejected JDK 26's java.base; fixed in AGP 9.2.0, issue
+# 474084303 "JdkImageTransform failure with JDK 26".) Running it on a schedule keeps a
+# newest-JDK break off every push and tag.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: 3.47.5
+  FLUTTER_CHANNEL: stable
+  # Bump when a new JDK reaches GA.
+  CANARY_JAVA_VERSION: 26
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-newest-jdk:
+    name: Release APK on newest JDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK ${{ env.CANARY_JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.CANARY_JAVA_VERSION }}
+
+      - name: Restore Gradle cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle.properties', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Report versions
+        run: |
+          java -version
+          flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release

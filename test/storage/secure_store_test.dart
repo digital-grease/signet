@@ -186,10 +186,19 @@ void main() {
       expect(await store.listRelationshipIds(), <String>['abc', 'def']);
     });
 
-    test('returns empty list when index blob is malformed', () async {
+    test('a malformed index is rebuilt from the stored relationships '
+        '(plan Task 4.3)', () async {
       when(() => mockStorage.read(key: 'signet.v2.index'))
           .thenAnswer((_) async => '{not-json');
-      expect(await store.listRelationshipIds(), isEmpty);
+      when(() => mockStorage.readAll()).thenAnswer((_) async => <String, String>{
+            'signet.v2.rel.bbb': '{}',
+            'signet.v2.rel.aaa': '{}',
+            'signet.v2.secret.aaa': 'x',
+            'signet.v2.secret.bbb': 'y',
+            // A relationship without its secret is not a contact.
+            'signet.v2.rel.ccc': '{}',
+          });
+      expect(await store.listRelationshipIds(), <String>['aaa', 'bbb']);
     });
   });
 
@@ -201,9 +210,13 @@ void main() {
         relationship,
         sharedSecret: sharedSecret,
       );
+      // Journal first, then overwrite (never delete first), then index,
+      // then clear the journal: crash-safe ordering (plan Task 1.4).
       verifyInOrder([
-        () => mockStorage.delete(key: 'signet.v2.rel.abc123'),
-        () => mockStorage.delete(key: 'signet.v2.secret.abc123'),
+        () => mockStorage.write(
+              key: 'signet.v2.journal',
+              value: any(named: 'value'),
+            ),
         () => mockStorage.write(
               key: 'signet.v2.secret.abc123',
               value: base64Encode(sharedSecret),
@@ -216,7 +229,10 @@ void main() {
               key: 'signet.v2.index',
               value: '["abc123"]',
             ),
+        () => mockStorage.delete(key: 'signet.v2.journal'),
       ]);
+      verifyNever(() => mockStorage.delete(key: 'signet.v2.rel.abc123'));
+      verifyNever(() => mockStorage.delete(key: 'signet.v2.secret.abc123'));
     });
 
     test(
@@ -224,8 +240,7 @@ void main() {
         () async {
       // Already-indexed id. The implementation should detect the dedup
       // and skip the index write, but rel + secret are unconditionally
-      // delete-then-rewritten (supports rekey / metadata edits via the
-      // same code path).
+      // overwritten (supports rekey / metadata edits via the same path).
       when(() => mockStorage.read(key: 'signet.v2.index'))
           .thenAnswer((_) async => '["abc123"]');
 
@@ -253,11 +268,10 @@ void main() {
             value: any(named: 'value'),
           )).called(1);
 
-      // The implementation's pre-write delete pair is also load-bearing
-      // (clears any prior value before the new write lands) — pin it.
-      verify(() => mockStorage.delete(key: 'signet.v2.rel.abc123')).called(1);
-      verify(() => mockStorage.delete(key: 'signet.v2.secret.abc123'))
-          .called(1);
+      // Never delete before writing: that is what made an interrupted
+      // rekey lose the contact (bug P4).
+      verifyNever(() => mockStorage.delete(key: 'signet.v2.rel.abc123'));
+      verifyNever(() => mockStorage.delete(key: 'signet.v2.secret.abc123'));
     });
 
     test('rejects empty shared secret', () async {

@@ -201,129 +201,51 @@ void main() {
     );
   });
 
-  group('TotpWords.verifyLivenessAction — ±1 window tolerance', () {
+  group('TotpWords.deriveLivenessActionForCounter (plan Task 3.1)', () {
     const t = 1111111111;
 
-    test('accepts the exact current window', () async {
-      final expected = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: t,
-        senderRole: PairRole.a,
-      );
+    test('matches deriveLivenessAction for the same window', () async {
+      for (final role in PairRole.values) {
+        for (final dt in <int>[-30, 0, 30]) {
+          expect(
+            await TotpWords.deriveLivenessActionForCounter(
+              secret: secret,
+              counter: TotpWords.counterFor(t + dt),
+              senderRole: role,
+            ),
+            await TotpWords.deriveLivenessAction(
+              secret: secret,
+              unixTimeSeconds: t + dt,
+              senderRole: role,
+            ),
+          );
+        }
+      }
+    });
+
+    test('previous and current windows give different actions here '
+        '(fixture for the verify-screen boundary tests)', () async {
+      // counter 37037036 -> touchForehead, 37037037 -> lookUp.
       expect(
-        await TotpWords.verifyLivenessAction(
+        await TotpWords.deriveLivenessActionForCounter(
           secret: secret,
-          candidate: expected,
-          unixTimeSeconds: t,
+          counter: TotpWords.counterFor(t) - 1,
           senderRole: PairRole.a,
         ),
-        isTrue,
+        isNot(await TotpWords.deriveLivenessActionForCounter(
+          secret: secret,
+          counter: TotpWords.counterFor(t),
+          senderRole: PairRole.a,
+        )),
       );
     });
 
-    test('accepts one window in the past (tolerance ±1)', () async {
-      final prev = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: t - 30,
-        senderRole: PairRole.a,
-      );
+    test('rejects an empty secret', () {
       expect(
-        await TotpWords.verifyLivenessAction(
-          secret: secret,
-          candidate: prev,
-          unixTimeSeconds: t,
+        () => TotpWords.deriveLivenessActionForCounter(
+          secret: const <int>[],
+          counter: 1,
           senderRole: PairRole.a,
-        ),
-        isTrue,
-      );
-    });
-
-    test('accepts one window in the future (tolerance ±1)', () async {
-      final next = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: t + 30,
-        senderRole: PairRole.a,
-      );
-      expect(
-        await TotpWords.verifyLivenessAction(
-          secret: secret,
-          candidate: next,
-          unixTimeSeconds: t,
-          senderRole: PairRole.a,
-        ),
-        isTrue,
-      );
-    });
-
-    test('accepts windowTolerance=0 only at the exact window', () async {
-      final prev = await TotpWords.deriveLivenessAction(
-        secret: secret,
-        unixTimeSeconds: t - 30,
-        senderRole: PairRole.a,
-      );
-      // With tolerance=0, prev-window action no longer qualifies — UNLESS
-      // prev and current happen to collide (1/8 per derivation). Pick a
-      // fixture where they DO differ: counter=37037036 (prev) → touchForehead
-      // counter=37037037 (curr) → lookUp. Distinct.
-      expect(
-        await TotpWords.verifyLivenessAction(
-          secret: secret,
-          candidate: prev,
-          unixTimeSeconds: t,
-          senderRole: PairRole.a,
-          windowTolerance: 0,
-        ),
-        isFalse,
-      );
-    });
-
-    test(
-      'at tolerance=0, role-mismatched candidate is rejected '
-      '(reflection-attack test — exact-window form)',
-      () async {
-        // What role b would derive; Alice (role a) must reject this at
-        // the exact window. Under tolerance=0 the check is unambiguous.
-        // With the default ±1 tolerance, a role-mismatched action can
-        // *accidentally* collide with a neighbouring role-correct action
-        // (~3/8 per random candidate over the 3-window walk, given the
-        // 8-way corpus). The word channel (44 bits) carries the primary
-        // reflection defense; the action channel is the belt-and-suspenders
-        // overlay. This test pins the exact-window semantics that matter.
-        final bAction = await TotpWords.deriveLivenessAction(
-          secret: secret,
-          unixTimeSeconds: t,
-          senderRole: PairRole.b,
-        );
-        final aAction = await TotpWords.deriveLivenessAction(
-          secret: secret,
-          unixTimeSeconds: t,
-          senderRole: PairRole.a,
-        );
-        expect(aAction, isNot(bAction),
-            reason: 'fixture sanity: roles diverge at t=$t');
-
-        expect(
-          await TotpWords.verifyLivenessAction(
-            secret: secret,
-            candidate: bAction,
-            unixTimeSeconds: t,
-            senderRole: PairRole.a,
-            windowTolerance: 0,
-          ),
-          isFalse,
-          reason: 'b-role action must not verify as a-role at exact window',
-        );
-      },
-    );
-
-    test('rejects negative windowTolerance', () async {
-      expect(
-        () => TotpWords.verifyLivenessAction(
-          secret: secret,
-          candidate: LivenessAction.lookUp,
-          unixTimeSeconds: t,
-          senderRole: PairRole.a,
-          windowTolerance: -1,
         ),
         throwsArgumentError,
       );

@@ -12,7 +12,7 @@ snapshots). That's what this checklist is for.
 ## Preconditions
 
 - macOS host with Xcode (latest stable) installed.
-- Flutter `3.41.6` stable — matches `env.FLUTTER_VERSION` in the CI
+- Flutter `3.47.5` stable — matches `env.FLUTTER_VERSION` in the CI
   workflows.
 - An iOS 15+ simulator booted, or a physical device registered with
   your Apple Developer account (free-tier dev cert is fine for
@@ -60,12 +60,16 @@ retrying.
 
 ## Phase 3 — pair + verify (two simulators / two devices)
 
-Easiest with the paste-exchange dev flag — launch both with
-`--dart-define=SIGNET_DEBUG_PAIRING=true`. One command per simulator.
+Simulators have no camera: use the built-in text path. On a show step,
+tap "Show the code as text" and copy it; on a scan step, tap "Paste a
+code instead" and paste.
 
-- [ ] Start pair flow on device A; paste A's string into B; B pastes
-      their string back; both land on `Confirm` with matching 4-word
-      phrases.
+- [ ] Device A taps Start, device B taps Join. Carry the three codes
+      across (A's code 1 to B, B's code 2 to A, A's code 3 to B), tapping
+      "They scanned it" after each show step. Both land on `Confirm` with
+      matching 4-word phrases.
+- [ ] Both tap Start, or both tap Join: each shows the "one phone must
+      tap Start and the other Join" message.
 - [ ] Tap `It matches` on both; both commit to storage.
 - [ ] Both route to `/pair/complete/:id` post-commit.
 - [ ] Navigate to Verify on one device; type the other device's 4

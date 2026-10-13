@@ -68,13 +68,33 @@ class TotpWords {
       wordCount: wordCount,
       timeStepSeconds: timeStepSeconds,
     );
-    final counter = unixTimeSeconds ~/ timeStepSeconds;
+    final counter = counterFor(unixTimeSeconds, timeStepSeconds);
     return _derive(
       secret: secret,
       counter: counter,
       wordCount: wordCount,
       senderRole: senderRole,
     );
+  }
+
+  /// The TOTP window counter for [unixTimeSeconds]: floor(unix / step).
+  /// Floor, not truncation, so times before 1970 fall in the window that
+  /// contains them (with `~/`, -29..29 would all share counter 0).
+  static int counterFor(
+    int unixTimeSeconds, [
+    int timeStepSeconds = defaultTimeStepSeconds,
+  ]) {
+    if (timeStepSeconds <= 0) {
+      throw ArgumentError.value(
+        timeStepSeconds,
+        'timeStepSeconds',
+        'must be positive',
+      );
+    }
+    // Dart's % is never negative for a positive divisor. (Overflows only
+    // within one step of the smallest 64-bit int, which no clock reaches.)
+    return (unixTimeSeconds - unixTimeSeconds % timeStepSeconds) ~/
+        timeStepSeconds;
   }
 
   /// Verify [candidate] as the words the caller (who holds role
@@ -96,6 +116,30 @@ class TotpWords {
     int timeStepSeconds = defaultTimeStepSeconds,
     int wordCount = defaultWordCount,
     int windowTolerance = defaultWindowTolerance,
+  }) async =>
+      await verifyWindow(
+        secret: secret,
+        candidate: candidate,
+        unixTimeSeconds: unixTimeSeconds,
+        senderRole: senderRole,
+        timeStepSeconds: timeStepSeconds,
+        wordCount: wordCount,
+        windowTolerance: windowTolerance,
+      ) !=
+      null;
+
+  /// Like [verify], but returns the window counter the words matched (or
+  /// null). Video mode derives the expected gesture for exactly that
+  /// window, so a verify that straddles a 30 s boundary asks about the
+  /// gesture the counterparty was actually shown.
+  static Future<int?> verifyWindow({
+    required List<int> secret,
+    required List<String> candidate,
+    required int unixTimeSeconds,
+    required PairRole senderRole,
+    int timeStepSeconds = defaultTimeStepSeconds,
+    int wordCount = defaultWordCount,
+    int windowTolerance = defaultWindowTolerance,
   }) async {
     _validateInputs(
       secret: secret,
@@ -109,16 +153,17 @@ class TotpWords {
         'must not be negative',
       );
     }
-    if (candidate.length != wordCount) return false;
+    if (candidate.length != wordCount) return null;
 
     final candidateIndexes = <int>[];
     for (final word in candidate) {
       final idx = _wordIndex[word.trim().toLowerCase()];
-      if (idx == null) return false;
+      if (idx == null) return null;
       candidateIndexes.add(idx);
     }
 
-    final baseCounter = unixTimeSeconds ~/ timeStepSeconds;
+    final baseCounter = counterFor(unixTimeSeconds, timeStepSeconds);
+    int? matched;
     for (var offset = -windowTolerance; offset <= windowTolerance; offset++) {
       final expected = await _derive(
         secret: secret,
@@ -129,11 +174,13 @@ class TotpWords {
       final expectedIndexes = <int>[
         for (final w in expected) _wordIndex[w]!,
       ];
+      // Every window is compared (no early exit), so timing does not
+      // reveal which window matched.
       if (_constantTimeEqualsInts(candidateIndexes, expectedIndexes)) {
-        return true;
+        matched ??= baseCounter + offset;
       }
     }
-    return false;
+    return matched;
   }
 
   /// Derive the expected physical liveness action for the window containing
@@ -164,7 +211,7 @@ class TotpWords {
       secret: secret,
       timeStepSeconds: timeStepSeconds,
     );
-    final counter = unixTimeSeconds ~/ timeStepSeconds;
+    final counter = counterFor(unixTimeSeconds, timeStepSeconds);
     return _deriveLivenessAction(
       secret: secret,
       counter: counter,
@@ -172,41 +219,24 @@ class TotpWords {
     );
   }
 
-  /// Verify [candidate] is the action the caller (role [senderRole]) should
-  /// be performing this window. Walks ±[windowTolerance] windows, matching
-  /// the word-verify tolerance so the two sub-checks stay in lockstep.
-  ///
-  /// Reflection-attack note (same as [verify]): pass the COUNTERPARTY's
-  /// role, not your own.
-  static Future<bool> verifyLivenessAction({
+  /// [deriveLivenessAction] for an exact window [counter], such as the one
+  /// [verifyWindow] matched. There is deliberately no "verify action within
+  /// ±1 windows": accepting any of three windows' gestures would turn a
+  /// 1/8 guess into 3/8.
+  static Future<LivenessAction> deriveLivenessActionForCounter({
     required List<int> secret,
-    required LivenessAction candidate,
-    required int unixTimeSeconds,
+    required int counter,
     required PairRole senderRole,
-    int timeStepSeconds = defaultTimeStepSeconds,
-    int windowTolerance = defaultWindowTolerance,
-  }) async {
+  }) {
     _validateLivenessInputs(
       secret: secret,
-      timeStepSeconds: timeStepSeconds,
+      timeStepSeconds: defaultTimeStepSeconds,
     );
-    if (windowTolerance < 0) {
-      throw ArgumentError.value(
-        windowTolerance,
-        'windowTolerance',
-        'must not be negative',
-      );
-    }
-    final baseCounter = unixTimeSeconds ~/ timeStepSeconds;
-    for (var offset = -windowTolerance; offset <= windowTolerance; offset++) {
-      final expected = await _deriveLivenessAction(
-        secret: secret,
-        counter: baseCounter + offset,
-        senderRole: senderRole,
-      );
-      if (expected == candidate) return true;
-    }
-    return false;
+    return _deriveLivenessAction(
+      secret: secret,
+      counter: counter,
+      senderRole: senderRole,
+    );
   }
 
   static Future<LivenessAction> _deriveLivenessAction({

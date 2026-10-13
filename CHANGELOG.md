@@ -5,6 +5,130 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.4.0] — 2026-10-12
+
+**Both phones need Signet 0.4.0 or later to pair**, in person or at a
+distance. Signet 0.3.6 and older cannot read the new pairing codes and
+packages and will say "Not a Signet pairing QR" or that the package is
+not valid; update both phones from the store you installed Signet from.
+
+**Backups made with 0.4.0 need Signet 0.4.0 or later to restore**; older
+versions report them as not a valid package. Backups made with older
+versions still restore on 0.4.0.
+
+### Changed
+- **In-person pairing is safer against interception.** One phone taps
+  Start and the other Join, and the phones exchange three codes instead
+  of two: the first phone commits to its code before seeing the other
+  one. Someone secretly relaying the codes between the phones now gets
+  one blind guess at the 4 words per attempt, instead of being able to
+  search for a match in seconds. Rekeying works the same way.
+- **Long-distance pairing compares 8 words**, not 4. Check all 8, in
+  order, and that both phones show exactly 8, face to face or by calling
+  a number you already had. A package from an older Signet is refused
+  instead of falling back to the shorter check.
+- **"Update Signet" messages.** A code or package from a newer version
+  says this phone needs an update; an in-person code from an older
+  version says the other phone does. Update only from the store Signet
+  came from: Signet never sends updates as a link or file. A new FAQ
+  entry explains this.
+- **Backups are now two separate parts.** A backup used to be one file
+  holding both the encrypted package and the 8 words that unlock it, so
+  anyone who found that file had your pairings. Now you save the
+  package first (as a PACKAGE file, by copying it, or from the QR
+  code) and then keep the 8 words somewhere else: on paper, or in a
+  separate WORDS file. The words are never put on the clipboard. Both
+  parts carry the same 6-digit fingerprint so you can tell which words
+  go with which package. Temporary copies made for the share sheet are
+  deleted when you leave the screen.
+- **Restore takes the package and the words separately**, each by
+  file, paste or typing. If the words come from a different backup,
+  Signet says so instead of reporting wrong words. Old one-file backups
+  still restore, with a reminder to make a new backup and delete the
+  old file.
+- **Copied packages are cleared from the clipboard.** On iOS they
+  expire after a minute and don't sync to your other devices. On
+  Android they are marked sensitive, so the copy preview and most
+  keyboards' clipboard history don't show them, and Signet removes
+  them a minute after copying, or when you next come back to Signet,
+  unless you have copied something else since. The long-distance
+  pairing screen no longer offers to copy the 8 words.
+- **Checking the words is easier.** A large CHECK THE WORDS button
+  appears once all four words are filled in, a corrected typo is now
+  checked, and short words that are the start of longer ones ("act",
+  "car") no longer set off a false "not verified" while you are still
+  typing. After a result the keyboard stays out of the way.
+- **Video calls.** The gesture you are asked about is now always the one
+  that goes with the words you heard, the gesture shown under WATCH FOR
+  no longer changes while you type, and only one gesture is on screen.
+- **Names.** Long-distance pairing now sends your own name for the other
+  person's phone to suggest, rather than the name you chose for them.
+  Name limits count the space a name takes, so Chinese and other scripts
+  no longer fail later, and invisible or text-reversing characters are
+  removed from names.
+- **Restore can scan the backup QR code.**
+
+### Fixed
+- Pairing dates show your own local date, so a pairing made in the
+  evening no longer shows tomorrow's date, and a contact restored from a
+  backup keeps its original pairing date instead of today's.
+- Pasting a whole backup file's text into Restore no longer fails with
+  "not a valid Signet backup", and a package split across lines by an
+  email app is joined back together.
+- The verify words kept updating only while Signet had focus; they now
+  keep updating in split-screen beside a video call.
+- Back on the "show my QR" screen no longer counts as "they scanned it",
+  a new pairing goes to the practice screen instead of home, and a double
+  tap on "It matches" no longer adds the contact twice.
+- UNDO after unpairing works even after leaving the home screen.
+- A camera that fails or never starts offers Try again instead of an
+  endless spinner, including while the permission prompt is open.
+- If only one phone finishes a rekey, words from the old pairing are now
+  recognised: still NOT VERIFIED, with advice to redo the rekey in
+  person or treat the call as a scam.
+- A contact name saved before the length limit no longer makes a backup
+  fail.
+- Saving several contacts at once (for example during a bulk restore)
+  can no longer lose one of them, and a damaged contact list is rebuilt
+  instead of being treated as empty.
+- Contacts that cannot be read (for example saved by a newer Signet)
+  are kept instead of disappearing, listed in Settings, and can be
+  removed there; bulk backup says it skips them.
+- Bulk restore can no longer be left half-way, one contact that fails to
+  save no longer stops the rest, and the summary says what happened.
+- Large text no longer pushes buttons off the first-run screens (empty
+  home screen, intro, pairing); they scroll instead, also with the
+  keyboard open.
+- Screen readers now speak every verify result, including a second
+  identical one, and the spoken prompt in video mode does not name the
+  gesture.
+- The debug-logging banner clears when its 24 hours are up.
+- The "not verified" help now has a button straight to the binding
+  phrase it mentions.
+- Crash reports and debug logs remove more kinds of secret before they
+  are saved or shared: keys printed as lists of numbers, the storage
+  format of secrets, the input a parse error echoes, the 8 backup words
+  however they are separated or listed, and contacts' names after any
+  name-like field.
+
+### Build
+- **Fewer permissions.** The install screen and store listing no longer
+  show microphone, storage or network-state permissions. Libraries
+  asked for them; Signet never used them. It asks only for the camera,
+  to scan pairing QR codes, and still has no internet permission. A
+  build check now fails if any other permission or a required hardware
+  feature slips in.
+- **Android Gradle Plugin 9.2, Gradle 9.8, Kotlin 2.4.** Builds compile
+  with JDK 21, the same JDK F-Droid's build server uses. Kotlin moves to
+  the Android Gradle Plugin's built-in support.
+- **Removed `cryptography_flutter`.** Signet already ran its crypto in
+  pure Dart and switched this native helper off at startup; it is no
+  longer bundled.
+- **Release pipeline hardening.** Release builds run only from version
+  tags, third-party build actions are pinned to exact versions, and the
+  Docker-based reproducible-build script was dropped (F-Droid builds
+  Signet from source itself).
+
 ## [0.3.6] — 2026-06-12
 
 Opt-in debug logging: capture and export a scrubbed activity log to

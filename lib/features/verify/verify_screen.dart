@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,12 +73,30 @@ class _VerifyResult {
     required this.actionRequired,
     required this.at,
     this.actionStatus,
+    this.judgedAction,
+    this.shownAction,
+    this.matchedOldPairing = false,
   });
 
   final _VerifyStatus wordsStatus;
   final bool actionRequired;
   final _VerifyStatus? actionStatus;
   final DateTime at;
+
+  /// Video mode: the gesture for the window the words matched, which is
+  /// what the counterparty was shown. Fixed at submit; the SAW IT question
+  /// always asks about this one (plan Task 3.1).
+  final LivenessAction? judgedAction;
+
+  /// Video mode: the WATCH FOR gesture the verifier had in front of them
+  /// when they submitted. Differs from [judgedAction] when the words came
+  /// from a neighbouring window; the panel then says so.
+  final LivenessAction? shownAction;
+
+  /// The words failed, but match the secret this pair had before a recent
+  /// rekey (plan Task 3.10). Still a failure: a thief holding the old phone
+  /// would produce exactly these words. Only adds a note.
+  final bool matchedOldPairing;
 
   /// True when the verifier has confirmed both sub-checks (or the only
   /// required check, in plain mode) came back verified.
@@ -125,6 +144,19 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
   // role). Shown inside the Show-my-4-words panel when video mode is on
   // so the other side can verify us symmetrically.
   LivenessAction? _ownAction;
+  // The WATCH FOR gesture, frozen from the first keystroke until the
+  // attempt resolves, so it does not change under the verifier while they
+  // type and watch (plan Task 3.1). Null when not frozen.
+  LivenessAction? _watchForFrozen;
+  // The window _watchForFrozen belongs to. A freeze older than the
+  // previous window can no longer match anything and is renewed.
+  int? _watchForFrozenCounter;
+  // The current window, updated every tick.
+  int? _counter;
+  // Whether the word slots hold any text, as last reported by WordInput.
+  bool _inputNonEmpty = false;
+  // Scrolled into view when the gesture question opens (plan Task 3.4).
+  final GlobalKey _judgmentPanelKey = GlobalKey();
 
   @override
   void initState() {
@@ -142,13 +174,19 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     // the most recent words derived in Dart memory longer than necessary.
     // On resume, re-derive immediately (the next-window cutover may have
     // happened while backgrounded) and restart the periodic tick.
+    //
+    // `inactive` keeps ticking (plan Task 3.2): on Android it is the state
+    // of a visible app beside a video call in split-screen, where the
+    // responder reads their words from this screen. On iOS the
+    // AppDelegate blurs the UI on resign-active, so ticking is harmless.
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
-      case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
         _ticker?.cancel();
         _ticker = null;
+      case AppLifecycleState.inactive:
+        break;
       case AppLifecycleState.resumed:
         if (_secret != null && _relationship != null && _ticker == null) {
           unawaited(_tick());
@@ -223,6 +261,17 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       _expectedAction = expected;
       _ownAction = own;
       _secondsRemaining = _windowSeconds - (nowUnix % _windowSeconds);
+      _counter = TotpWords.counterFor(nowUnix);
+      // A frozen WATCH FOR more than one window old shows a gesture no
+      // accepted answer can have: renew it (verifier stalled or switched
+      // away mid-typing).
+      final frozenAt = _watchForFrozenCounter;
+      if (_watchForFrozen != null &&
+          frozenAt != null &&
+          _counter! > frozenAt + 1 &&
+          !(_lastResult?.awaitingActionJudgment ?? false)) {
+        _freezeWatchFor(_inputNonEmpty);
+      }
     });
   }
 
@@ -230,6 +279,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     if (next == _videoMode) return;
     setState(() {
       _videoMode = next;
+      _freezeWatchFor(_inputNonEmpty);
       // Only reset when a prior attempt has already resolved to a
       // banner — that state carries a mode-specific judgment (or a
       // pending action-judgment in video mode) that would become
@@ -254,12 +304,47 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     // Verify against the COUNTERPARTY's role — the words the other device
     // would emit. Using our own role here would accept our own displayed
     // words reflected back at us (the reflection attack).
-    final ok = await TotpWords.verify(
+    final matchedCounter = await TotpWords.verifyWindow(
       secret: secret,
       candidate: candidate,
       unixTimeSeconds: nowUnix,
       senderRole: relationship.role.other,
     );
+    final ok = matchedCounter != null;
+    final store = ref.read(secureStoreProvider);
+    var matchedOldPairing = false;
+    if (ok) {
+      // The new secret works on both sides: the old one is no longer
+      // needed (plan Task 3.10). Best effort.
+      unawaited(store
+          .deletePreviousPairing(relationship.id)
+          .catchError((Object _) {}));
+    } else {
+      // Only ever adds a note. A storage or crypto error here must never
+      // stand between the user and the red result.
+      try {
+        final previous = await store.getPreviousPairing(relationship.id);
+        if (previous != null) {
+          matchedOldPairing = await TotpWords.verify(
+            secret: previous.secret,
+            candidate: candidate,
+            unixTimeSeconds: nowUnix,
+            senderRole: previous.role.other,
+          );
+        }
+      } catch (_) {
+        matchedOldPairing = false;
+      }
+    }
+    // Video mode judges the gesture of the window the words matched: with
+    // the ±1 window tolerance that may not be the current window.
+    final judgedAction = ok && _videoMode
+        ? await TotpWords.deriveLivenessActionForCounter(
+            secret: secret,
+            counter: matchedCounter,
+            senderRole: relationship.role.other,
+          )
+        : null;
     if (!mounted) return;
     ref.read(debugLogProvider).log(
           ok
@@ -274,7 +359,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         wordsStatus: wordsStatus,
         actionRequired: _videoMode,
         at: DateTime.now(),
+        judgedAction: judgedAction,
+        shownAction: _watchForFrozen ?? _expectedAction,
+        matchedOldPairing: matchedOldPairing,
       );
+      // A failed attempt is over; the next one freezes afresh. A pass in
+      // video mode keeps the row frozen until the gesture is judged.
+      if (!ok || !_videoMode) _freezeWatchFor(false);
       // Bump on BOTH outcomes, not just ❌. If we only bump on ❌, a prior
       // ✅ leaves `WordInput._lastSubmittedOnResetKey` pinned to the current
       // resetKey, which silently blocks every subsequent submit attempt.
@@ -284,6 +375,19 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       // verification and guarantees every real attempt actually runs.
       _resetKey++;
     });
+    _announceResult();
+    if (ok && _videoMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final panel = _judgmentPanelKey.currentContext;
+        if (panel != null && panel.mounted) {
+          unawaited(Scrollable.ensureVisible(
+            panel,
+            duration: const Duration(milliseconds: 250),
+            alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+          ));
+        }
+      });
+    }
     // Haptic policy:
     // - Words ❌: immediate heavy — the attempt has already failed
     //   overall, even in video mode.
@@ -299,6 +403,66 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     }
   }
 
+  /// Speak the outcome of every attempt (plan Task 5.2). A live region only
+  /// speaks when its text changes, so two identical results in a row (two
+  /// failed tries, say) were silent the second time.
+  ///
+  /// One mechanism per platform, never both (VoiceOver would read it
+  /// twice): where announcements are supported (iOS), this; where they are
+  /// not (Android: Flutter reports no announce support there), the banner
+  /// and gesture panel are live regions keyed per attempt, so each result
+  /// is a new node that TalkBack reads.
+  void _announceResult() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final result = _lastResult;
+      final relationship = _relationship;
+      if (!mounted || result == null || relationship == null) return;
+      if (!MediaQuery.supportsAnnounceOf(context)) return;
+      final l10n = AppLocalizations.of(context);
+      final String message;
+      if (result.awaitingActionJudgment && result.judgedAction != null) {
+        // Never names the gesture: on a speakerphone video call the other
+        // side would hear it.
+        message = l10n.verifyActionJudgmentAnnouncement(relationship.label);
+      } else {
+        final ok = result.isOverallVerified;
+        message = <String>[
+          ok ? l10n.verifyBannerVerified : l10n.verifyBannerNotVerified,
+          _ResultBanner._sublineFor(result, ok, l10n),
+          if (result.matchedOldPairing)
+            l10n.verifyOldPairingNote(relationship.label),
+        ].join('. ');
+      }
+      unawaited(SemanticsService.sendAnnouncement(
+        View.of(context),
+        message,
+        Directionality.of(context),
+      ));
+    });
+  }
+
+  void _onTypingChanged(bool typing) {
+    _inputNonEmpty = typing;
+    // While a passed attempt waits for SAW IT, the row stays as it was;
+    // the judgment re-freezes from _inputNonEmpty.
+    if (_lastResult?.awaitingActionJudgment ?? false) return;
+    setState(() => _freezeWatchFor(typing));
+  }
+
+  /// The gesture in the WATCH FOR row. While the SAW IT question is open it
+  /// is the gesture being asked about, so only one gesture is on screen.
+  LivenessAction? _watchForRowAction(_VerifyResult? result) =>
+      (result?.awaitingActionJudgment ?? false)
+          ? result!.judgedAction
+          : _watchForFrozen ?? _expectedAction;
+
+  /// Freeze WATCH FOR on the current window's gesture, or unfreeze. Call
+  /// inside setState.
+  void _freezeWatchFor(bool freeze) {
+    _watchForFrozen = freeze ? _expectedAction : null;
+    _watchForFrozenCounter = freeze ? _counter : null;
+  }
+
   void _handleActionJudgment(_VerifyStatus status) {
     final prior = _lastResult;
     final relationship = _relationship;
@@ -309,8 +473,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         actionRequired: true,
         actionStatus: status,
         at: DateTime.now(),
+        judgedAction: prior.judgedAction,
+        shownAction: prior.shownAction,
       );
+      // The next attempt may already be under way in the slots.
+      _freezeWatchFor(_inputNonEmpty);
     });
+    _announceResult();
     if (relationship != null && !relationship.silentHaptics) {
       final ok = status == _VerifyStatus.verified;
       unawaited(ok
@@ -406,18 +575,22 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
               color: scheme.onSurfaceVariant,
             ),
           ),
-          if (_videoMode && _expectedAction != null) ...<Widget>[
+          if (_videoMode && _watchForRowAction(result) != null) ...<Widget>[
             const SizedBox(height: 14),
             _ExpectedActionRow(
               label: relationship.label,
-              action: _expectedAction!,
+              action: _watchForRowAction(result)!,
             ),
           ],
           const SizedBox(height: 20),
           if (showBanner) ...<Widget>[
             _ResultBanner(
+              // A new node per attempt, so a repeated identical result is
+              // still a change for TalkBack (plan Task 5.2).
+              key: ValueKey<DateTime>(result.at),
               result: result,
               relationshipLabel: relationship.label,
+              relationshipId: relationship.id,
             ),
             const SizedBox(height: 20),
           ],
@@ -427,13 +600,22 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           const SizedBox(height: 8),
           WordInput(
             onSubmit: _handleSubmit,
+            submitLabel: AppLocalizations.of(context).verifyCheckWordsButton,
             resetKey: _resetKey,
+            onTypingChanged: _onTypingChanged,
+            // Back to the first slot only to retry after a failure. After
+            // a pass, or with the gesture question open, the keyboard
+            // would cover the result (plan Task 3.4).
+            focusOnReset: result == null || result.isOverallFailed,
           ),
-          if (showActionJudgment && _expectedAction != null) ...<Widget>[
+          if (showActionJudgment && result.judgedAction != null) ...<Widget>[
             const SizedBox(height: 20),
             _ActionJudgmentPanel(
+              key: _judgmentPanelKey,
               label: relationship.label,
-              action: _expectedAction!,
+              action: result.judgedAction!,
+              differsFromWatchFor: result.shownAction != null &&
+                  result.shownAction != result.judgedAction,
               onSaw: () => _handleActionJudgment(_VerifyStatus.verified),
               onNotSeen: () =>
                   _handleActionJudgment(_VerifyStatus.notVerified),
@@ -467,7 +649,14 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
 }
 
 class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.result, required this.relationshipLabel});
+  const _ResultBanner({
+    super.key,
+    required this.result,
+    required this.relationshipLabel,
+    required this.relationshipId,
+  });
+
+  final String relationshipId;
 
   final _VerifyResult result;
   final String relationshipLabel;
@@ -496,9 +685,14 @@ class _ResultBanner extends StatelessWidget {
     final subline = _sublineFor(result, isOk, l10n);
 
     return Semantics(
-      liveRegion: true,
+      // A live region only where the screen does not announce results
+      // itself (see _announceResult), so nothing is read twice.
+      liveRegion: !MediaQuery.supportsAnnounceOf(context),
       container: true,
-      label: '$headline. $subline',
+      label: result.matchedOldPairing
+          ? '$headline. $subline. '
+              '${l10n.verifyOldPairingNote(relationshipLabel)}'
+          : '$headline. $subline',
       child: Container(
         decoration: BoxDecoration(
           color: bg,
@@ -537,11 +731,24 @@ class _ResultBanner extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
+              if (result.matchedOldPairing) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.verifyOldPairingNote(relationshipLabel),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: fg,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               if (!isOk) ...<Widget>[
                 const SizedBox(height: 12),
                 Builder(builder: (ctx) {
                   return OutlinedButton(
-                    onPressed: () => _showEducation(ctx, relationshipLabel),
+                    onPressed: () => _showEducation(
+                        ctx, relationshipLabel, relationshipId),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: accent,
                       side: BorderSide(color: accent, width: 1),
@@ -578,6 +785,7 @@ class _ResultBanner extends StatelessWidget {
   static Future<void> _showEducation(
     BuildContext context,
     String label,
+    String relationshipId,
   ) async {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
@@ -632,6 +840,16 @@ class _ResultBanner extends StatelessWidget {
                   text: l10n.verifyFailStep4(label),
                 ),
                 const SizedBox(height: 16),
+                // Step 04 points here (plan Task 5.4): the binding phrase
+                // for this contact, one tap away.
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(sheetCtx).pop();
+                    context.push('/inspect/binding/$relationshipId');
+                  },
+                  child: Text(l10n.verifyFailCheckBindingButton),
+                ),
+                const SizedBox(height: 8),
                 FilledButton(
                   onPressed: () => Navigator.of(sheetCtx).pop(),
                   child: Text(l10n.commonGotIt),
@@ -833,14 +1051,17 @@ class _ExpectedActionRow extends StatelessWidget {
 /// they *actually saw* the expected action on camera.
 class _ActionJudgmentPanel extends StatelessWidget {
   const _ActionJudgmentPanel({
+    super.key,
     required this.label,
     required this.action,
+    required this.differsFromWatchFor,
     required this.onSaw,
     required this.onNotSeen,
   });
 
   final String label;
   final LivenessAction action;
+  final bool differsFromWatchFor;
   final VoidCallback onSaw;
   final VoidCallback onNotSeen;
 
@@ -854,7 +1075,8 @@ class _ActionJudgmentPanel extends StatelessWidget {
     // doesn't know the UI has moved from "type words" to "judge action."
     return Semantics(
       container: true,
-      liveRegion: true,
+      // Announced by _announceResult where supported (never both).
+      liveRegion: !MediaQuery.supportsAnnounceOf(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -882,6 +1104,27 @@ class _ActionJudgmentPanel extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
                 height: 1.3,
+              ),
+            ),
+            if (differsFromWatchFor) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                l10n.verifyActionChangedNote(label),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: scheme.onSurface,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.verifyActionOneGesture(label),
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 12),

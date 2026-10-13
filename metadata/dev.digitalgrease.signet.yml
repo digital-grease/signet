@@ -1,23 +1,26 @@
 # F-Droid build metadata for Signet.
 #
-# This file is the canonical source for the YAML that ends up at
-#   metadata/dev.digitalgrease.signet.yml
-# in https://gitlab.com/fdroid/fdroiddata.
+# This file mirrors metadata/dev.digitalgrease.signet.yml in
+# https://gitlab.com/fdroid/fdroiddata. The fdroiddata copy is the
+# authoritative one: F-Droid's checkupdates job appends a Builds[] entry
+# there for every new tag (AutoUpdateMode: Version), so this mirror lags
+# behind until someone refreshes it. Last refreshed from fdroiddata
+# master on 2026-10-10 (CurrentVersion 0.3.6).
 #
-# When filing a new fdroiddata MR, copy this file directly. F-Droid's
-# build server clones SourceCode, checks out `commit`, and runs the
-# `build:` recipe to reproduce the APK.
+# Edit fdroiddata first (by MR) when the recipe itself must change, then
+# copy the result back here. F-Droid's build server clones SourceCode,
+# checks out `commit`, and runs the `build:` recipe to reproduce the APK.
 #
 # Localized listing content (descriptions, screenshots, changelog) is
 # auto-imported from this repo's `fastlane/metadata/android/en-US/`
-# directory on each release tag. Do NOT duplicate that content into the
-# fdroiddata MR — F-Droid pulls it directly.
+# directory on each release tag. Do NOT duplicate that content into
+# fdroiddata; F-Droid pulls it directly.
 #
 # Per-ABI build splits per fdroiddata's templates/build-flutter.yml
 # convention. Each ABI gets its own Builds[] entry with a versionCode
-# computed as `pubspec-versionCode * 10 + abi-suffix`. The gradle
-# override in `android/app/build.gradle.kts` matches this scheme so
-# the on-APK versionCode equals the YAML's declared versionCode.
+# computed as `pubspec-versionCode * 10 + abi-suffix` (VercodeOperation
+# below). The gradle override in `android/app/build.gradle.kts` matches
+# this scheme so the on-APK versionCode equals the YAML's versionCode.
 #
 # Flutter version pinning: the `srclibs: flutter@stable` clone starts
 # at whatever revision F-Droid's flutter srclib currently points at;
@@ -25,11 +28,6 @@
 # repo's .github/workflows/release.yml (the `flutter-version: 'X.Y.Z'`
 # literal on the main release-build step) and `git checkout` forces
 # srclibs to that revision. Single source of truth = release.yml.
-#
-# Fields the owner updates per release:
-#   Builds[].commit (full SHA, not tag name)
-#   Builds[].versionName + .versionCode  (× 3 ABI entries)
-#   CurrentVersion / CurrentVersionCode  (highest ABI versionCode)
 
 Categories:
   - Phone & SMS
@@ -50,7 +48,7 @@ Repo: https://github.com/digital-grease/signet.git
 Builds:
   - versionName: 0.3.3
     versionCode: 300031
-    commit: 560d85c56f10768ccf9380f31484abb92e46ab6d
+    commit: 3bd758a0ed9863a9cb36628d7e0aa40ea760d465
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -71,7 +69,7 @@ Builds:
 
   - versionName: 0.3.3
     versionCode: 300032
-    commit: 560d85c56f10768ccf9380f31484abb92e46ab6d
+    commit: 3bd758a0ed9863a9cb36628d7e0aa40ea760d465
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -92,7 +90,7 @@ Builds:
 
   - versionName: 0.3.3
     versionCode: 300033
-    commit: 560d85c56f10768ccf9380f31484abb92e46ab6d
+    commit: 3bd758a0ed9863a9cb36628d7e0aa40ea760d465
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -111,18 +109,195 @@ Builds:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
 
-# AllowedAPKSigningKeys intentionally omitted: F-Droid signs with their
-# own key. Cross-channel migration (Play <-> F-Droid) is handled by
-# the in-app BackupBundle export/import, not by signature compatibility.
+  - versionName: 0.3.4
+    versionCode: 300041
+    commit: 16866dca3835f5dc321629e8cd080f596e259554
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
 
-# Auto-update via tag detection. F-Droid's daily checkupdates job:
-#   1. Detects new vX.Y.Z tags on digital-grease/signet (leading `v` is
-#      auto-stripped by the Tags-mode parser).
-#   2. Reads pubspec.yaml at the tag, extracts versionCode + versionName
-#      via UpdateCheckData regex.
-#   3. Promotes 3 new Builds[] entries via VercodeOperation: each ABI
-#      variant gets pubspec-versionCode * 10 + abi-suffix.
-# No further manual fdroiddata MRs needed for content updates.
+  - versionName: 0.3.4
+    versionCode: 300042
+    commit: 16866dca3835f5dc321629e8cd080f596e259554
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+
+  - versionName: 0.3.4
+    versionCode: 300043
+    commit: 16866dca3835f5dc321629e8cd080f596e259554
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
+
+  - versionName: 0.3.5
+    versionCode: 300051
+    commit: 872e44bc8734f2c1eea58f8c765b6ed190300b84
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
+
+  - versionName: 0.3.5
+    versionCode: 300052
+    commit: 872e44bc8734f2c1eea58f8c765b6ed190300b84
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+
+  - versionName: 0.3.5
+    versionCode: 300053
+    commit: 872e44bc8734f2c1eea58f8c765b6ed190300b84
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
+
+  - versionName: 0.3.6
+    versionCode: 300061
+    commit: acd7fd9620d0504892b91c68ff6795ee259a8eeb
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
+
+  - versionName: 0.3.6
+    versionCode: 300062
+    commit: acd7fd9620d0504892b91c68ff6795ee259a8eeb
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+
+  - versionName: 0.3.6
+    versionCode: 300063
+    commit: acd7fd9620d0504892b91c68ff6795ee259a8eeb
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 VercodeOperation:
@@ -130,8 +305,5 @@ VercodeOperation:
   - '%c * 10 + 2'
   - '%c * 10 + 3'
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 0.3.3
-CurrentVersionCode: 300033
-
-# Anti-features: none.
-# AntiFeatures: []
+CurrentVersion: 0.3.6
+CurrentVersionCode: 300063

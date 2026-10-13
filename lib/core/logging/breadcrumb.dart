@@ -21,6 +21,7 @@ enum BreadcrumbEvent {
   pairingQrScanned('pairing.qr_scanned'),
   pairingDeriveStart('pairing.derive.start'),
   pairingCommit('pairing.commit'),
+  pairingCommitFailed('pairing.commit.failed'),
   backupExportStart('backup.export.start'),
   backupImportStart('backup.import.start'),
   storeRead('store.read'),

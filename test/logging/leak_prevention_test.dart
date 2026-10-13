@@ -103,20 +103,18 @@ void main() {
     });
   });
 
-  group('BackupBundle.toString (default Object)', () {
+  group('BackupText.toString (default Object)', () {
     test('does not leak wire or PAKE words', () {
-      final bundle = BackupBundle(
-        wire: 'signet:tp1:$_canaryBase64',
-        pakeWords: const <String>[
-          'abandon', 'ability', 'able', 'about',
-          'above', 'absent', 'absorb', 'abstract',
-        ],
+      final read = BackupText.read(
+        'signet:tp1:$_canaryBase64\n'
+        'abandon ability able about above absent absorb abstract\n',
       );
-      _expectNoLeak(bundle.toString(),
+      expect(read.pakeWords, isNotNull, reason: 'fixture must parse');
+      _expectNoLeak(read.toString(),
           why: 'Wire byte string and PAKE words are catastrophic-tier leaks');
       // Belt-and-suspenders: also forbid the literal 'signet:tp1:' wire prefix
       // adjacent to any base64 content, which is what an attacker greps for.
-      expect(bundle.toString(), isNot(contains('signet:tp1:')),
+      expect(read.toString(), isNot(contains('signet:tp1:')),
           reason: 'toString must not surface the transport-wire prefix');
     });
   });

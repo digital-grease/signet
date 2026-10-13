@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:camera/camera.dart' show CameraController;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +13,7 @@ import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/inspect/backup_import_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
+import 'package:signet/shared/widgets/qr_scanner.dart';
 
 import '../support/fake_secure_store.dart';
 
@@ -77,26 +82,27 @@ Future<void> _enterPake(WidgetTester tester, List<String> words) async {
 void main() {
   final secret = List<int>.generate(32, (i) => i + 7);
 
-  testWidgets('unlock pane shows both Paste and Load-from-file actions',
+  testWidgets('package and words each offer Paste and Load-file actions',
       (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
-    expect(find.text('Paste from clipboard'), findsOneWidget);
-    expect(find.text('Load from file'), findsOneWidget);
+    expect(find.text('Paste from clipboard'), findsNWidgets(2));
+    expect(find.text('Load PACKAGE file'), findsOneWidget);
+    expect(find.text('Load WORDS file'), findsOneWidget);
   });
 
   testWidgets('unlock pane renders and blocks empty submit', (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
 
-    expect(find.text('BACKUP PACKAGE //'), findsOneWidget);
-    expect(find.text('PAKE SECRET //'), findsOneWidget);
+    expect(find.text('STEP 1 // THE PACKAGE'), findsOneWidget);
+    expect(find.text('STEP 2 // THE 8 WORDS'), findsOneWidget);
     expect(find.text('UNLOCK BACKUP'), findsOneWidget);
 
     await tester.ensureVisible(find.text('UNLOCK BACKUP'));
     await tester.tap(find.text('UNLOCK BACKUP'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Paste your backup'), findsOneWidget);
+    expect(find.textContaining('Load or paste your backup'), findsOneWidget);
   });
 
   testWidgets('successful unlock reveals the commit pane with peer preview',
@@ -115,6 +121,13 @@ void main() {
     expect(find.text('RESTORED PEER //'), findsOneWidget);
     expect(find.text('Mom'), findsOneWidget);
     expect(find.text('COMMIT IMPORT'), findsOneWidget);
+    // The original pairing date, as a local date like the home screen.
+    final shown = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .map((w) => w.text.toPlainText())
+        .join('\n');
+    expect(shown, contains('2026-02-14'));
+    expect(shown, isNot(contains('UTC')));
   });
 
   testWidgets(
@@ -145,6 +158,8 @@ void main() {
       expect(stored, hasLength(1));
       expect(stored.single.label, 'Mom');
       expect(stored.single.role, PairRole.b);
+      // The original pairing date is kept, as in bulk restore.
+      expect(stored.single.pairedAt, DateTime.utc(2026, 2, 14, 15, 3));
 
       final storedSecret =
           await store.getSharedSecretById(stored.single.id);
@@ -234,12 +249,12 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Clipboard is empty'),
+        find.textContaining('clipboard is empty'),
         findsOneWidget,
         reason:
             'User in a crisis moment taps Paste with nothing on the clipboard; '
@@ -255,11 +270,11 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Clipboard is empty'), findsOneWidget);
+      expect(find.textContaining('clipboard is empty'), findsOneWidget);
     },
   );
 
@@ -270,13 +285,13 @@ void main() {
       await tester.pumpWidget(_wrap(store: FakeSecureStore()));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Paste from clipboard'));
-      await tester.tap(find.text('Paste from clipboard'));
+      await tester.ensureVisible(find.text('Paste from clipboard').first);
+      await tester.tap(find.text('Paste from clipboard').first);
       await tester.pumpAndSettle();
 
       final wireField = tester.widget<TextField>(find.byType(TextField).first);
       expect(wireField.controller!.text, 'signet:tp1:DEADBEEF');
-      expect(find.textContaining('Clipboard is empty'), findsNothing);
+      expect(find.textContaining('clipboard is empty'), findsNothing);
     },
   );
 
@@ -313,4 +328,133 @@ void main() {
     final stored = await store.listRelationships();
     expect(stored.single.silentHaptics, isTrue);
   });
+
+  // Plan Task 1.6: a package from a newer Signet must say "update", not
+  // "not a valid backup".
+  testWidgets('a package from a newer Signet asks the user to update',
+      (tester) async {
+    final v1 = await _mintLprWire(sharedSecret: secret);
+    final b = base64Url.decode(_pad(v1.substring('signet:tp1:'.length)));
+    b[0] = 3;
+    final v3 = 'signet:tp1:${base64Url.encode(b).replaceAll('=', '')}';
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, v3);
+    await tester.pumpAndSettle();
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('newer version of Signet'), findsOneWidget);
+  });
+
+  // Plan Task 1.7j: a later wire scheme, pasted, loaded from a file or
+  // scanned, asks to update instead of "not a backup".
+  Future<void> unlockWith(WidgetTester tester) async {
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+  }
+
+  void expectUpdateNotice() {
+    expect(find.textContaining('needs a newer version of Signet'),
+        findsOneWidget);
+    expect(find.textContaining('never sends updates as a link or file'),
+        findsOneWidget);
+  }
+
+  testWidgets('a later-scheme package pasted asks the user to update',
+      (tester) async {
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextField).first, 'signet:tp2:AQIDBAUGBwgJ');
+    await tester.pumpAndSettle();
+    await unlockWith(tester);
+    expectUpdateNotice();
+  });
+
+  testWidgets('a later-scheme package scanned is taken, then asks to update',
+      (tester) async {
+    void Function(String text)? scan;
+    qrReaderOverride = ({
+      required void Function(String text) onText,
+      required void Function(CameraController? c, Exception? e)
+          onControllerCreated,
+    }) {
+      scan = onText;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => onControllerCreated(null, null));
+      return const SizedBox.expand();
+    };
+    addTearDown(() => qrReaderOverride = null);
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Scan QR'));
+    await tester.tap(find.text('Scan QR'));
+    // The scanner screen animates: pump instead of settling.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    scan!('signet:tp2:AQIDBAUGBwgJ');
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.text('Scan QR'), findsOneWidget, reason: 'scanner closed');
+    expect(find.textContaining("isn't a Signet package"), findsNothing);
+    await unlockWith(tester);
+    expectUpdateNotice();
+  });
+
+  testWidgets('a backup with a field this build does not know (unlocked) '
+      'asks to update', (tester) async {
+    final wire = await TransportPackage.encodeLpr(
+      label: 'Mom',
+      role: PairRole.a,
+      pairedAt: DateTime.utc(2026, 1, 1),
+      silentHaptics: false,
+      sharedSecret: secret,
+      pakeWords: goodPake,
+      version: 2,
+      extensions: const [TransportExtension(0x8F, [1])],
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await unlockWith(tester);
+    expect(find.textContaining('made by a newer version of Signet'),
+        findsOneWidget);
+  });
+
+  testWidgets('a repaired backup says so before restoring', (tester) async {
+    final wire = await TransportPackage.debugEncodeRaw(
+      version: 1,
+      payloadType: TransportPayloadType.lpr,
+      plaintext: <int>[
+        ...secret,
+        0x01, // role a
+        3, 0x4d, 0x6f, 0x6d, // "Mom"
+        0x80, 0, 0, 0, 0, 0, 0, 0, // pairedAt with the high bit set
+        0x00, // silentHaptics
+      ],
+      pakeWords: goodPake,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPake(tester, goodPake);
+    await tester.ensureVisible(find.text('UNLOCK BACKUP'));
+    await tester.tap(find.text('UNLOCK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mom'), findsOneWidget);
+    expect(find.textContaining('pairing date was reset to today'),
+        findsOneWidget);
+    expect(find.textContaining('characters in the name'), findsNothing,
+        reason: 'only the repair that happened is reported');
+  });
 }
+
+String _pad(String s) => s + '=' * ((4 - s.length % 4) % 4);

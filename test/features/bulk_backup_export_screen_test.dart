@@ -109,6 +109,11 @@ void main() {
       );
       expect(wire.data, isNotNull);
 
+      // The words appear only once step 1 is done.
+      await tester.ensureVisible(find.text('I saved it another way'));
+      await tester.tap(find.text('I saved it another way'));
+      await tester.pumpAndSettle();
+
       // Extract the 8 PAKE words — rendered as Text at 16sp monospace.
       final monoTexts = tester.widgetList<Text>(find.byType(Text)).where((t) {
         return t.style?.fontFamily == 'monospace' && t.style?.fontSize == 16;
@@ -118,20 +123,26 @@ void main() {
       final pakeWords =
           monoTexts.take(8).map((t) => t.data!).toList(growable: false);
 
-      // The wire + PAKE pair round-trips via the same BackupBundle wrapper
-      // used by single-relationship exports, and decodes via decodeBlk
-      // to yield all three records with correct labels + secrets + roles.
-      final formattedBundle = BackupBundle.format(
-        peerLabel: '3 relationships (bulk)',
+      // The package and words round-trip through the two backup files
+      // (PACKAGE + WORDS) and decode via decodeBlk to yield all three
+      // records with correct labels + secrets + roles.
+      final fp = (await BackupFiles.fingerprint(wire.data!))!;
+      final packageFile = BackupText.read(BackupFiles.formatPackage(
         wire: wire.data!,
-        pakeWords: pakeWords,
+        fingerprint: fp,
         generatedAt: DateTime.now(),
-      );
-      final parsed = BackupBundle.parse(formattedBundle);
+      ));
+      final wordsFile = BackupText.read(BackupFiles.formatWords(
+        pakeWords: pakeWords,
+        fingerprint: fp,
+        generatedAt: DateTime.now(),
+      ));
       final decoded = await TransportPackage.decodeBlk(
-        parsed.wire,
-        pakeWords: parsed.pakeWords,
+        packageFile.wire!,
+        pakeWords: wordsFile.pakeWords!,
       );
+      // Backups are tp1 version 2 from 0.4.0 (plan Task 8.3).
+      expect(decoded.version, 2);
       expect(decoded.records, hasLength(3));
       final decodedLabels = decoded.records.map((r) => r.label).toSet();
       expect(decodedLabels, {'Mom', 'Dad', 'Jake'});
@@ -174,4 +185,18 @@ void main() {
       expect(find.text('1 relationship backed up'), findsOneWidget);
     },
   );
+
+  testWidgets(
+      'one name saved before the 64-byte limit does not fail the whole '
+      'backup (plan Task 3.6 review)', (tester) async {
+    final store = await _storeWith(<_Pair>[
+      _pair(id: 'id-mom', label: 'Mom', secretSeed: 1),
+      _pair(id: 'id-long', label: '\u5988' * 30, secretSeed: 2), // 90 bytes
+    ]);
+    await tester.pumpWidget(_wrap(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE BULK BACKUP'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 relationships backed up'), findsOneWidget);
+  });
 }

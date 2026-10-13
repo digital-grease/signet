@@ -15,9 +15,9 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.3.6 beta · Android · available on [F-Droid](https://f-droid.org/packages/dev.digitalgrease.signet/) and [GitHub Releases](https://github.com/digital-grease/signet/releases/latest).** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
+**v0.4.0 beta · Android · available on [F-Droid](https://f-droid.org/packages/dev.digitalgrease.signet/) and [GitHub Releases](https://github.com/digital-grease/signet/releases/latest).** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
 
-v0.3.6 adds opt-in debug logging (off by default, scrubbed on-device before export). See [CHANGELOG.md](CHANGELOG.md) for the full history.
+v0.4.0 makes pairing safer (a commit-then-reveal exchange in person, an 8-word check at a distance) and splits backups into two parts you keep apart. Both phones need 0.4.0 or later to pair, and a 0.4.0 backup needs 0.4.0 or later to restore. See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. TestFlight is staged separately.
 
@@ -66,7 +66,7 @@ Signet is in Google Play closed testing, which is invite-only for now. A public 
 
 F-Droid signs the apps it builds with **its own key**, while the GitHub release APK (used by Obtainium and direct download) is signed with **the developer's key**. Android will not install one over the other. To switch, you have to uninstall first, and **uninstalling deletes your pairings**.
 
-If you need to switch, first make a backup: **Settings → Back up all relationships**. Write down the 8 words it shows, keep the backup file somewhere off the phone, then uninstall, install from the new source, and use **Restore from backup** on the home screen. Otherwise you will need to pair again in person with each contact.
+If you need to switch, first make a backup: **Settings → Back up all relationships**. A backup has two parts that you keep apart: a PACKAGE file (save it somewhere off the phone, such as your computer or a USB stick) and 8 words (write them on paper). Then uninstall, install from the new source, tap **Restore from backup** on the home screen, load the PACKAGE file and type the 8 words. Otherwise you will need to pair again in person with each contact.
 
 ### iPhone
 
@@ -74,7 +74,7 @@ Not available yet. iOS builds exist but are untested; TestFlight is planned.
 
 ## How it works
 
-Two phones pair in person by exchanging QR codes containing ephemeral X25519 public keys. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word confirmation phrase derived from that secret — a visual check that the pairing wasn't intercepted. Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to generate a **rotating 4 BIP-39 words every 30 seconds** (HKDF-SHA-256, domain-separated from the pair-time phrase, ±1 window tolerance for clock drift).
+Two phones pair in person by exchanging QR codes: one phone first commits to its ephemeral X25519 public key, the other shows its key, then the first reveals its key. Each device derives the same shared secret via Diffie–Hellman. Both devices then display an identical 4-word confirmation phrase bound to that secret and both keys: a visual check that the pairing wasn't intercepted. Because of the commitment, an interceptor gets one blind guess at the phrase per attempt, provided the two people actually compare the phrases. (Long-distance pairing compares 8 words instead.) Once confirmed, the shared secret lives in the Android Keystore (hardware-backed when available) and is used to generate a **rotating 4 BIP-39 words every 30 seconds** (HKDF-SHA-256, domain-separated from the pair-time phrase, ±1 window tolerance for clock drift).
 
 To verify a caller later: open Signet, tap the contact, ask them to read their 4 current words aloud. Type what you hear into the 4-slot input (BIP-39 autocomplete: two letters narrows to a chip you can tap). ✅ green banner = verified, ❌ red banner = not verified. On ❌ the input clears and you can retry immediately.
 
@@ -99,7 +99,8 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 
 ### Requirements
 
-- Flutter 3.41.6 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
+- Flutter 3.47.5 (pinned in `.github/workflows/release.yml`; F-Droid's prebuild extracts it from there)
+- JDK 17 or newer to run Gradle (Android Studio's bundled JDK works), plus a JDK 21: the build compiles with a JDK 21 toolchain, the F-Droid buildserver's JDK. Gradle finds an installed JDK 21 or one in `~/.gradle/jdks`. CI and release builds run on JDK 21; running Gradle on newer JDKs (up to 26) also works.
 - Android toolchain: SDK Platform 34+, Command-line Tools, and licenses accepted
 - An Android 9+ device or emulator (the minimum SDK is API 28 — StrongBox availability)
 
@@ -242,7 +243,7 @@ The stronger `AndroidOptions.biometric()` path (AES-GCM for both key wrap and da
 
 ### QR payload
 
-Pairing QR codes use the wire format `signet:p1:<base64url(public_key)>`, where the body is the 32-byte X25519 public key with no base64 padding. The `signet:p1:` prefix prevents a stray URL or other QR from being parsed as a pairing payload.
+In-person pairing exchanges three QR codes in the format `signet:p2:<kind>:<base64url>`: a commitment to the first phone's key (`C`), the second phone's X25519 public key (`K`), then the first phone's key and nonce (`R`), which must match the commitment. The prefix keeps a stray URL or other QR from being read as a pairing code, and a code from an older or newer Signet says which phone needs an update. Full byte layouts, including the long-distance package and both pair-time phrases, are in [`docs/WIRE_FORMAT.md`](docs/WIRE_FORMAT.md).
 
 ## Development roadmap
 
@@ -281,7 +282,7 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - ✅ **FOSS-only QR scanner.** Replaced `mobile_scanner` (which bundles Google ML Kit + Play Services as proprietary native code) with `flutter_zxing` (MIT, ZXing C++ via FFI). F-Droid Inclusion Policy item 5 forbids proprietary Google libraries; this swap unblocked the F-Droid submission. APK shrinks 73.1 MB → 64.2 MB.
 - ✅ **ABI-split builds for F-Droid.** Per-architecture APKs (armeabi-v7a, arm64-v8a, x86_64) via a `versionCodeOverride` in `android/app/build.gradle.kts`. F-Droid users now download a CPU-specific binary ~3× smaller than the universal AAB. Play AAB unchanged.
 - ✅ **F-Droid metadata moved to Fastlane layout** at `fastlane/metadata/android/en-US/`. F-Droid auto-imports description/screenshots/changelogs from this canonical path on every release tag; no fdroiddata content MR needed for future releases.
-- ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: `.github/workflows/release.yml:76` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
+- ✅ **Dynamic Flutter version pinning** for the F-Droid prebuild: the Android build step in `.github/workflows/release.yml` carries the canonical `flutter-version: 'X.Y.Z'` literal; F-Droid's prebuild extracts it via the regex from `fdroiddata/templates/build-flutter.yml`. Single source of truth for Flutter version.
 - ⏳ **Liveness prompts — camera-integrated variant.** App auto-detects fingers / motion on the video feed. Multi-month research project with real accuracy risk; explicitly deferred to a later plan.
 
 ### v0.3.4 — in-app crash detection + log-to-issue shipping
@@ -297,7 +298,7 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - Duress codes (pending an abuse-analysis pass)
 - Small-org shared verification (group-key via MLS-equivalent, not hand-rolled)
 - External security audit
-- Reproducible builds (containerized Gradle + NDK, public verify-script)
+- F-Droid verified reproducible builds (F-Droid rebuilds each release, compares it with our signed APK and ships ours if they match)
 - iOS parity + on-device plaintext-leak re-audit against Keychain
 - Play Store / App Store release
 

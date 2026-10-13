@@ -25,14 +25,59 @@
   "commonCopyPackage": "Copy package",
   "@commonCopyPackage": {"description": "Text button with copy icon: copies the backup/transport package wire text. Used on backup export, bulk export, transport out."},
 
-  "commonPackageCopiedSnackbar": "Package copied to clipboard",
-  "@commonPackageCopiedSnackbar": {"description": "SnackBar after copying the package wire text."},
 
-  "commonSharePackage": "Share package",
-  "@commonSharePackage": {"description": "Text button with share icon on backup export and bulk backup export; opens the OS share sheet."},
 
-  "commonIveSavedIt": "I'VE SAVED IT",
-  "@commonIveSavedIt": {"description": "Filled button at the bottom of backup export / bulk export after the user has stored the paper backup."},
+
+  "backupStep1Header": "STEP 1 // SAVE THE PACKAGE",
+  "@backupStep1Header": {"description": "Two-step backup export: first step header. Keep the ' //' operator styling."},
+
+  "backupStep1Body": "Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.",
+  "@backupStep1Body": {"description": "Two-step backup export: what the package is and where to keep it."},
+  "backupStep1BodyNoQr": "Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.",
+  "@backupStep1BodyNoQr": {"description": "Step 1 text for a bulk backup, which has no QR code."},
+
+  "backupSavePackageFile": "Save package file",
+  "@backupSavePackageFile": {"description": "Opens the share sheet with the PACKAGE file (no words in it)."},
+
+  "backupSavedAnotherWay": "I saved it another way",
+  "@backupSavedAnotherWay": {"description": "Marks step 1 done when the user saved the package without the buttons (for example printed or photographed the QR)."},
+
+  "backupStep2Header": "STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE",
+  "@backupStep2Header": {"description": "Two-step backup export: second step header. Keep the ' //' operator styling."},
+
+  "backupStep2Locked": "Finish step 1 first. The 8 words appear here after the package is saved.",
+  "@backupStep2Locked": {"description": "Shown in step 2 until step 1 is done; the words stay hidden until then."},
+
+  "backupStep2Body": "Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.",
+  "@backupStep2Body": {"description": "Two-step backup export: paper is the main way to keep the words."},
+
+  "backupWroteOnPaper": "I wrote them on paper",
+  "@backupWroteOnPaper": {"description": "Primary button in step 2: marks the words as saved on paper."},
+
+  "backupSaveWordsFile": "Save words file instead",
+  "@backupSaveWordsFile": {"description": "Secondary button in step 2: opens the share sheet with the WORDS file (no package in it)."},
+
+  "backupWordsFileWarning": "If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.",
+  "@backupWordsFileWarning": {"description": "Shown under the words-file button."},
+
+  "backupFingerprintLine": "Fingerprint: {fingerprint} (the package and the words show the same one)",
+  "@backupFingerprintLine": {"description": "Six-digit fingerprint shared by the PACKAGE and WORDS files so they can be matched later.", "placeholders": {"fingerprint": {"type": "String"}}},
+
+  "backupStepDone": "DONE",
+  "@backupStepDone": {"description": "Marker next to a finished step header."},
+
+  "backupSavedBoth": "I'VE SAVED BOTH",
+  "@backupSavedBoth": {"description": "Final button, enabled once both steps are done."},
+  "backupShareFailed": "Could not open the share sheet. Try again.",
+  "@backupShareFailed": {"description": "Snackbar when writing or sharing a backup file fails."},
+  "commonCopiedProtected": "Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.",
+  "@commonCopiedProtected": {"description": "Snackbar after copying a package to the clipboard with timed clearing. On Android the clear runs only while Signet is open, hence the second clause."},
+  "commonCopiedPlain": "Copied to the clipboard.",
+  "@commonCopiedPlain": {"description": "Snackbar after a copy that Signet cannot clear later."},
+  "commonCopyFailed": "Could not copy. Try again.",
+  "@commonCopyFailed": {"description": "Snackbar when copying to the clipboard failed."},
+  "backupPackageCopiedSnackbar": "{copied} Paste it somewhere off this phone now, then tap \"I saved it another way\".",
+  "@backupPackageCopiedSnackbar": {"description": "Snackbar after copying the backup package; copying alone does not finish step 1. {copied} is commonCopiedProtected or commonCopiedPlain.", "placeholders": {"copied": {"type": "String"}}},
 
   "commonStoreSeparatelyHeader": "STORE THESE SEPARATELY //",
   "@commonStoreSeparatelyHeader": {"description": "Red warning block headline on backup export and bulk export. Keep the ' //' structure."},
@@ -43,17 +88,53 @@
   "commonPakeSecretHeader": "PAKE SECRET //",
   "@commonPakeSecretHeader": {"description": "Section header above the 8-word PAKE secret on export, import and transport screens. Keep the ' //' structure; PAKE stays untranslated."},
 
-  "commonBackupPackageHeader": "BACKUP PACKAGE //",
-  "@commonBackupPackageHeader": {"description": "Section header above the package wire text / QR on backup export and import screens. Keep the ' //' structure."},
 
   "commonPairTimePhraseHeader": "PAIR-TIME PHRASE //",
-  "@commonPairTimePhraseHeader": {"description": "Section header above the 4-word phrase on binding phrase screen and transport in/out confirm panes. Keep the ' //' structure."},
+  "@commonPairTimePhraseHeader": {"description": "Section header above the pair-time phrase (4 words on the binding phrase screen, 8 on the transport in/out confirm panes). Keep the ' //' structure."},
 
   "commonNameThisContactHeader": "NAME THIS CONTACT //",
   "@commonNameThisContactHeader": {"description": "Section header above the contact-name field on transport in/out screens. Keep the ' //' structure."},
 
   "commonNameHintExample": "e.g. Alice",
   "@commonNameHintExample": {"description": "TextField hintText for the contact name on transport in/out screens."},
+  "labelRejectEmpty": "Enter a name for this contact.",
+  "@labelRejectEmpty": {"description": "A contact name was empty."},
+  "labelRejectData": "That looks like Signet data, not a name. Try something like \"Mom\".",
+  "@labelRejectData": {"description": "A contact name contained a signet:tp1: package."},
+  "labelRejectKey": "That looks like a key, not a name. Try something like \"Mom\".",
+  "@labelRejectKey": {"description": "A contact name was a long hex string."},
+  "labelRejectTooLong": "That name is too long. Use a shorter one.",
+  "@labelRejectTooLong": {"description": "A contact name was over the byte limit."},
+  "labelRestoredFallback": "Restored contact",
+  "@labelRestoredFallback": {"description": "Name given to a restored contact whose saved name was empty or unusable. The user can rename it."},
+  "labelRestoredSuffix": " (restored)",
+  "@labelRestoredSuffix": {"description": "Appended to a restored contact's name when a contact with that name already exists. Keep the leading space if your language uses one."},
+  "scannerCameraErrorTitle": "The camera didn't start",
+  "@scannerCameraErrorTitle": {"description": "QR scanner: the camera failed for a reason other than permission, or never started."},
+  "scannerCameraErrorBody": "Close any other app that is using the camera and try again.",
+  "@scannerCameraErrorBody": {"description": "QR scanner camera error help."},
+  "scannerCameraErrorBodyPaste": "Close any other app that is using the camera and try again, or paste the text instead.",
+  "@scannerCameraErrorBodyPaste": {"description": "QR scanner camera error help when a paste path exists."},
+  "scannerRetry": "Try again",
+  "@scannerRetry": {"description": "QR scanner: restart the camera."},
+  "scannerUsePaste": "Paste instead",
+  "@scannerUsePaste": {"description": "QR scanner: give up on the camera and paste."},
+  "scannerNotSignetPackage": "That QR code isn't a Signet package. Scan the code from your backup.",
+  "@scannerNotSignetPackage": {"description": "Restore scanner: a QR code that is not a signet:tp1: package."},
+  "scannerTitle": "SCAN QR",
+  "@scannerTitle": {"description": "Title of the full-screen QR scanner page."},
+  "backupImportScanQr": "Scan QR",
+  "@backupImportScanQr": {"description": "Restore screen: scan the backup package QR code."},
+  "backupImportReplacedLabelNotice": "The name saved in this backup could not be used, so this contact is restored as \"{label}\". You can rename it afterwards.",
+  "@backupImportReplacedLabelNotice": {"description": "Restore preview: the saved contact name was empty or looked like data and was replaced.", "placeholders": {"label": {"type": "String"}}},
+  "labelLengthCounter": "{used} / {max}",
+  "@labelLengthCounter": {"description": "Counter under a name field. Counts space used (UTF-8 bytes), not letters, since that is what the limit is.", "placeholders": {"used": {"type": "int"}, "max": {"type": "int"}}},
+  "pairTransportOutYourNameHeader": "YOUR NAME, AS THEY'LL SEE IT //",
+  "@pairTransportOutYourNameHeader": {"description": "Optional field on the long-distance pairing send screen."},
+  "pairTransportOutYourNameDescription": "Optional. Their phone suggests this as the name for you; they can change it. Chinese, Arabic and some other scripts use more space per letter, so keep it short.",
+  "@pairTransportOutYourNameDescription": {"description": "Help text for the sender's own-name hint."},
+  "pairTransportOutOwnPackageError": "This is the package you created. Paste the one your contact sent back.",
+  "@pairTransportOutOwnPackageError": {"description": "The sender pasted their own outgoing package as the response."},
 
   "commonPasteFromClipboard": "Paste from clipboard",
   "@commonPasteFromClipboard": {"description": "Text button with paste icon that reads the clipboard into the package input. Used on backup import and both transport screens."},
@@ -77,7 +158,13 @@
   "@commonUnlockFailedError": {"description": "Inline error when PAKE words are wrong / package undecryptable during unlock (backup import, transport in). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
 
   "commonSaveFailedError": "Could not save: {error}",
-  "@commonSaveFailedError": {"description": "Inline error / SnackBar when persisting a relationship fails (pair confirm, transport in/out, backup import). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+  "@commonSaveFailedError": {"description": "Inline error / SnackBar when persisting a relationship fails (transport in/out, backup import). Shows the underlying exception message.", "placeholders": {"error": {"type": "String"}}},
+
+  "pairConfirmSaveIncompleteError": "Signet couldn't finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.",
+  "@pairConfirmSaveIncompleteError": {"description": "Shown when committing a pair or rekey hits a storage error. The save is journaled and may complete on next launch, so the user is told how to check rather than to re-pair immediately."},
+
+  "pairConfirmRekeySaveIncompleteError": "The rekey didn't finish. Do the rekey again on both phones before you rely on Signet to verify this contact.",
+  "@pairConfirmRekeySaveIncompleteError": {"description": "Shown when committing a rekey hits a storage error. The contact stays listed either way, so the user is told to repeat the rekey (safe to repeat)."},
 
   "commonGiveContactName": "Give this contact a name.",
   "@commonGiveContactName": {"description": "Validation error shown when the contact-name field is empty on transport in/out."},
@@ -370,8 +457,12 @@
   "faqQ6": "What if I lose my phone?",
   "@faqQ6": {"description": "FAQ question 6."},
 
-  "faqA6": "If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn't need to do anything, and doesn't even know a restore happened. If you didn't back up, the pairing is gone and you'd need to re-pair in person with that contact on the new device.",
+  "faqA6": "If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn't need to do anything, and doesn't even know a restore happened. If you didn't back up, the pairing is gone and you'd need to re-pair in person with that contact on the new device.",
   "@faqA6": {"description": "FAQ answer 6."},
+  "faqQ12": "How do I keep a backup safe?",
+  "@faqQ12": {"description": "FAQ question about storing the two backup parts."},
+  "faqA12": "A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.",
+  "@faqA12": {"description": "FAQ answer about storing the two backup parts."},
 
   "faqQ7": "Can I pair with more than one person?",
   "@faqQ7": {"description": "FAQ question 7."},
@@ -394,7 +485,7 @@
   "faqQ10": "Why no account? What if I need recovery?",
   "@faqQ10": {"description": "FAQ question 10."},
 
-  "faqA10": "An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.",
+  "faqA10": "An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.",
   "@faqA10": {"description": "FAQ answer 10."},
 
   "faqQ11": "Someone is asking me to skip the verify step.",
@@ -402,6 +493,12 @@
 
   "faqA11": "Do not skip it. A real paired contact understands why verification exists and won't pressure you to bypass it. Urgency plus a request to skip verification is the exact pattern a scammer uses to short-circuit the safety net. If you're being pressured, assume the call is hostile until proven otherwise.",
   "@faqA11": {"description": "FAQ answer 11."},
+
+  "faqQ13": "Signet says it needs an update.",
+  "@faqQ13": {"description": "FAQ question about the 'needs a newer / older version of Signet' messages (plan Task 1.7j)."},
+
+  "faqA13": "Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.",
+  "@faqA13": {"description": "FAQ answer about update messages. Must not suggest any update source other than the store the app came from (scam lever)."},
 
   "faqStillStuckHeader": "STILL STUCK //",
   "@faqStillStuckHeader": {"description": "Monospace headline above the issue-filing block at the end of the FAQ. Keep the ' //' structure."},
@@ -472,38 +569,146 @@
   "pairExchangeFallbackContact": "contact",
   "@pairExchangeFallbackContact": {"description": "Fallback word in the exchange AppBar title when no label has been set yet ('Pair with contact')."},
 
-  "pairExchangeIntro": "Hold your phones together. Each of you needs to do both of these.",
-  "@pairExchangeIntro": {"description": "Intro line at the top of the exchange overview pane."},
+  "pairInPersonIntro": "Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.",
+  "@pairInPersonIntro": {"description": "Intro on the in-person pairing role choice. Keeps the safety rule from the old exchange intro (Task 1.7a): scan the phone itself, never a photo or video call."},
 
-  "pairExchangeStep1Title": "Show my QR",
-  "@pairExchangeStep1Title": {"description": "Step card 1 title: display my pairing QR."},
+  "pairInPersonRoleHint": "Decide out loud who goes first. That phone taps Start. The other phone taps Join.",
+  "@pairInPersonRoleHint": {"description": "Explains the two roles above the Start and Join buttons."},
 
-  "pairExchangeStep1Subtitle": "Let the other person scan your code.",
-  "@pairExchangeStep1Subtitle": {"description": "Step card 1 subtitle."},
+  "pairInPersonNextButton": "NEXT",
+  "@pairInPersonNextButton": {"description": "Moves on after this phone's code was scanned."},
 
-  "pairExchangeStep2Title": "Scan their QR",
-  "@pairExchangeStep2Title": {"description": "Step card 2 title: scan the other device's QR."},
+  "pairInPersonNextHint": "Tap when the other phone shows its own code.",
+  "@pairInPersonNextHint": {"description": "Under NEXT: the visible cue that the other phone scanned this one (a phone cannot detect it)."},
 
-  "pairExchangeStep2Subtitle": "Point your camera at their code.",
-  "@pairExchangeStep2Subtitle": {"description": "Step card 2 subtitle."},
+  "pairInPersonShowWordsButton": "SHOW THE WORDS",
+  "@pairInPersonShowWordsButton": {"description": "Start's last tap, after the other phone scanned the last code."},
 
-  "pairExchangeStep3Title": "Paste string (dev)",
-  "@pairExchangeStep3Title": {"description": "Dev-only step card 3 title (paste-exchange pane, compile-time flag)."},
+  "pairInPersonFinishHint": "Tap when the other phone shows 4 words.",
+  "@pairInPersonFinishHint": {"description": "Under SHOW THE WORDS: the visible cue that the other phone scanned the last code."},
 
-  "pairExchangeStep3Subtitle": "Two-emulator testing only. Bypasses the camera.",
-  "@pairExchangeStep3Subtitle": {"description": "Dev-only step card 3 subtitle."},
+  "pairInPersonShowAgainButton": "Show my code again",
+  "@pairInPersonShowAgainButton": {"description": "On a scan step: go back and show this phone's code again, for when NEXT was tapped too early."},
 
-  "pairExchangeDerivingStatus": "Deriving shared secret…",
-  "@pairExchangeDerivingStatus": {"description": "Status line under the step cards once both steps are complete."},
+  "pairInPersonQrLabel": "Pairing QR code",
+  "@pairInPersonQrLabel": {"description": "Screen-reader label of the pairing QR image."},
 
-  "pairExchangeWaitingStatus": "Waiting for both steps…",
-  "@pairExchangeWaitingStatus": {"description": "Status line under the step cards while steps are incomplete."},
+  "pairCodeAlreadyScannedNotice": "Already scanned. Wait for the other phone's next code.",
+  "@pairCodeAlreadyScannedNotice": {"description": "The camera read a code this phone already used (the other phone has not moved on yet)."},
 
-  "pairExchangeShowHeading": "Let them scan this.",
-  "@pairExchangeShowHeading": {"description": "Headline above the fullscreen pairing QR."},
+  "pairInPersonPasteFromClipboard": "PASTE FROM CLIPBOARD",
+  "@pairInPersonPasteFromClipboard": {"description": "Fills the paste field from the clipboard in one tap."},
 
-  "pairExchangeShowDoneButton": "They scanned — I'm done",
-  "@pairExchangeShowDoneButton": {"description": "BigButton under the QR confirming the other side has scanned."},
+  "pairInPersonCopiedSnackbar": "{status} Get it to the other phone yourself, then check the 4 words together in person.",
+  "@pairInPersonCopiedSnackbar": {"description": "Snackbar after copying a pairing code. {status} is the clipboard result (commonCopiedProtected or commonCopiedPlain). Must not suggest sending the code over a messaging app.", "placeholders": {"status": {"type": "String"}}},
+
+  "pairInPersonStartButton": "START",
+  "@pairInPersonStartButton": {"description": "Role button: this phone shows its code first."},
+
+  "pairInPersonStartSubtitle": "This phone shows its code first.",
+  "@pairInPersonStartSubtitle": {"description": "Line under the START button."},
+
+  "pairInPersonJoinButton": "JOIN",
+  "@pairInPersonJoinButton": {"description": "Role button: this phone scans first."},
+
+  "pairInPersonJoinSubtitle": "This phone scans the other phone first.",
+  "@pairInPersonJoinSubtitle": {"description": "Line under the JOIN button."},
+
+  "pairInPersonStepLabel": "Step {step} of 3",
+  "@pairInPersonStepLabel": {"description": "Progress label above each in-person pairing step.", "placeholders": {"step": {"type": "int"}}},
+
+  "pairInPersonShowHeading": "Let the other phone scan this.",
+  "@pairInPersonShowHeading": {"description": "Heading over a QR code this phone shows (steps 1 and 2)."},
+
+  "pairInPersonShowRevealHeading": "Let the other phone scan this one too.",
+  "@pairInPersonShowRevealHeading": {"description": "Heading over the last QR code Start shows (step 3)."},
+
+  "pairInPersonScanHeading": "Scan the other phone.",
+  "@pairInPersonScanHeading": {"description": "Heading over the camera (steps 1 and 2)."},
+
+  "pairInPersonScanRevealHeading": "Scan the other phone once more.",
+  "@pairInPersonScanRevealHeading": {"description": "Heading over the camera for Join's last scan (step 3)."},
+
+  "pairInPersonPreparing": "Getting ready…",
+  "@pairInPersonPreparing": {"description": "Shown while this phone makes its pairing code."},
+
+  "pairInPersonDeriving": "Working out the words…",
+  "@pairInPersonDeriving": {"description": "Shown while the 4 words are computed (about a second)."},
+
+  "pairInPersonJoinIdleHint": "Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.",
+  "@pairInPersonJoinIdleHint": {"description": "Hint after about 20 s with nothing scanned on Join's first step."},
+
+  "pairInPersonStartIdleHint": "Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.",
+  "@pairInPersonStartIdleHint": {"description": "Hint after about 20 s with nothing scanned on Start's scan step (two Start phones just face each other)."},
+
+  "pairInPersonShowAsText": "Show the code as text",
+  "@pairInPersonShowAsText": {"description": "Accessibility fallback: show this phone's code as text to copy instead of a QR code."},
+
+  "pairInPersonShowAsQr": "Show the QR code",
+  "@pairInPersonShowAsQr": {"description": "Switch back from the text form to the QR code."},
+
+  "pairInPersonCopyCode": "COPY CODE",
+  "@pairInPersonCopyCode": {"description": "Copies this phone's pairing code (public, not secret)."},
+
+  "pairInPersonPasteInstead": "Paste a code instead",
+  "@pairInPersonPasteInstead": {"description": "Accessibility fallback on scan steps: type or paste the other phone's code."},
+
+  "pairInPersonPasteHeading": "Paste the other phone's code",
+  "@pairInPersonPasteHeading": {"description": "Heading of the paste fallback."},
+
+  "pairInPersonPasteLabel": "Code",
+  "@pairInPersonPasteLabel": {"description": "Label of the paste field."},
+
+  "pairInPersonPasteSubmit": "USE THIS CODE",
+  "@pairInPersonPasteSubmit": {"description": "Submit button of the paste fallback."},
+
+  "pairInPersonPasteEmptyError": "Paste the other phone's code first.",
+  "@pairInPersonPasteEmptyError": {"description": "Paste fallback submitted with an empty field."},
+
+  "pairInPersonBackToCamera": "Back to the camera",
+  "@pairInPersonBackToCamera": {"description": "Leave the paste fallback."},
+
+  "pairInPersonStartOverButton": "START OVER",
+  "@pairInPersonStartOverButton": {"description": "Button on a failed attempt; returns to the Start/Join choice with new keys."},
+
+  "pairInPersonStartOverBoth": "On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.",
+  "@pairInPersonStartOverBoth": {"description": "Shown under every failure: the other phone does not know this attempt ended."},
+
+  "pairCodeMalformedNotice": "This code is incomplete or damaged. Scan or paste it again.",
+  "@pairCodeMalformedNotice": {"description": "A scanned or pasted pairing code is damaged (usually a broken paste). Must not say tampered."},
+
+  "pairCodeNotPairingNotice": "That is not a Signet pairing code. Scan the code on the other phone's pairing screen.",
+  "@pairCodeNotPairingNotice": {"description": "The camera read a QR code that is not a Signet pairing code."},
+
+  "pairCodeMultipleNotice": "Paste one code at a time.",
+  "@pairCodeMultipleNotice": {"description": "More than one pairing code in one paste."},
+
+  "pairCodePeerNeedsUpdateNotice": "The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.",
+  "@pairCodePeerNeedsUpdateNotice": {"description": "The other phone showed an older-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source."},
+
+  "pairCodeThisNeedsUpdateNotice": "This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.",
+  "@pairCodeThisNeedsUpdateNotice": {"description": "The other phone showed a newer-format pairing code. Anyone can show such a code, so it must not link anywhere and must point only to the normal install source."},
+
+  "pairFailStartStart": "This phone scanned a Start code. One phone must tap Start and the other Join.",
+  "@pairFailStartStart": {"description": "Start scanned another Start code (or its own code in a reflection). Neutral wording: must not accuse the other person."},
+
+  "pairFailJoinJoin": "This phone scanned a Join code. One phone must tap Start and the other Join.",
+  "@pairFailJoinJoin": {"description": "Join scanned another Join code before any Start code."},
+
+  "pairFailSecondCode": "A different code was scanned partway through, so this attempt ended to keep it safe.",
+  "@pairFailSecondCode": {"description": "A second, different code arrived after one was accepted."},
+
+  "pairFailWrongCode": "That code belongs to a different step, so this attempt ended to keep it safe.",
+  "@pairFailWrongCode": {"description": "A valid code of a kind this step never accepts."},
+
+  "pairFailRevealMismatch": "Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.",
+  "@pairFailRevealMismatch": {"description": "Join's last code does not open the step-1 commitment: possible tampering. Must not reassure."},
+
+  "pairFailTimedOut": "This took too long, so the attempt ended.",
+  "@pairFailTimedOut": {"description": "The attempt's idle timer ran out."},
+
+  "pairFailInternal": "Something went wrong on this phone.",
+  "@pairFailInternal": {"description": "Key generation or the word computation failed unexpectedly."},
 
   "pairExchangeCameraPermissionTitle": "Camera permission is turned off.",
   "@pairExchangeCameraPermissionTitle": {"description": "Title of the camera-permission-denied pane."},
@@ -516,48 +721,6 @@
 
   "pairCameraSettingsPathAndroid": "Apps → Signet → Permissions → Camera",
   "@pairCameraSettingsPathAndroid": {"description": "Android per-app camera settings path, interpolated into the permission body."},
-
-  "pairExchangeDevHeading": "Dev: paste-exchange",
-  "@pairExchangeDevHeading": {"description": "Dev-only pane headline (paste string instead of camera)."},
-
-  "pairExchangeDevInstructions": "Copy the \"Your string\" value into the other emulator's paste box, then paste theirs below.",
-  "@pairExchangeDevInstructions": {"description": "Dev-only pane instructions; references the two field labels below."},
-
-  "pairExchangeDevYourString": "Your string",
-  "@pairExchangeDevYourString": {"description": "Label above our own pairing string in the dev pane."},
-
-  "pairExchangeDevCopyButton": "Copy",
-  "@pairExchangeDevCopyButton": {"description": "Copy button next to our pairing string in the dev pane."},
-
-  "pairExchangeDevCopiedSnackbar": "Copied to clipboard",
-  "@pairExchangeDevCopiedSnackbar": {"description": "SnackBar after copying our pairing string in the dev pane."},
-
-  "pairExchangeDevTheirString": "Their string",
-  "@pairExchangeDevTheirString": {"description": "Label above the input for the other device's pairing string in the dev pane."},
-
-  "pairExchangeDevSubmitButton": "Submit",
-  "@pairExchangeDevSubmitButton": {"description": "BigButton submitting the pasted pairing string in the dev pane."},
-
-  "pairExchangeDevSubmittingButton": "Submitting…",
-  "@pairExchangeDevSubmittingButton": {"description": "Disabled state of the dev-pane submit button."},
-
-  "pairExchangePasteEmptyError": "Paste the other device’s pairing string.",
-  "@pairExchangePasteEmptyError": {"description": "Validation error when submitting an empty pairing string in the dev pane."},
-
-  "pairingErrorNotPairingQr": "Not a Signet pairing QR (wrong scheme / version).",
-  "@pairingErrorNotPairingQr": {"description": "FormatException message from the pairing codec; shown in the scan pane and dev paste pane when the payload has the wrong prefix."},
-
-  "pairingErrorBadPayloadLength": "Decoded payload is {actual} bytes, expected 32.",
-  "@pairingErrorBadPayloadLength": {"description": "FormatException message from the pairing codec when the decoded key length is wrong.", "placeholders": {"actual": {"type": "int"}}},
-
-  "pairingErrorDecodeFailed": "Could not decode pairing QR: {error}",
-  "@pairingErrorDecodeFailed": {"description": "FormatException message from the pairing codec wrapping a base64 decode failure.", "placeholders": {"error": {"type": "String"}}},
-
-  "pairingErrorBadKeyLength": "Scanned key is {actual} bytes; expected {expected}.",
-  "@pairingErrorBadKeyLength": {"description": "Error stored in pairing state when the scanned key has the wrong length; shown in the exchange overview error box.", "placeholders": {"actual": {"type": "int"}, "expected": {"type": "int"}}},
-
-  "pairingErrorDeriveFailed": "Failed to derive shared secret: {error}",
-  "@pairingErrorDeriveFailed": {"description": "Error stored in pairing state when ECDH derivation throws; shown in the exchange overview error box.", "placeholders": {"error": {"type": "String"}}},
 
   "pairConfirmTitle": "Confirm",
   "@pairConfirmTitle": {"description": "AppBar title of the phrase-confirmation step during a fresh pair."},
@@ -646,7 +809,7 @@
   "pairTransportInProcessFailedError": "Failed to process package: {error}",
   "@pairTransportInProcessFailedError": {"description": "Generic catch-all unlock error on transport in.", "placeholders": {"error": {"type": "String"}}},
 
-  "pairTransportInPhraseInstruction": "Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.",
+  "pairTransportInPhraseInstruction": "Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.",
   "@pairTransportInPhraseInstruction": {"description": "Instruction above the phrase card on transport in."},
 
   "pairTransportInResponseHeader": "YOUR RESPONSE //",
@@ -658,8 +821,6 @@
   "pairTransportInCopyResponseButton": "Copy response",
   "@pairTransportInCopyResponseButton": {"description": "Copy button next to the response package on transport in."},
 
-  "pairTransportInResponseCopiedSnackbar": "Response copied to clipboard",
-  "@pairTransportInResponseCopiedSnackbar": {"description": "SnackBar after copying the response package."},
 
   "pairTransportOutNewPackageTitle": "NEW PACKAGE",
   "@pairTransportOutNewPackageTitle": {"description": "AppBar title of the transport-out setup phase."},
@@ -667,7 +828,7 @@
   "pairTransportOutShareWaitTitle": "SHARE + WAIT",
   "@pairTransportOutShareWaitTitle": {"description": "AppBar title of the transport-out share-and-wait phase."},
 
-  "pairTransportOutNameDescription": "The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.",
+  "pairTransportOutNameDescription": "The name that will appear on your home screen for this contact. Only you see it.",
   "@pairTransportOutNameDescription": {"description": "Helper text under the NAME THIS CONTACT header on transport out."},
 
   "pairTransportOutGenerateButton": "GENERATE PACKAGE",
@@ -682,13 +843,9 @@
   "pairTransportOutOutgoingInstruction": "Send this text to {label}. Encrypted email, Signal, paper courier, printed QR — any channel is fine. Only useful to someone who also has the 8 PAKE words below.",
   "@pairTransportOutOutgoingInstruction": {"description": "Instruction above the outgoing wire text on transport out.", "placeholders": {"label": {"type": "String"}}},
 
-  "pairTransportOutCopyWordsButton": "Copy words",
-  "@pairTransportOutCopyWordsButton": {"description": "Copy button next to the 8 PAKE words on transport out."},
 
-  "pairTransportOutWordsCopiedSnackbar": "PAKE words copied",
-  "@pairTransportOutWordsCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on transport out."},
 
-  "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
+  "pairTransportOutChannelWarning": "Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.",
   "@pairTransportOutChannelWarning": {"description": "Warning box about out-of-band PAKE delivery on transport out."},
 
   "pairTransportOutReceiveHeader": "RECEIVE RESPONSE //",
@@ -706,7 +863,13 @@
   "pairTransportOutUnlockFailedError": "Could not unlock response: {error}",
   "@pairTransportOutUnlockFailedError": {"description": "Error when the response package fails to unlock on transport out.", "placeholders": {"error": {"type": "String"}}},
 
-  "pairTransportOutPhraseInstruction": "Ask {label} to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.",
+  "pairingWeakKeyInPersonError": "Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.",
+  "@pairingWeakKeyInPersonError": {"description": "In-person QR pairing: the scanned code carries a low-order or reflected public key (possible tampering). Must not reassure; tells both people to cancel and restart."},
+
+  "pairingWeakKeyRemoteError": "This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.",
+  "@pairingWeakKeyRemoteError": {"description": "Long-distance pairing: the package or response carries a low-order or reflected public key (possible tampering, or the user's own package sent back). Must not reassure; tells the user to restart over a different channel."},
+
+  "pairTransportOutPhraseInstruction": "Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with {label} face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.",
   "@pairTransportOutPhraseInstruction": {"description": "Instruction above the phrase card on transport out.", "placeholders": {"label": {"type": "String"}}},
 
   "backupExportTitle": "BACK UP TO PAPER",
@@ -718,22 +881,16 @@
   "backupExportHeading": "Back up {label}",
   "@backupExportHeading": {"description": "Headline of the backup export content.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportIntro": "Writing this down lets you restore this pairing on a new phone if you lose this one. {label}'s phone won't know anything changed.",
+  "backupExportIntro": "A backup lets you restore this pairing on a new phone if you lose this one. {label}'s phone won't know anything changed.",
   "@backupExportIntro": {"description": "Explanatory body under the export headline.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "backupExportStoreSeparatelyBody": "This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.",
   "@backupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on single export."},
 
-  "backupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.",
-  "@backupExportWordsInstruction": {"description": "Instruction above the numbered PAKE word list on single export."},
 
-  "backupExportPackageInstruction": "Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.",
-  "@backupExportPackageInstruction": {"description": "Instruction above the package QR + text on single export."},
 
-  "backupExportShareSubject": "Signet backup - {label}",
-  "@backupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a single backup.", "placeholders": {"label": {"type": "String"}}},
 
-  "backupExportRememberBody": "If this paper is ever found by someone else, UNPAIR {label} immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.",
+  "backupExportRememberBody": "If someone else ever finds both the package and the 8 words, unpair {label} right away and pair again in person. The backup holds the same secret your current pairing uses.",
   "@backupExportRememberBody": {"description": "Body of the REMEMBER warning on single export.", "placeholders": {"label": {"type": "String"}}},
 
   "backupImportRestoreTitle": "RESTORE BACKUP",
@@ -742,20 +899,36 @@
   "backupImportConfirmTitle": "CONFIRM IMPORT",
   "@backupImportConfirmTitle": {"description": "AppBar title of the backup-import commit pane."},
 
-  "backupImportFileReadError": "Could not read the selected file.",
-  "@backupImportFileReadError": {"description": "Error when the picked backup file has neither bytes nor a readable path."},
+  "backupImportFileTooLargeError": "That file is too large to be a Signet backup. Pick the small text file you saved when you made the backup.",
+  "@backupImportFileTooLargeError": {"description": "The picked file is larger than any backup could be (checked before reading it)."},
 
-  "backupImportFileReadFailedError": "Could not read the file: {error}",
-  "@backupImportFileReadFailedError": {"description": "Error when reading the picked backup file throws.", "placeholders": {"error": {"type": "String"}}},
+  "backupImportFileReadError": "Could not read the selected file. Try picking it again.",
+  "@backupImportFileReadError": {"description": "Picking or reading the backup file failed. Never shows exception text (it can contain cache paths)."},
 
-  "backupImportInvalidFileError": "File is not a valid Signet backup: {message}",
-  "@backupImportInvalidFileError": {"description": "Error when the picked file fails bundle parsing.", "placeholders": {"message": {"type": "String"}}},
 
-  "backupImportPasteEmptyError": "Paste your backup package.",
+  "backupImportPasteEmptyError": "Load or paste your backup package first.",
   "@backupImportPasteEmptyError": {"description": "Validation error when unlocking with an empty package field."},
 
-  "backupImportWordsIncompleteError": "Enter the 8 PAKE words you stored separately.",
+  "backupImportWordsIncompleteError": "Enter all 8 backup words.",
   "@backupImportWordsIncompleteError": {"description": "Validation error when the 8 PAKE words aren't complete on backup import."},
+  "backupImportPackageHeader": "STEP 1 // THE PACKAGE",
+  "@backupImportPackageHeader": {"description": "Restore screen: header above the package input."},
+  "backupImportLoadPackageFile": "Load PACKAGE file",
+  "@backupImportLoadPackageFile": {"description": "Restore screen: opens the file picker for the PACKAGE file."},
+  "backupImportWordsHeader": "STEP 2 // THE 8 WORDS",
+  "@backupImportWordsHeader": {"description": "Restore screen: header above the 8-word input."},
+  "backupImportLoadWordsFile": "Load WORDS file",
+  "@backupImportLoadWordsFile": {"description": "Restore screen: opens the file picker for the WORDS file."},
+  "backupImportIsWordsError": "Those are the 8 words, not the package. Put them under step 2.",
+  "@backupImportIsWordsError": {"description": "The package input was given the words file."},
+  "backupImportIsPackageError": "That is the package, not the words. Put it under step 1.",
+  "@backupImportIsPackageError": {"description": "The words input was given the package file."},
+  "backupImportNoWordsError": "No backup words found there. Look for a line of 8 words.",
+  "@backupImportNoWordsError": {"description": "The words input was given text without 8 backup words."},
+  "backupImportFingerprintMismatchError": "These words belong to a different backup (package {package}, words {words}). Find the words with fingerprint {package}.",
+  "@backupImportFingerprintMismatchError": {"description": "The words file's fingerprint does not match the package. Fingerprints are 6 digits shown as \"123 456\".", "placeholders": {"package": {"type": "String"}, "words": {"type": "String"}}},
+  "backupImportLegacyNotice": "This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.",
+  "@backupImportLegacyNotice": {"description": "Shown when an old combined backup file is loaded."},
 
   "backupImportNotBackupError": "Not a valid Signet backup.",
   "@backupImportNotBackupError": {"description": "Error when the payload type can't be recognized."},
@@ -763,16 +936,14 @@
   "backupImportInvitationError": "That's a pairing invitation, not a backup. Use the pair flow from Home.",
   "@backupImportInvitationError": {"description": "Error when an LDP pairing package is pasted into the backup import."},
 
-  "backupImportClipboardEmptyError": "Clipboard is empty. Copy your backup package first.",
+  "backupImportClipboardEmptyError": "The clipboard is empty.",
   "@backupImportClipboardEmptyError": {"description": "Error when paste-from-clipboard finds nothing on backup import."},
 
-  "backupImportPasteInstruction": "Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.",
+  "backupImportPasteInstruction": "Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".",
   "@backupImportPasteInstruction": {"description": "Helper text above the package input on backup import; the wire prefix stays literal."},
 
-  "backupImportLoadFromFileButton": "Load from file",
-  "@backupImportLoadFromFileButton": {"description": "Button opening the file picker on backup import."},
 
-  "backupImportWordsInstruction": "The 8 words from your paper or password manager — stored separately from the package above.",
+  "backupImportWordsInstruction": "Type the 8 words you wrote down, or load the WORDS file if you saved one.",
   "@backupImportWordsInstruction": {"description": "Helper text above the PAKE word input on backup import."},
 
   "backupImportUnlockButton": "UNLOCK BACKUP",
@@ -826,7 +997,7 @@
   "bulkBackupExportReadyHeading": "Back up {count, plural, =1{1 relationship} other{{count} relationships}}",
   "@bulkBackupExportReadyHeading": {"description": "Headline of the bulk-export pre-generation pane.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportReadyBody": "Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.",
+  "bulkBackupExportReadyBody": "Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.",
   "@bulkBackupExportReadyBody": {"description": "Body under the bulk-export pre-generation headline."},
 
   "bulkBackupExportGenerateButton": "GENERATE BULK BACKUP",
@@ -835,28 +1006,22 @@
   "bulkBackupExportDoneHeading": "{count, plural, =1{1 relationship backed up} other{{count} relationships backed up}}",
   "@bulkBackupExportDoneHeading": {"description": "Headline of the generated-bulk-backup pane.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportStoreSeparatelyBody": "The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.",
+  "bulkBackupExportStoreSeparatelyBody": "This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.",
   "@bulkBackupExportStoreSeparatelyBody": {"description": "Body of the STORE THESE SEPARATELY warning on bulk export (every-pairing variant)."},
 
   "bulkBackupExportWordsInstruction": "Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.",
   "@bulkBackupExportWordsInstruction": {"description": "Instruction above the PAKE word list on bulk export."},
 
-  "bulkBackupExportCopyPakeButton": "Copy PAKE",
-  "@bulkBackupExportCopyPakeButton": {"description": "Copy button next to the PAKE words on bulk export."},
 
-  "bulkBackupExportPakeCopiedSnackbar": "PAKE words copied to clipboard",
-  "@bulkBackupExportPakeCopiedSnackbar": {"description": "SnackBar after copying the PAKE words on bulk export."},
 
   "bulkBackupExportPackageInstruction": "The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.",
   "@bulkBackupExportPackageInstruction": {"description": "Instruction above the bulk package text on bulk export."},
 
-  "bulkBackupExportShareLabel": "{count, plural, =1{1 relationship (bulk)} other{{count} relationships (bulk)}}",
-  "@bulkBackupExportShareLabel": {"description": "peerLabel embedded in the shared bulk-bundle text.", "placeholders": {"count": {"type": "int"}}},
 
   "bulkBackupExportShareSubject": "Signet bulk backup - {count} peers",
   "@bulkBackupExportShareSubject": {"description": "Subject line handed to the OS share sheet for a bulk backup.", "placeholders": {"count": {"type": "int"}}},
 
-  "bulkBackupExportRememberBody": "If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.",
+  "bulkBackupExportRememberBody": "If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.",
   "@bulkBackupExportRememberBody": {"description": "Body of the REMEMBER warning on bulk export."},
 
   "bulkBackupImportTitle": "BULK RESTORE",
@@ -870,6 +1035,36 @@
 
   "bulkBackupImportPreviewHeading": "Restore {count, plural, =1{1 relationship} other{{count} relationships}}",
   "@bulkBackupImportPreviewHeading": {"description": "Headline of the bulk-import preview pane.", "placeholders": {"count": {"type": "int"}}},
+
+  "packageNeedsNewerSignetError": "This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.",
+  "@packageNeedsNewerSignetError": {"description": "A package's unauthenticated version or type byte says it needs a newer Signet. Anyone can trigger this without the 8 words, so it must steer users only to their normal install source and warn against links or files (scam lever)."},
+
+  "packageNeedsNewerSignetVerifiedError": "This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.",
+  "@packageNeedsNewerSignetVerifiedError": {"description": "A package unlocked with the correct 8 words contains a must-understand field this build does not know. Only the holder of the words can produce this, so plain wording is fine."},
+
+  "packageFromOlderSignetError": "This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.",
+  "@packageFromOlderSignetError": {"description": "A long-distance pairing package without the strong-phrase tag (made by Signet 0.3.6 or older, or with the tag stripped). There is no way to continue with it."},
+
+  "packageDamagedError": "This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.",
+  "@packageDamagedError": {"description": "Any malformed transport package (backup or pairing): replaces English developer error text."},
+
+  "backupImportRepairedDateNotice": "Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.",
+  "@backupImportRepairedDateNotice": {"description": "Single-backup restore: the stored pairing date was invalid and was reset to the import time. The secret is intact."},
+
+  "backupImportRepairedLabelNotice": "Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.",
+  "@backupImportRepairedLabelNotice": {"description": "Single-backup restore: the stored name was not valid text and some characters were replaced. The secret is intact."},
+
+  "bulkBackupImportRepairedNotice": "{count, plural, =1{1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.} other{{count} relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.}}",
+  "@bulkBackupImportRepairedNotice": {"description": "Bulk restore preview: records whose pairing date or label was repaired on decode. Matches the FIXED badge on each row.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportSkippedNewerNotice": "{count, plural, =1{1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.} other{{count} relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.}}",
+  "@bulkBackupImportSkippedNewerNotice": {"description": "Bulk restore preview and summary: records skipped because they carry a must-understand field this build does not know.", "placeholders": {"count": {"type": "int"}}},
+
+  "bulkBackupImportRepairedBadge": "FIXED",
+  "@bulkBackupImportRepairedBadge": {"description": "Small badge on a bulk-restore row whose date or name was repaired on decode."},
+
+  "bulkBackupImportSummarySkippedNewer": "NEEDS NEWER SIGNET //",
+  "@bulkBackupImportSummarySkippedNewer": {"description": "Bulk-restore summary row label: records not restored because they need a newer Signet. Operator-style header with the trailing ' //'."},
 
   "bulkBackupImportNoConflictBody": "Tick the rows you want to restore. Every pairing below will come back with its original label and pair date.",
   "@bulkBackupImportNoConflictBody": {"description": "Body when no restored label collides with an existing pairing."},
@@ -892,8 +1087,6 @@
   "bulkBackupImportAlreadyPairedChip": "ALREADY PAIRED",
   "@bulkBackupImportAlreadyPairedChip": {"description": "Red chip replacing the checkbox on rows whose label already exists on this device."},
 
-  "bulkBackupImportNoLabel": "(no label)",
-  "@bulkBackupImportNoLabel": {"description": "Placeholder shown when a bulk record has an empty label."},
 
   "bulkBackupImportRecordMeta": "ROLE {role} · PAIRED {date}",
   "@bulkBackupImportRecordMeta": {"description": "Monospace metadata line on each bulk-import row: wire role letter and pairing date.", "placeholders": {"role": {"type": "String"}, "date": {"type": "String"}}},
@@ -901,11 +1094,13 @@
   "bulkBackupImportSkipOption": "Skip — leave existing pairing alone",
   "@bulkBackupImportSkipOption": {"description": "Conflict radio option: keep the existing pairing untouched."},
 
-  "bulkBackupImportRenameOption": "Rename restored copy to \"{label} (restored)\"",
+  "bulkBackupImportRenameOption": "Restore it as \"{label}\"",
   "@bulkBackupImportRenameOption": {"description": "Conflict radio option: import under a suffixed label; the suffix is stored on the contact name.", "placeholders": {"label": {"type": "String"}}},
 
   "bulkBackupImportOverwriteOption": "Overwrite existing pairing",
   "@bulkBackupImportOverwriteOption": {"description": "Conflict radio option: replace the existing pairing's secret."},
+  "bulkBackupImportOverwriteUnavailable": "Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.",
+  "@bulkBackupImportOverwriteUnavailable": {"description": "Shown in place of the Overwrite option when it cannot be offered."},
 
   "bulkBackupImportCompleteHeading": "Restore complete.",
   "@bulkBackupImportCompleteHeading": {"description": "Headline of the bulk-import success pane."},
@@ -921,6 +1116,10 @@
 
   "bulkBackupImportSummarySkipped": "SKIPPED //",
   "@bulkBackupImportSummarySkipped": {"description": "Summary row label: records skipped. Keep the ' //' structure."},
+  "bulkBackupImportSummaryFailed": "COULD NOT SAVE //",
+  "@bulkBackupImportSummaryFailed": {"description": "Summary row: records that failed to save during a bulk restore."},
+  "bulkBackupImportFailedNote": "Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.",
+  "@bulkBackupImportFailedNote": {"description": "Shown under the summary when some records failed to save."},
 
   "bulkBackupImportNothingChangedBody": "Nothing was changed on this phone.",
   "@bulkBackupImportNothingChangedBody": {"description": "Success-pane body when zero records were committed."},
@@ -934,7 +1133,7 @@
   "bindingPhraseLoadError": "Could not read your pairing.",
   "@bindingPhraseLoadError": {"description": "Error state message on the binding-phrase screen."},
 
-  "bindingPhraseExplanation": "These 4 words were derived the moment you and {label} paired. Ask {label} to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.",
+  "bindingPhraseExplanation": "These 4 words come from the secret you and {label} share. They may not be the words you checked when you first paired; that is normal. Ask {label} to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.",
   "@bindingPhraseExplanation": {"description": "Instruction above the phrase card on the binding-phrase screen.", "placeholders": {"label": {"type": "String"}}},
 
   "bindingPhraseMismatchHeader": "IF THEY DO NOT MATCH //",
@@ -1027,7 +1226,7 @@
   "settingsBulkBackupEmptyBody": "No relationships paired yet. Pair with someone first, then you can back up every pairing at once.",
   "@settingsBulkBackupEmptyBody": {"description": "Body of the bulk-backup section when no relationships exist."},
 
-  "settingsBulkBackupBody": "Back up all {count, plural, =1{1 relationship} other{{count} relationships}} into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.",
+  "settingsBulkBackupBody": "Back up {count, plural, =1{your 1 relationship} other{all {count} relationships}} in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.",
   "@settingsBulkBackupBody": {"description": "Body of the bulk-backup section when relationships exist.", "placeholders": {"count": {"type": "int"}}},
 
   "settingsBulkBackupAction": "BACK UP ALL {count}",
@@ -1044,6 +1243,9 @@
 
   "settingsDebugEnableAction": "ENABLE DEBUG LOGGING",
   "@settingsDebugEnableAction": {"description": "Action button enabling debug logging."},
+
+  "settingsDebugEnableFailed": "Couldn't turn on debug logging. Nothing was recorded. Try again.",
+  "@settingsDebugEnableFailed": {"description": "Snackbar when starting a debug-logging session fails (e.g. the secure key store is unavailable). Logging stays off."},
 
   "settingsDebugExportButton": "EXPORT DEBUG LOGS",
   "@settingsDebugExportButton": {"description": "Outlined button opening the debug-log export sheet."},
@@ -1080,8 +1282,24 @@
 
   "settingsBulkConfirmTitle": "BACK UP EVERYTHING?",
   "@settingsBulkConfirmTitle": {"description": "Title of the one-tap confirm dialog before bulk export."},
+  "settingsUnreadableSection": "CONTACTS THAT COULD NOT BE READ",
+  "@settingsUnreadableSection": {"description": "Settings section shown only when stored contacts cannot be read."},
+  "settingsUnreadableBody": "{count, plural, =1{1 paired contact} other{{count} paired contacts}} could not be read. A newer version of Signet may have saved {count, plural, =1{it} other{them}}; update Signet to see {count, plural, =1{it} other{them}} again. {count, plural, =1{It is} other{They are}} not shown on Home and not included in backups.",
+  "@settingsUnreadableBody": {"description": "Explains unreadable (quarantined) contacts.", "placeholders": {"count": {"type": "int"}}},
+  "settingsUnreadableRemove": "Remove unreadable contacts",
+  "@settingsUnreadableRemove": {"description": "Unpairs every unreadable contact."},
+  "settingsUnreadableConfirmTitle": "REMOVE THEM?",
+  "@settingsUnreadableConfirmTitle": {"description": "Confirm dialog title."},
+  "settingsUnreadableConfirmBody": "These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.",
+  "@settingsUnreadableConfirmBody": {"description": "Confirm dialog body."},
+  "settingsUnreadableConfirmButton": "Remove",
+  "@settingsUnreadableConfirmButton": {"description": "Confirm button."},
+  "settingsUnreadableRemoveFailed": "Some of them could not be removed. Try again.",
+  "@settingsUnreadableRemoveFailed": {"description": "Snackbar when removing unreadable contacts failed."},
+  "bulkBackupExportSkipsUnreadable": "{count, plural, =1{1 contact} other{{count} contacts}} could not be read and will not be in this backup. See Settings.",
+  "@bulkBackupExportSkipsUnreadable": {"description": "Warning on the bulk backup screen.", "placeholders": {"count": {"type": "int"}}},
 
-  "settingsBulkConfirmBody": "This exports the shared secret for all {count, plural, =1{1 relationship} other{{count} relationships}} into one file. Losing the 8-word PAKE means losing all {count} backups. The PAKE will be shown once — write it down before closing the screen.",
+  "settingsBulkConfirmBody": "This puts the shared secret for {count, plural, =1{your 1 relationship} other{all {count} relationships}} into one backup. Without its 8 words the backup cannot be opened, so losing them loses {count, plural, =1{the backup} other{all {count} backups}}. The words are shown once: write them down before leaving the screen.",
   "@settingsBulkConfirmBody": {"description": "Body of the bulk-export confirm dialog.", "placeholders": {"count": {"type": "int"}}},
 
   "settingsBulkConfirmContinue": "CONTINUE",
@@ -1141,8 +1359,10 @@
   "verifyFailStep3": "If {label} does not answer, call a family member or someone close who can physically check on them. A real {label} will never be upset that you checked.",
   "@verifyFailStep3": {"description": "Education sheet step 03.", "placeholders": {"label": {"type": "String"}}},
 
-  "verifyFailStep4": "If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.",
-  "@verifyFailStep4": {"description": "Education sheet step 04; SHOW BINDING PHRASE refers to the Home row-menu item.", "placeholders": {"label": {"type": "String"}}},
+  "verifyFailStep4": "If you are unsure whether Signet itself is broken: tap \"Check the binding phrase\" below and compare it with {label} on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.",
+  "@verifyFailStep4": {"description": "Education sheet step 04; refers to the verifyFailCheckBindingButton button right below it.", "placeholders": {"label": {"type": "String"}}},
+  "verifyFailCheckBindingButton": "Check the binding phrase",
+  "@verifyFailCheckBindingButton": {"description": "Button in the NOT VERIFIED help sheet that opens the binding phrase screen for this contact."},
 
   "verifyStatusOk": "STATUS // 200 OK",
   "@verifyStatusOk": {"description": "Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure."},
@@ -1200,12 +1420,22 @@
 
   "verifyActionJudgmentPrompt": "Words ✅. Did you see {label}: {action}?",
   "@verifyActionJudgmentPrompt": {"description": "Prompt in the action-judgment panel after the words verified; keep the ✅ emoji.", "placeholders": {"label": {"type": "String"}, "action": {"type": "String"}}},
+  "verifyActionJudgmentAnnouncement": "Words matched. Did {label} do the action shown on screen? Answer SAW IT or DID NOT SEE.",
+  "@verifyActionJudgmentAnnouncement": {"description": "Spoken by the screen reader when the words pass in video mode. Deliberately does not name the gesture: the phone may be on speaker during the video call, where the other side could hear it.", "placeholders": {"label": {"type": "String"}}},
 
   "verifyActionNotSeenButton": "DID NOT SEE",
   "@verifyActionNotSeenButton": {"description": "Destructive judgment button: the action was not performed."},
 
   "verifyActionSeenButton": "SAW IT",
   "@verifyActionSeenButton": {"description": "Confirming judgment button: the action was performed."},
+  "verifyActionOneGesture": "{label} should do exactly one gesture. If they did several, tap DID NOT SEE.",
+  "@verifyActionOneGesture": {"description": "Under the SAW IT / DID NOT SEE question in video mode.", "placeholders": {"label": {"type": "String"}}},
+  "verifyActionChangedNote": "The gesture to watch for has changed: the words {label} read were from the previous or next 30 seconds, and this is their gesture.",
+  "@verifyActionChangedNote": {"description": "Video mode: the words matched a neighbouring 30-second window whose gesture differs from the WATCH FOR row the user saw while typing.", "placeholders": {"label": {"type": "String"}}},
+  "verifyCheckWordsButton": "CHECK THE WORDS",
+  "@verifyCheckWordsButton": {"description": "Large button under the 4 word slots on the verify screen; enabled once all 4 slots hold real words."},
+  "verifyOldPairingNote": "These words match the pairing you had with {label} before a rekey. If you and {label} just rekeyed, do it again together, in person. Otherwise treat this call as a scam.",
+  "@verifyOldPairingNote": {"description": "Secondary note on a NOT VERIFIED result when the words match the secret replaced by a recent rekey. Must never sound reassuring: a thief with the old phone produces exactly these words.", "placeholders": {"label": {"type": "String"}}},
 
   "verifyShowMyWords": "Show my 4 words",
   "@verifyShowMyWords": {"description": "Collapsible section title: my own rotating words."},

@@ -70,8 +70,8 @@ doesn't leave the device and doesn't persist beyond what's needed.
   `docs/THREAT_MODEL.md` for detail.
 - **Independent security review**: at time of v0.2 alpha, no
   external audit has been completed. A security-audit prep pass
-  (`docs/THREAT_MODEL.md` + `docs/TEST_VECTORS.md` + `docs/LIMITATIONS.md`
-  + reproducible builds) lands in Phase 12. An external audit is a
+  (`docs/THREAT_MODEL.md` + `docs/TEST_VECTORS.md` + `docs/LIMITATIONS.md`)
+  lands in Phase 12. An external audit is a
   v1.0 gate, not a v0.2 claim.
 - **Follows Families Policy**: N/A — app is not primary-directed
   at children, and no data is collected from any user regardless

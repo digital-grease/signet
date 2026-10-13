@@ -33,13 +33,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCopyPackage => 'Copy package';
 
   @override
-  String get commonPackageCopiedSnackbar => 'Package copied to clipboard';
+  String get backupStep1Header => 'STEP 1 // SAVE THE PACKAGE';
 
   @override
-  String get commonSharePackage => 'Share package';
+  String get backupStep1Body =>
+      'Save this package somewhere off this phone, such as your computer or a USB stick, or print the code. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.';
 
   @override
-  String get commonIveSavedIt => 'I\'VE SAVED IT';
+  String get backupStep1BodyNoQr =>
+      'Save this package somewhere off this phone, such as your computer or a USB stick. If the phone is lost, a copy kept on it is lost too. The package does not contain the 8 words, so on its own it cannot restore anything.';
+
+  @override
+  String get backupSavePackageFile => 'Save package file';
+
+  @override
+  String get backupSavedAnotherWay => 'I saved it another way';
+
+  @override
+  String get backupStep2Header => 'STEP 2 // KEEP THE 8 WORDS SOMEWHERE ELSE';
+
+  @override
+  String get backupStep2Locked =>
+      'Finish step 1 first. The 8 words appear here after the package is saved.';
+
+  @override
+  String get backupStep2Body =>
+      'Write these 8 words on paper, and the fingerprint below so you can tell which package they go with. Keep the paper away from the package, for example in your wallet. Anyone who has both can restore your pairings.';
+
+  @override
+  String get backupWroteOnPaper => 'I wrote them on paper';
+
+  @override
+  String get backupSaveWordsFile => 'Save words file instead';
+
+  @override
+  String get backupWordsFileWarning =>
+      'If you save the words as a file, put it somewhere different from the package: not the same folder, phone, or cloud account.';
+
+  @override
+  String backupFingerprintLine(String fingerprint) {
+    return 'Fingerprint: $fingerprint (the package and the words show the same one)';
+  }
+
+  @override
+  String get backupStepDone => 'DONE';
+
+  @override
+  String get backupSavedBoth => 'I\'VE SAVED BOTH';
+
+  @override
+  String get backupShareFailed => 'Could not open the share sheet. Try again.';
+
+  @override
+  String get commonCopiedProtected =>
+      'Copied. Signet removes it from the clipboard after a minute, or when you next come back to Signet.';
+
+  @override
+  String get commonCopiedPlain => 'Copied to the clipboard.';
+
+  @override
+  String get commonCopyFailed => 'Could not copy. Try again.';
+
+  @override
+  String backupPackageCopiedSnackbar(String copied) {
+    return '$copied Paste it somewhere off this phone now, then tap \"I saved it another way\".';
+  }
 
   @override
   String get commonStoreSeparatelyHeader => 'STORE THESE SEPARATELY //';
@@ -51,9 +109,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonPakeSecretHeader => 'PAKE SECRET //';
 
   @override
-  String get commonBackupPackageHeader => 'BACKUP PACKAGE //';
-
-  @override
   String get commonPairTimePhraseHeader => 'PAIR-TIME PHRASE //';
 
   @override
@@ -61,6 +116,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonNameHintExample => 'e.g. Alice';
+
+  @override
+  String get labelRejectEmpty => 'Enter a name for this contact.';
+
+  @override
+  String get labelRejectData =>
+      'That looks like Signet data, not a name. Try something like \"Mom\".';
+
+  @override
+  String get labelRejectKey =>
+      'That looks like a key, not a name. Try something like \"Mom\".';
+
+  @override
+  String get labelRejectTooLong => 'That name is too long. Use a shorter one.';
+
+  @override
+  String get labelRestoredFallback => 'Restored contact';
+
+  @override
+  String get labelRestoredSuffix => ' (restored)';
+
+  @override
+  String get scannerCameraErrorTitle => 'The camera didn\'t start';
+
+  @override
+  String get scannerCameraErrorBody =>
+      'Close any other app that is using the camera and try again.';
+
+  @override
+  String get scannerCameraErrorBodyPaste =>
+      'Close any other app that is using the camera and try again, or paste the text instead.';
+
+  @override
+  String get scannerRetry => 'Try again';
+
+  @override
+  String get scannerUsePaste => 'Paste instead';
+
+  @override
+  String get scannerNotSignetPackage =>
+      'That QR code isn\'t a Signet package. Scan the code from your backup.';
+
+  @override
+  String get scannerTitle => 'SCAN QR';
+
+  @override
+  String get backupImportScanQr => 'Scan QR';
+
+  @override
+  String backupImportReplacedLabelNotice(String label) {
+    return 'The name saved in this backup could not be used, so this contact is restored as \"$label\". You can rename it afterwards.';
+  }
+
+  @override
+  String labelLengthCounter(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get pairTransportOutYourNameHeader =>
+      'YOUR NAME, AS THEY\'LL SEE IT //';
+
+  @override
+  String get pairTransportOutYourNameDescription =>
+      'Optional. Their phone suggests this as the name for you; they can change it. Chinese, Arabic and some other scripts use more space per letter, so keep it short.';
+
+  @override
+  String get pairTransportOutOwnPackageError =>
+      'This is the package you created. Paste the one your contact sent back.';
 
   @override
   String get commonPasteFromClipboard => 'Paste from clipboard';
@@ -89,6 +213,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String commonSaveFailedError(String error) {
     return 'Could not save: $error';
   }
+
+  @override
+  String get pairConfirmSaveIncompleteError =>
+      'Signet couldn\'t finish saving this pairing. Close Signet and open it again. If the contact is on your list, it saved. If not, pair again together.';
+
+  @override
+  String get pairConfirmRekeySaveIncompleteError =>
+      'The rekey didn\'t finish. Do the rekey again on both phones before you rely on Signet to verify this contact.';
 
   @override
   String get commonGiveContactName => 'Give this contact a name.';
@@ -425,7 +557,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqA6 =>
-      'If you set up a paper backup before losing it, you can restore the paired contact onto a new phone using the \"Restore from backup\" flow — your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.';
+      'If you made a backup before losing it, you can restore the paired contact onto a new phone with \"Restore from backup\". Your counterparty doesn\'t need to do anything, and doesn\'t even know a restore happened. If you didn\'t back up, the pairing is gone and you\'d need to re-pair in person with that contact on the new device.';
+
+  @override
+  String get faqQ12 => 'How do I keep a backup safe?';
+
+  @override
+  String get faqA12 =>
+      'A backup has two parts: a PACKAGE file, which is locked, and 8 words, which unlock it. Keep them apart. Save the PACKAGE file off the phone, for example on your computer or a USB stick. Write the 8 words on paper and keep the paper somewhere else, like your wallet. Anyone who finds both parts can impersonate you to your contacts, so never keep them together and never send the words in a message. To restore, tap Restore from backup, load the PACKAGE file, then type the 8 words.';
 
   @override
   String get faqQ7 => 'Can I pair with more than one person?';
@@ -453,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqA10 =>
-      'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: export a paper backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.';
+      'An account means a server, a password, and a path an attacker (or a subpoena) can use to reach your pairings without touching your phone. Signet exists specifically because those paths exist for every other auth tool. Recovery is manual: make a backup now, while things are calm, and keep it somewhere you can reach if you lose the phone.';
 
   @override
   String get faqQ11 => 'Someone is asking me to skip the verify step.';
@@ -461,6 +600,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get faqA11 =>
       'Do not skip it. A real paired contact understands why verification exists and won\'t pressure you to bypass it. Urgency plus a request to skip verification is the exact pattern a scammer uses to short-circuit the safety net. If you\'re being pressured, assume the call is hostile until proven otherwise.';
+
+  @override
+  String get faqQ13 => 'Signet says it needs an update.';
+
+  @override
+  String get faqA13 =>
+      'Signet sometimes changes how its pairing codes and backups are made, and an older version cannot read the new kind.\n\nIf a code or backup came from a newer version of Signet, it says this phone needs an update. When pairing, if the other phone has an older version, it says the other phone needs one. Pairing needs both phones on Signet 0.4.0 or later. A backup can be restored on the same version of Signet or a newer one.\n\nUpdate only from the app store you installed Signet from. Signet never sends updates as a link or file. If someone sends you one, or pushes you to install something to finish pairing, it is a scam.\n\nSignet 0.3.6 and older cannot show this message. They say the code is not a Signet code instead.';
 
   @override
   String get faqStillStuckHeader => 'STILL STUCK //';
@@ -541,40 +687,169 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairExchangeFallbackContact => 'contact';
 
   @override
-  String get pairExchangeIntro =>
-      'Hold your phones together. Each of you needs to do both of these.';
+  String get pairInPersonIntro =>
+      'Hold your phones together, in the same room. Only scan the other phone itself, never a photo or a video call: those codes can be swapped.';
 
   @override
-  String get pairExchangeStep1Title => 'Show my QR';
+  String get pairInPersonRoleHint =>
+      'Decide out loud who goes first. That phone taps Start. The other phone taps Join.';
 
   @override
-  String get pairExchangeStep1Subtitle =>
-      'Let the other person scan your code.';
+  String get pairInPersonNextButton => 'NEXT';
 
   @override
-  String get pairExchangeStep2Title => 'Scan their QR';
+  String get pairInPersonNextHint =>
+      'Tap when the other phone shows its own code.';
 
   @override
-  String get pairExchangeStep2Subtitle => 'Point your camera at their code.';
+  String get pairInPersonShowWordsButton => 'SHOW THE WORDS';
 
   @override
-  String get pairExchangeStep3Title => 'Paste string (dev)';
+  String get pairInPersonFinishHint =>
+      'Tap when the other phone shows 4 words.';
 
   @override
-  String get pairExchangeStep3Subtitle =>
-      'Two-emulator testing only. Bypasses the camera.';
+  String get pairInPersonShowAgainButton => 'Show my code again';
 
   @override
-  String get pairExchangeDerivingStatus => 'Deriving shared secret…';
+  String get pairInPersonQrLabel => 'Pairing QR code';
 
   @override
-  String get pairExchangeWaitingStatus => 'Waiting for both steps…';
+  String get pairCodeAlreadyScannedNotice =>
+      'Already scanned. Wait for the other phone\'s next code.';
 
   @override
-  String get pairExchangeShowHeading => 'Let them scan this.';
+  String get pairInPersonPasteFromClipboard => 'PASTE FROM CLIPBOARD';
 
   @override
-  String get pairExchangeShowDoneButton => 'They scanned — I\'m done';
+  String pairInPersonCopiedSnackbar(String status) {
+    return '$status Get it to the other phone yourself, then check the 4 words together in person.';
+  }
+
+  @override
+  String get pairInPersonStartButton => 'START';
+
+  @override
+  String get pairInPersonStartSubtitle => 'This phone shows its code first.';
+
+  @override
+  String get pairInPersonJoinButton => 'JOIN';
+
+  @override
+  String get pairInPersonJoinSubtitle =>
+      'This phone scans the other phone first.';
+
+  @override
+  String pairInPersonStepLabel(int step) {
+    return 'Step $step of 3';
+  }
+
+  @override
+  String get pairInPersonShowHeading => 'Let the other phone scan this.';
+
+  @override
+  String get pairInPersonShowRevealHeading =>
+      'Let the other phone scan this one too.';
+
+  @override
+  String get pairInPersonScanHeading => 'Scan the other phone.';
+
+  @override
+  String get pairInPersonScanRevealHeading => 'Scan the other phone once more.';
+
+  @override
+  String get pairInPersonPreparing => 'Getting ready…';
+
+  @override
+  String get pairInPersonDeriving => 'Working out the words…';
+
+  @override
+  String get pairInPersonJoinIdleHint =>
+      'Nothing scanned yet. Is the other phone on Start, showing a code? If both phones tapped Join, tap START OVER on both and have one phone tap Start.';
+
+  @override
+  String get pairInPersonStartIdleHint =>
+      'Nothing scanned yet. Is the other phone on Join, showing a code? If both phones tapped Start, tap START OVER on both and have one phone tap Join.';
+
+  @override
+  String get pairInPersonShowAsText => 'Show the code as text';
+
+  @override
+  String get pairInPersonShowAsQr => 'Show the QR code';
+
+  @override
+  String get pairInPersonCopyCode => 'COPY CODE';
+
+  @override
+  String get pairInPersonPasteInstead => 'Paste a code instead';
+
+  @override
+  String get pairInPersonPasteHeading => 'Paste the other phone\'s code';
+
+  @override
+  String get pairInPersonPasteLabel => 'Code';
+
+  @override
+  String get pairInPersonPasteSubmit => 'USE THIS CODE';
+
+  @override
+  String get pairInPersonPasteEmptyError =>
+      'Paste the other phone\'s code first.';
+
+  @override
+  String get pairInPersonBackToCamera => 'Back to the camera';
+
+  @override
+  String get pairInPersonStartOverButton => 'START OVER';
+
+  @override
+  String get pairInPersonStartOverBoth =>
+      'On both phones, tap START OVER, or No match if a phone already shows words. Then one phone taps Start and the other taps Join.';
+
+  @override
+  String get pairCodeMalformedNotice =>
+      'This code is incomplete or damaged. Scan or paste it again.';
+
+  @override
+  String get pairCodeNotPairingNotice =>
+      'That is not a Signet pairing code. Scan the code on the other phone\'s pairing screen.';
+
+  @override
+  String get pairCodeMultipleNotice => 'Paste one code at a time.';
+
+  @override
+  String get pairCodePeerNeedsUpdateNotice =>
+      'The other phone has an older version of Signet. It needs to update before you can pair. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairCodeThisNeedsUpdateNotice =>
+      'This code is from a newer version of Signet. Update Signet on this phone first, only from the app store you installed it from. Signet never sends updates as a link or file.';
+
+  @override
+  String get pairFailStartStart =>
+      'This phone scanned a Start code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailJoinJoin =>
+      'This phone scanned a Join code. One phone must tap Start and the other Join.';
+
+  @override
+  String get pairFailSecondCode =>
+      'A different code was scanned partway through, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailWrongCode =>
+      'That code belongs to a different step, so this attempt ended to keep it safe.';
+
+  @override
+  String get pairFailRevealMismatch =>
+      'Stop. The last code does not match the first one. Someone may be interfering. If the other phone shows words, tap No match there. Do not save this pairing.';
+
+  @override
+  String get pairFailTimedOut => 'This took too long, so the attempt ended.';
+
+  @override
+  String get pairFailInternal => 'Something went wrong on this phone.';
 
   @override
   String get pairExchangeCameraPermissionTitle =>
@@ -591,59 +866,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pairCameraSettingsPathAndroid =>
       'Apps → Signet → Permissions → Camera';
-
-  @override
-  String get pairExchangeDevHeading => 'Dev: paste-exchange';
-
-  @override
-  String get pairExchangeDevInstructions =>
-      'Copy the \"Your string\" value into the other emulator\'s paste box, then paste theirs below.';
-
-  @override
-  String get pairExchangeDevYourString => 'Your string';
-
-  @override
-  String get pairExchangeDevCopyButton => 'Copy';
-
-  @override
-  String get pairExchangeDevCopiedSnackbar => 'Copied to clipboard';
-
-  @override
-  String get pairExchangeDevTheirString => 'Their string';
-
-  @override
-  String get pairExchangeDevSubmitButton => 'Submit';
-
-  @override
-  String get pairExchangeDevSubmittingButton => 'Submitting…';
-
-  @override
-  String get pairExchangePasteEmptyError =>
-      'Paste the other device’s pairing string.';
-
-  @override
-  String get pairingErrorNotPairingQr =>
-      'Not a Signet pairing QR (wrong scheme / version).';
-
-  @override
-  String pairingErrorBadPayloadLength(int actual) {
-    return 'Decoded payload is $actual bytes, expected 32.';
-  }
-
-  @override
-  String pairingErrorDecodeFailed(String error) {
-    return 'Could not decode pairing QR: $error';
-  }
-
-  @override
-  String pairingErrorBadKeyLength(int actual, int expected) {
-    return 'Scanned key is $actual bytes; expected $expected.';
-  }
-
-  @override
-  String pairingErrorDeriveFailed(String error) {
-    return 'Failed to derive shared secret: $error';
-  }
 
   @override
   String get pairConfirmTitle => 'Confirm';
@@ -753,7 +975,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportInPhraseInstruction =>
-      'Ask the sender to confirm these 4 words appear on their screen, via the same trusted channel you used to share the PAKE secret. If they match, the package is authentic.';
+      'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with the sender face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, the package is authentic.';
 
   @override
   String get pairTransportInResponseHeader => 'YOUR RESPONSE //';
@@ -766,10 +988,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairTransportInCopyResponseButton => 'Copy response';
 
   @override
-  String get pairTransportInResponseCopiedSnackbar =>
-      'Response copied to clipboard';
-
-  @override
   String get pairTransportOutNewPackageTitle => 'NEW PACKAGE';
 
   @override
@@ -777,7 +995,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairTransportOutNameDescription =>
-      'The label that will appear on your home screen after pairing. The peer will see this as a hint when they import the package but can rename it on their side.';
+      'The name that will appear on your home screen for this contact. Only you see it.';
 
   @override
   String get pairTransportOutGenerateButton => 'GENERATE PACKAGE';
@@ -796,14 +1014,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pairTransportOutCopyWordsButton => 'Copy words';
-
-  @override
-  String get pairTransportOutWordsCopiedSnackbar => 'PAKE words copied';
-
-  @override
   String get pairTransportOutChannelWarning =>
-      'Send the 8 words on a DIFFERENT channel than the package. Never over a fresh voice call. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.';
+      'Send the 8 words on a DIFFERENT channel than the package. Never on a call or number someone gave you. Paper, a prior-meeting fact, or another already-paired Signet relationship are all safer than speaking them aloud.';
 
   @override
   String get pairTransportOutReceiveHeader => 'RECEIVE RESPONSE //';
@@ -826,8 +1038,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pairingWeakKeyInPersonError =>
+      'Stop. This code is not safe to use. Cancel pairing on both phones and start again. Do not trust any words either phone showed.';
+
+  @override
+  String get pairingWeakKeyRemoteError =>
+      'This package is not safe to use. It may have been tampered with. Close this screen, make a new package, and send it a different way than before. Do not trust any words either phone showed.';
+
+  @override
   String pairTransportOutPhraseInstruction(String label) {
-    return 'Ask $label to confirm these 4 words match their screen, via the same trusted channel you used for the PAKE secret. If they match, pairing is real.';
+    return 'Check all 8 words, one by one and in order, and that both phones show exactly 8. Do it with $label face to face, or by calling a number you already had for them. Not by message, and never on a call or number someone gave you. If they match, pairing is real.';
   }
 
   @override
@@ -845,29 +1065,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupExportIntro(String label) {
-    return 'Writing this down lets you restore this pairing on a new phone if you lose this one. $label\'s phone won\'t know anything changed.';
+    return 'A backup lets you restore this pairing on a new phone if you lose this one. $label\'s phone won\'t know anything changed.';
   }
 
   @override
   String get backupExportStoreSeparatelyBody =>
-      'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore this pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.';
-
-  @override
-  String get backupExportWordsInstruction =>
-      'Write these 8 words somewhere safe. You will type them into the new phone to unlock the package.';
-
-  @override
-  String get backupExportPackageInstruction =>
-      'Scan this QR on the new phone, or copy-paste the text below. This is a different artifact from the PAKE secret above — do not store them together.';
-
-  @override
-  String backupExportShareSubject(String label) {
-    return 'Signet backup - $label';
-  }
+      'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore this pairing on their own phone.';
 
   @override
   String backupExportRememberBody(String label) {
-    return 'If this paper is ever found by someone else, UNPAIR $label immediately and re-pair in person. The backup contains the same shared secret your current pairing uses.';
+    return 'If someone else ever finds both the package and the 8 words, unpair $label right away and pair again in person. The backup holds the same secret your current pairing uses.';
   }
 
   @override
@@ -877,24 +1084,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupImportConfirmTitle => 'CONFIRM IMPORT';
 
   @override
-  String get backupImportFileReadError => 'Could not read the selected file.';
+  String get backupImportFileTooLargeError =>
+      'That file is too large to be a Signet backup. Pick the small text file you saved when you made the backup.';
 
   @override
-  String backupImportFileReadFailedError(String error) {
-    return 'Could not read the file: $error';
+  String get backupImportFileReadError =>
+      'Could not read the selected file. Try picking it again.';
+
+  @override
+  String get backupImportPasteEmptyError =>
+      'Load or paste your backup package first.';
+
+  @override
+  String get backupImportWordsIncompleteError => 'Enter all 8 backup words.';
+
+  @override
+  String get backupImportPackageHeader => 'STEP 1 // THE PACKAGE';
+
+  @override
+  String get backupImportLoadPackageFile => 'Load PACKAGE file';
+
+  @override
+  String get backupImportWordsHeader => 'STEP 2 // THE 8 WORDS';
+
+  @override
+  String get backupImportLoadWordsFile => 'Load WORDS file';
+
+  @override
+  String get backupImportIsWordsError =>
+      'Those are the 8 words, not the package. Put them under step 2.';
+
+  @override
+  String get backupImportIsPackageError =>
+      'That is the package, not the words. Put it under step 1.';
+
+  @override
+  String get backupImportNoWordsError =>
+      'No backup words found there. Look for a line of 8 words.';
+
+  @override
+  String backupImportFingerprintMismatchError(String package, String words) {
+    return 'These words belong to a different backup (package $package, words $words). Find the words with fingerprint $package.';
   }
 
   @override
-  String backupImportInvalidFileError(String message) {
-    return 'File is not a valid Signet backup: $message';
-  }
-
-  @override
-  String get backupImportPasteEmptyError => 'Paste your backup package.';
-
-  @override
-  String get backupImportWordsIncompleteError =>
-      'Enter the 8 PAKE words you stored separately.';
+  String get backupImportLegacyNotice =>
+      'This old backup keeps the words and the package together in one file. After restoring, make a new backup and delete this file.';
 
   @override
   String get backupImportNotBackupError => 'Not a valid Signet backup.';
@@ -904,19 +1139,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'That\'s a pairing invitation, not a backup. Use the pair flow from Home.';
 
   @override
-  String get backupImportClipboardEmptyError =>
-      'Clipboard is empty. Copy your backup package first.';
+  String get backupImportClipboardEmptyError => 'The clipboard is empty.';
 
   @override
   String get backupImportPasteInstruction =>
-      'Paste the backup package from your paper. Starts with \"signet:tp1:\". If you scanned a QR, paste the text that came out.';
-
-  @override
-  String get backupImportLoadFromFileButton => 'Load from file';
+      'Load the PACKAGE file, or paste the package text. It starts with \"signet:tp1:\".';
 
   @override
   String get backupImportWordsInstruction =>
-      'The 8 words from your paper or password manager — stored separately from the package above.';
+      'Type the 8 words you wrote down, or load the WORDS file if you saved one.';
 
   @override
   String get backupImportUnlockButton => 'UNLOCK BACKUP';
@@ -985,7 +1216,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportReadyBody =>
-      'Every paired contact below goes into one encrypted file with one 8-word PAKE. You store the file and the words separately, then use them to bring every pairing across to a new phone.';
+      'Every paired contact below goes into one backup: a package and the 8 words that unlock it. Keep the two apart, then use them to bring every pairing to a new phone.';
 
   @override
   String get bulkBackupExportGenerateButton => 'GENERATE BULK BACKUP';
@@ -1003,33 +1234,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportStoreSeparatelyBody =>
-      'The PAKE secret and the backup package must live on different physical artifacts. If someone finds both, they can restore every pairing on their own phone. Paper in two places (home + safety deposit box) is a reasonable start. A password manager that syncs to a cloud is NOT.';
+      'This backup has two parts: the package and the 8 words that unlock it. Keep them in different places. If someone finds both, they can restore every pairing on their own phone.';
 
   @override
   String get bulkBackupExportWordsInstruction =>
       'Write these 8 words somewhere safe. You will type them into the new phone to unlock everything at once.';
 
   @override
-  String get bulkBackupExportCopyPakeButton => 'Copy PAKE';
-
-  @override
-  String get bulkBackupExportPakeCopiedSnackbar =>
-      'PAKE words copied to clipboard';
-
-  @override
   String get bulkBackupExportPackageInstruction =>
       'The whole set of pairings, encrypted with the 8 words above. Share this via any channel — the words keep it sealed.';
-
-  @override
-  String bulkBackupExportShareLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count relationships (bulk)',
-      one: '1 relationship (bulk)',
-    );
-    return '$_temp0';
-  }
 
   @override
   String bulkBackupExportShareSubject(int count) {
@@ -1038,7 +1251,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkBackupExportRememberBody =>
-      'If this file AND the 8 words are ever found by someone else, UNPAIR every relationship in it and re-pair in person. The backup contains the same shared secrets your current pairings use.';
+      'If someone else ever finds both the package and the 8 words, unpair every contact in it and pair again in person. The backup holds the same secrets your current pairings use.';
 
   @override
   String get bulkBackupImportTitle => 'BULK RESTORE';
@@ -1061,6 +1274,62 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return 'Restore $_temp0';
   }
+
+  @override
+  String get packageNeedsNewerSignetError =>
+      'This needs a newer version of Signet. Update Signet only from the app store you installed it from. Signet never sends updates as a link or file. If you were not expecting this, check with whoever sent it, in person.';
+
+  @override
+  String get packageNeedsNewerSignetVerifiedError =>
+      'This was made by a newer version of Signet. Update Signet from the app store you installed it from, then try again.';
+
+  @override
+  String get packageFromOlderSignetError =>
+      'This was made by an older version of Signet. Long-distance pairing needs both phones on Signet 0.4.0 or later. Ask the other person to update Signet from the app store they installed it from, then make a new package.';
+
+  @override
+  String get packageDamagedError =>
+      'This package is damaged or incomplete. Check that you copied all of it, or ask for it to be sent again.';
+
+  @override
+  String get backupImportRepairedDateNotice =>
+      'Part of this backup was unreadable and has been fixed: the pairing date was reset to today. The pairing itself is not affected.';
+
+  @override
+  String get backupImportRepairedLabelNotice =>
+      'Part of this backup was unreadable and has been fixed: a few characters in the name were replaced. Check the name before you restore. The pairing itself is not affected.';
+
+  @override
+  String bulkBackupImportRepairedNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count relationships in this backup had an unreadable date or name that has been fixed. They are marked FIXED below; check their names before you restore.',
+      one:
+          '1 relationship in this backup had an unreadable date or name that has been fixed. It is marked FIXED below; check its name before you restore.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkBackupImportSkippedNewerNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count relationships in this backup need a newer version of Signet and are not shown. Keep your old phone until they are restored. Update Signet only from the app store you installed it from, then restore again.',
+      one:
+          '1 relationship in this backup needs a newer version of Signet and is not shown. Keep your old phone until it is restored. Update Signet only from the app store you installed it from, then restore again.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkBackupImportRepairedBadge => 'FIXED';
+
+  @override
+  String get bulkBackupImportSummarySkippedNewer => 'NEEDS NEWER SIGNET //';
 
   @override
   String get bulkBackupImportNoConflictBody =>
@@ -1090,9 +1359,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkBackupImportAlreadyPairedChip => 'ALREADY PAIRED';
 
   @override
-  String get bulkBackupImportNoLabel => '(no label)';
-
-  @override
   String bulkBackupImportRecordMeta(String role, String date) {
     return 'ROLE $role · PAIRED $date';
   }
@@ -1103,11 +1369,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String bulkBackupImportRenameOption(String label) {
-    return 'Rename restored copy to \"$label (restored)\"';
+    return 'Restore it as \"$label\"';
   }
 
   @override
   String get bulkBackupImportOverwriteOption => 'Overwrite existing pairing';
+
+  @override
+  String get bulkBackupImportOverwriteUnavailable =>
+      'Replacing is not offered here: more than one contact has this name, or another entry in this backup already replaces it.';
 
   @override
   String get bulkBackupImportCompleteHeading => 'Restore complete.';
@@ -1125,6 +1395,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkBackupImportSummarySkipped => 'SKIPPED //';
 
   @override
+  String get bulkBackupImportSummaryFailed => 'COULD NOT SAVE //';
+
+  @override
+  String get bulkBackupImportFailedNote =>
+      'Some contacts could not be saved on this phone. Restore the same backup again to retry them; the ones already restored will show as already paired.';
+
+  @override
   String get bulkBackupImportNothingChangedBody =>
       'Nothing was changed on this phone.';
 
@@ -1140,7 +1417,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return 'These 4 words were derived the moment you and $label paired. Ask $label to open Signet and tap this same screen. If the 4 words on both devices match, the pairing is intact.';
+    return 'These 4 words come from the secret you and $label share. They may not be the words you checked when you first paired; that is normal. Ask $label to open Signet and tap this same screen. Compare them face to face, or on a call you place to a number you already had. If both phones show the same 4 words now, the pairing is intact.';
   }
 
   @override
@@ -1253,10 +1530,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count relationships',
-      one: '1 relationship',
+      other: 'all $count relationships',
+      one: 'your 1 relationship',
     );
-    return 'Back up all $_temp0 into one encrypted file with one 8-word PAKE. Use this when switching phones — the new phone unlocks every pairing in one step.';
+    return 'Back up $_temp0 in one go: one package and one set of 8 words. Use this when switching phones: the new phone restores every pairing in one step.';
   }
 
   @override
@@ -1278,6 +1555,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDebugEnableAction => 'ENABLE DEBUG LOGGING';
+
+  @override
+  String get settingsDebugEnableFailed =>
+      'Couldn\'t turn on debug logging. Nothing was recorded. Try again.';
 
   @override
   String get settingsDebugExportButton => 'EXPORT DEBUG LOGS';
@@ -1320,14 +1601,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBulkConfirmTitle => 'BACK UP EVERYTHING?';
 
   @override
+  String get settingsUnreadableSection => 'CONTACTS THAT COULD NOT BE READ';
+
+  @override
+  String settingsUnreadableBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paired contacts',
+      one: '1 paired contact',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    String _temp3 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'They are',
+      one: 'It is',
+    );
+    return '$_temp0 could not be read. A newer version of Signet may have saved $_temp1; update Signet to see $_temp2 again. $_temp3 not shown on Home and not included in backups.';
+  }
+
+  @override
+  String get settingsUnreadableRemove => 'Remove unreadable contacts';
+
+  @override
+  String get settingsUnreadableConfirmTitle => 'REMOVE THEM?';
+
+  @override
+  String get settingsUnreadableConfirmBody =>
+      'These contacts will be unpaired on this phone, the same as unpairing from Home. To verify with them again you will need to pair again.';
+
+  @override
+  String get settingsUnreadableConfirmButton => 'Remove';
+
+  @override
+  String get settingsUnreadableRemoveFailed =>
+      'Some of them could not be removed. Try again.';
+
+  @override
+  String bulkBackupExportSkipsUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count contacts',
+      one: '1 contact',
+    );
+    return '$_temp0 could not be read and will not be in this backup. See Settings.';
+  }
+
+  @override
   String settingsBulkConfirmBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count relationships',
-      one: '1 relationship',
+      other: 'all $count relationships',
+      one: 'your 1 relationship',
     );
-    return 'This exports the shared secret for all $_temp0 into one file. Losing the 8-word PAKE means losing all $count backups. The PAKE will be shown once — write it down before closing the screen.';
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'all $count backups',
+      one: 'the backup',
+    );
+    return 'This puts the shared secret for $_temp0 into one backup. Without its 8 words the backup cannot be opened, so losing them loses $_temp1. The words are shown once: write them down before leaving the screen.';
   }
 
   @override
@@ -1399,8 +1746,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String verifyFailStep4(String label) {
-    return 'If you are unsure whether Signet itself is broken: go to the home screen, tap \"SHOW BINDING PHRASE\", and compare with $label on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.';
+    return 'If you are unsure whether Signet itself is broken: tap \"Check the binding phrase\" below and compare it with $label on a channel you trust. If the phrases match, Signet is working correctly and the red banner means the call was fake.';
   }
+
+  @override
+  String get verifyFailCheckBindingButton => 'Check the binding phrase';
 
   @override
   String get verifyStatusOk => 'STATUS // 200 OK';
@@ -1473,10 +1823,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String verifyActionJudgmentAnnouncement(String label) {
+    return 'Words matched. Did $label do the action shown on screen? Answer SAW IT or DID NOT SEE.';
+  }
+
+  @override
   String get verifyActionNotSeenButton => 'DID NOT SEE';
 
   @override
   String get verifyActionSeenButton => 'SAW IT';
+
+  @override
+  String verifyActionOneGesture(String label) {
+    return '$label should do exactly one gesture. If they did several, tap DID NOT SEE.';
+  }
+
+  @override
+  String verifyActionChangedNote(String label) {
+    return 'The gesture to watch for has changed: the words $label read were from the previous or next 30 seconds, and this is their gesture.';
+  }
+
+  @override
+  String get verifyCheckWordsButton => 'CHECK THE WORDS';
+
+  @override
+  String verifyOldPairingNote(String label) {
+    return 'These words match the pairing you had with $label before a rekey. If you and $label just rekeyed, do it again together, in person. Otherwise treat this call as a scam.';
+  }
 
   @override
   String get verifyShowMyWords => 'Show my 4 words';

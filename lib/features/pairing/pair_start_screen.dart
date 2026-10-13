@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/fill_or_scroll.dart';
+import '../../shared/label_input.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../core/models/label_policy.dart';
-import 'pairing_controller.dart';
+import 'in_person_pairing_controller.dart';
 
 /// Step 1 of the pair flow: ask who this person is and persist the label
-/// in the [pairingControllerProvider]. The text field is autofocused so
+/// in the [inPersonPairingControllerProvider]. The text field is autofocused so
 /// the keyboard opens immediately.
 class PairStartScreen extends ConsumerStatefulWidget {
   const PairStartScreen({super.key});
@@ -26,25 +29,21 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
     super.initState();
     // Fresh flow: reset any half-finished previous attempt.
     Future<void>.microtask(
-      () => ref.read(pairingControllerProvider.notifier).reset(),
+      () => ref.read(inPersonPairingControllerProvider.notifier).reset(),
     );
   }
 
   void _continue() {
-    final label = _label.text.trim();
-    if (label.isEmpty) {
-      setState(
-        () => _error =
-            AppLocalizations.of(context).pairStartEmptyNameError,
-      );
+    final label = LabelPolicy.clean(_label.text);
+    final l10n = AppLocalizations.of(context);
+    final rejection = LabelPolicy.check(label);
+    if (rejection != null) {
+      setState(() => _error = rejection == LabelRejection.empty
+          ? l10n.pairStartEmptyNameError
+          : labelRejectionText(rejection, l10n));
       return;
     }
-    final reason = LabelPolicy.rejectionReason(label);
-    if (reason != null) {
-      setState(() => _error = reason);
-      return;
-    }
-    ref.read(pairingControllerProvider.notifier).setLabel(label);
+    ref.read(inPersonPairingControllerProvider.notifier).setLabel(label);
     context.go('/pair/exchange');
   }
 
@@ -69,7 +68,9 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        // Scrolls when large text or the keyboard leave too little room
+        // (plan Task 5.1).
+        child: FillOrScroll(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,6 +90,10 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
               TextField(
                 controller: _label,
                 autofocus: true,
+                inputFormatters: <TextInputFormatter>[
+                  Utf8LengthLimitingTextInputFormatter(LabelPolicy.maxBytes),
+                ],
+                buildCounter: utf8ByteCounter(_label, LabelPolicy.maxBytes),
                 textCapitalization: TextCapitalization.words,
                 style: textTheme.titleLarge,
                 decoration: InputDecoration(

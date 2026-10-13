@@ -4,6 +4,18 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
+  # Android-side changes (Gradle, AGP/Kotlin/wrapper bumps from Renovate,
+  # plugin bumps via pubspec, the manifest check) get a real Android build
+  # and the manifest check before they merge, not after. ci.yml covers the
+  # Dart side on every PR.
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'scripts/check-apk-manifest.sh'
+      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 concurrency:
@@ -11,11 +23,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.41.6
+  FLUTTER_VERSION: 3.47.5
   FLUTTER_CHANNEL: stable
-  # Android toolchain target — matches the JavaVersion in
-  # android/app/build.gradle.kts.
-  JAVA_VERSION: 17
+  # JDK that runs the Gradle build: 21, the F-Droid buildserver's JDK and the
+  # compile toolchain set in android/app/build.gradle.kts. The bytecode
+  # target (JavaVersion.VERSION_17 there) is separate and stays at 17.
+  JAVA_VERSION: 21
 
 # Least-privilege default. Closes a CodeQL
 # `actions/missing-workflow-permissions` finding.
@@ -31,6 +44,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -48,12 +63,12 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             ~/.android/build-cache
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle.properties', 'android/**/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
       - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: ${{ env.FLUTTER_CHANNEL }}
@@ -82,6 +97,9 @@ jobs:
           flutter build appbundle --release
           flutter build apk --release
 
+      - name: Check APK manifest privacy properties
+        run: scripts/check-apk-manifest.sh build/app/outputs/flutter-apk/app-release.apk
+
       - name: Compute AAB + APK SHA-256
         id: checksum
         run: |
@@ -107,7 +125,8 @@ jobs:
       - name: Upload AAB + APK + checksums
         uses: actions/upload-artifact@v4
         with:
-          name: signet-android-${{ github.ref_name }}-${{ github.sha }}
+          # On a PR, ref_name is "<n>/merge", and artifact names cannot contain "/".
+          name: signet-android-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}-${{ github.sha }}
           path: |
             build/app/outputs/bundle/release/app-release.aab
             build/app/outputs/bundle/release/app-release.aab.sha256
@@ -117,13 +136,17 @@ jobs:
           if-no-files-found: error
 
       - name: Summarize build
+        # Untrusted (a branch or tag name can hold shell syntax): read from
+        # the environment, never interpolated into the script.
+        env:
+          REF: ${{ github.ref }}
         run: |
           {
             echo "### Android build"
             echo ""
             echo "- Flutter: ${{ env.FLUTTER_VERSION }}"
             echo "- Commit: \`${{ github.sha }}\`"
-            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Ref: \`$REF\`"
             echo "- AAB SHA-256: \`${{ steps.checksum.outputs.aab_sha256 }}\`"
             echo "- APK SHA-256: \`${{ steps.checksum.outputs.apk_sha256 }}\`"
             echo "- Signing: debug key (not distributable)"
