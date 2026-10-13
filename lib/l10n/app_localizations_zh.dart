@@ -1658,10 +1658,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyFailCheckBindingButton => '核对绑定短语';
 
   @override
-  String get verifyStatusOk => '状态 // 200 正常';
+  String get verifyStatusOk => '结果 //';
 
   @override
-  String get verifyStatusFail => '状态 // 403 不匹配';
+  String get verifyStatusFail => '结果 //';
 
   @override
   String get verifyBannerVerified => '验证通过';
@@ -1758,7 +1758,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get verifyFlagSecureBadge => 'FLAG_SECURE';
+  String get verifyFlagSecureBadge => '已禁止截屏';
 
   @override
   String verifyOwnActionWhile(String action) {

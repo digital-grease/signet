@@ -815,14 +815,17 @@ class _StatusChip extends StatelessWidget {
       children: <Widget>[
         Icon(Icons.circle, size: 8, color: color),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: color,
-            letterSpacing: 1.8,
-            fontWeight: FontWeight.w700,
+        // Wraps instead of overflowing at large text sizes.
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: color,
+              letterSpacing: 1.8,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

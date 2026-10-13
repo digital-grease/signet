@@ -4,7 +4,7 @@
   "commonAppTitle": "SIGNET",
   "@commonAppTitle": {"description": "App name shown as the AppBar title on Home and Onboarding. Keep as-is in all locales."},
 
-  "commonOfflineFreeChip": "OFFLINE-FREE",
+  "commonOfflineFreeChip": "WORKS OFFLINE",
   "@commonOfflineFreeChip": {"description": "Status chip (dot + label) shown top-right on Home and Verify screens. Means the app works fully offline."},
 
   "commonCancel": "Cancel",
@@ -1364,11 +1364,11 @@
   "verifyFailCheckBindingButton": "Check the binding phrase",
   "@verifyFailCheckBindingButton": {"description": "Button in the NOT VERIFIED help sheet that opens the binding phrase screen for this contact."},
 
-  "verifyStatusOk": "STATUS // 200 OK",
-  "@verifyStatusOk": {"description": "Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure."},
+  "verifyStatusOk": "RESULT //",
+  "@verifyStatusOk": {"description": "Monospace kicker on the green result banner. Plain words, no status codes; the headline below says the outcome. Keep the ' //' structure."},
 
-  "verifyStatusFail": "STATUS // 403 MISMATCH",
-  "@verifyStatusFail": {"description": "Monospace kicker on the red result banner (HTTP-style). Keep the ' //' structure."},
+  "verifyStatusFail": "RESULT //",
+  "@verifyStatusFail": {"description": "Monospace kicker on the red result banner. Plain words, no status codes; the headline below says the outcome. Keep the ' //' structure."},
 
   "verifyBannerVerified": "VERIFIED",
   "@verifyBannerVerified": {"description": "Headline of the green result banner."},
@@ -1443,8 +1443,8 @@
   "verifyShowMyWordsSubtitle": "If {label} wants to verify you, read these.",
   "@verifyShowMyWordsSubtitle": {"description": "Subtitle under the show-my-words title.", "placeholders": {"label": {"type": "String"}}},
 
-  "verifyFlagSecureBadge": "FLAG_SECURE",
-  "@verifyFlagSecureBadge": {"description": "Monospace badge marking that screenshots are blocked on this panel. Technical Android flag name — keep as-is."},
+  "verifyFlagSecureBadge": "SCREENSHOTS BLOCKED",
+  "@verifyFlagSecureBadge": {"description": "Monospace badge marking that screenshots are blocked on this panel. Plain words, not the Android flag name."},
 
   "verifyOwnActionWhile": "...while {action}.",
   "@verifyOwnActionWhile": {"description": "Line under my own words in video mode; {action} is a gerund phrase from the verifyGerund* keys.", "placeholders": {"action": {"type": "String"}}},

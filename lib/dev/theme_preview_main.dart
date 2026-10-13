@@ -78,8 +78,8 @@ class _PreviewAppState extends State<_PreviewApp> {
               tabs: <Widget>[
                 Tab(text: 'HOME / PAIRED'),
                 Tab(text: 'HOME / EMPTY'),
-                Tab(text: 'VERIFY / 200 OK'),
-                Tab(text: 'VERIFY / 403 FAIL'),
+                Tab(text: 'VERIFY / PASS'),
+                Tab(text: 'VERIFY / FAIL'),
                 Tab(text: 'COMPONENTS'),
               ],
             ),
@@ -208,7 +208,7 @@ class _HomePairedMock extends StatelessWidget {
           children: <Widget>[
             const Align(
               alignment: Alignment.centerRight,
-              child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+              child: _StatusChip(label: 'WORKS OFFLINE', tone: _Tone.ok),
             ),
             const SizedBox(height: 24),
             const _SectionHeader('PEER'),
@@ -337,7 +337,7 @@ class _VerifyOkMock extends StatelessWidget {
           children: <Widget>[
             const Align(
               alignment: Alignment.centerRight,
-              child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+              child: _StatusChip(label: 'WORKS OFFLINE', tone: _Tone.ok),
             ),
             const SizedBox(height: 20),
             const _SectionHeader('CHALLENGE'),
@@ -360,7 +360,6 @@ class _VerifyOkMock extends StatelessWidget {
             const SizedBox(height: 24),
             _ResultBannerMock(
               ok: true,
-              statusCode: '200 OK',
               headline: 'VERIFIED',
               subline: 'Words match. Trust this call.',
               bg: dark ? _Tokens.okBg : _Tokens.okBgL,
@@ -400,7 +399,7 @@ class _VerifyOkMock extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'FLAG_SECURE',
+                    'SCREENSHOTS BLOCKED',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10,
@@ -443,7 +442,7 @@ class _VerifyFailMock extends StatelessWidget {
           children: <Widget>[
             const Align(
               alignment: Alignment.centerRight,
-              child: _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+              child: _StatusChip(label: 'WORKS OFFLINE', tone: _Tone.ok),
             ),
             const SizedBox(height: 20),
             const _SectionHeader('CHALLENGE'),
@@ -458,7 +457,6 @@ class _VerifyFailMock extends StatelessWidget {
             const SizedBox(height: 24),
             _ResultBannerMock(
               ok: false,
-              statusCode: '403 MISMATCH',
               headline: 'NOT VERIFIED — BE SUSPICIOUS',
               subline: 'Words did not match. Someone may be impersonating them.',
               bg: dark ? _Tokens.failBg : _Tokens.failBgL,
@@ -534,11 +532,11 @@ class _ComponentsMock extends StatelessWidget {
             const _SectionHeader('STATUS CHIPS'),
             const Row(
               children: <Widget>[
-                _StatusChip(label: 'OFFLINE-FREE', tone: _Tone.ok),
+                _StatusChip(label: 'WORKS OFFLINE', tone: _Tone.ok),
                 SizedBox(width: 16),
-                _StatusChip(label: 'FLAG_SECURE', tone: _Tone.warn),
+                _StatusChip(label: 'SCREENSHOTS BLOCKED', tone: _Tone.warn),
                 SizedBox(width: 16),
-                _StatusChip(label: '403 MISMATCH', tone: _Tone.fail),
+                _StatusChip(label: 'NOT VERIFIED', tone: _Tone.fail),
               ],
             ),
             const SizedBox(height: 24),
@@ -569,7 +567,6 @@ class _ComponentsMock extends StatelessWidget {
 class _ResultBannerMock extends StatelessWidget {
   const _ResultBannerMock({
     required this.ok,
-    required this.statusCode,
     required this.headline,
     required this.subline,
     required this.bg,
@@ -578,7 +575,6 @@ class _ResultBannerMock extends StatelessWidget {
   });
 
   final bool ok;
-  final String statusCode;
   final String headline;
   final String subline;
   final Color bg;
@@ -600,7 +596,7 @@ class _ResultBannerMock extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'STATUS // $statusCode',
+                    'RESULT //',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10,

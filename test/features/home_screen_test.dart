@@ -144,17 +144,34 @@ void main() {
       }
     });
 
-    testWidgets('shows the OFFLINE-FREE chip and a PAIR FAB', (tester) async {
+    testWidgets('shows the WORKS OFFLINE chip and a PAIR FAB', (tester) async {
       await tester.pumpWidget(_wrap(
         store: FakeSecureStore(seeded: mom, secret: secret),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('OFFLINE-FREE'), findsOneWidget);
+      expect(find.text('WORKS OFFLINE'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       // FAB label is "PAIR".
       expect(find.widgetWithText(FloatingActionButton, 'PAIR'),
           findsOneWidget);
+    });
+
+    testWidgets('the chip fits at 2x text on a small phone', (tester) async {
+      const size = Size(360, 640);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MediaQuery(
+        data: const MediaQueryData(
+          size: size,
+          textScaler: TextScaler.linear(2.0),
+        ),
+        child: _wrap(store: FakeSecureStore(seeded: mom, secret: secret)),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('WORKS OFFLINE'), findsOneWidget);
     });
 
     testWidgets('tapping the FAB opens a bottom-sheet pair menu', (tester) async {

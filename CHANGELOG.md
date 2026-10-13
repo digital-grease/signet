@@ -77,9 +77,11 @@ versions still restore on 0.4.0.
   of closing Signet.
 - With large text, the "Show my 4 words" heading is readable again; a
   label beside it had squeezed it to a few letters per line.
-- The line at the bottom of the verify, grid and binding phrase screens
-  now says plainly that Signet works offline and never connects to the
-  internet.
+- Plainer labels instead of technical ones: the line at the bottom of
+  the verify, grid and binding phrase screens says Signet works offline
+  and never connects to the internet; the status dot says "Works
+  offline"; the verify result is headed "Result" instead of an HTTP-style
+  status code; and "Show my 4 words" says "Screenshots blocked".
 - Pairing dates show your own local date, so a pairing made in the
   evening no longer shows tomorrow's date, and a contact restored from a
   backup keeps its original pairing date instead of today's.

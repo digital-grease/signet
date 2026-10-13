@@ -177,7 +177,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('VERIFIED'), findsOneWidget);
-        expect(find.text('STATUS // 200 OK'), findsOneWidget);
+        expect(find.text('RESULT //'), findsOneWidget);
 
         final hapticCalls = calls.where(
           (c) =>
@@ -215,7 +215,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
-        expect(find.text('STATUS // 403 MISMATCH'), findsOneWidget);
+        expect(find.text('RESULT //'), findsOneWidget);
 
         // Input cleared after ❌.
         expect(
@@ -306,7 +306,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.textContaining('NOT VERIFIED'), findsOneWidget);
-        expect(find.text('STATUS // 403 MISMATCH'), findsOneWidget);
+        expect(find.text('RESULT //'), findsOneWidget);
       },
     );
 

@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// Status chip (dot + label) shown top-right on Home and Verify screens. Means the app works fully offline.
   ///
   /// In en, this message translates to:
-  /// **'OFFLINE-FREE'**
+  /// **'WORKS OFFLINE'**
   String get commonOfflineFreeChip;
 
   /// Title-case Cancel button in Material dialogs (Home rename/unpair dialogs, pair-confirm mismatch dialog) and the QR scanning pane.
@@ -2888,16 +2888,16 @@ abstract class AppLocalizations {
   /// **'Check the binding phrase'**
   String get verifyFailCheckBindingButton;
 
-  /// Monospace kicker on the green result banner (HTTP-style). Keep the ' //' structure.
+  /// Monospace kicker on the green result banner. Plain words, no status codes; the headline below says the outcome. Keep the ' //' structure.
   ///
   /// In en, this message translates to:
-  /// **'STATUS // 200 OK'**
+  /// **'RESULT //'**
   String get verifyStatusOk;
 
-  /// Monospace kicker on the red result banner (HTTP-style). Keep the ' //' structure.
+  /// Monospace kicker on the red result banner. Plain words, no status codes; the headline below says the outcome. Keep the ' //' structure.
   ///
   /// In en, this message translates to:
-  /// **'STATUS // 403 MISMATCH'**
+  /// **'RESULT //'**
   String get verifyStatusFail;
 
   /// Headline of the green result banner.
@@ -3056,10 +3056,10 @@ abstract class AppLocalizations {
   /// **'If {label} wants to verify you, read these.'**
   String verifyShowMyWordsSubtitle(String label);
 
-  /// Monospace badge marking that screenshots are blocked on this panel. Technical Android flag name — keep as-is.
+  /// Monospace badge marking that screenshots are blocked on this panel. Plain words, not the Android flag name.
   ///
   /// In en, this message translates to:
-  /// **'FLAG_SECURE'**
+  /// **'SCREENSHOTS BLOCKED'**
   String get verifyFlagSecureBadge;
 
   /// Line under my own words in video mode; {action} is a gerund phrase from the verifyGerund* keys.

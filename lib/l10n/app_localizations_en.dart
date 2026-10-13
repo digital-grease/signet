@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonAppTitle => 'SIGNET';
 
   @override
-  String get commonOfflineFreeChip => 'OFFLINE-FREE';
+  String get commonOfflineFreeChip => 'WORKS OFFLINE';
 
   @override
   String get commonCancel => 'Cancel';
@@ -1753,10 +1753,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verifyFailCheckBindingButton => 'Check the binding phrase';
 
   @override
-  String get verifyStatusOk => 'STATUS // 200 OK';
+  String get verifyStatusOk => 'RESULT //';
 
   @override
-  String get verifyStatusFail => 'STATUS // 403 MISMATCH';
+  String get verifyStatusFail => 'RESULT //';
 
   @override
   String get verifyBannerVerified => 'VERIFIED';
@@ -1860,7 +1860,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get verifyFlagSecureBadge => 'FLAG_SECURE';
+  String get verifyFlagSecureBadge => 'SCREENSHOTS BLOCKED';
 
   @override
   String verifyOwnActionWhile(String action) {

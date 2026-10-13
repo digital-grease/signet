@@ -793,9 +793,9 @@
   "verifyFailStep4": "如果不确定是不是 Signet 本身出了问题：点下方的“核对绑定短语”，通过你信任的渠道与 {label} 比对。短语一致说明 Signet 工作正常，红色横幅意味着这通电话是假的。",
   "verifyFailCheckBindingButton": "核对绑定短语",
 
-  "verifyStatusOk": "状态 // 200 正常",
+  "verifyStatusOk": "结果 //",
 
-  "verifyStatusFail": "状态 // 403 不匹配",
+  "verifyStatusFail": "结果 //",
 
   "verifyBannerVerified": "验证通过",
 
@@ -844,7 +844,7 @@
 
   "verifyShowMyWordsSubtitle": "如果 {label} 要验证你，念出这些单词。",
 
-  "verifyFlagSecureBadge": "FLAG_SECURE",
+  "verifyFlagSecureBadge": "已禁止截屏",
 
   "verifyOwnActionWhile": "……同时{action}。",
 
