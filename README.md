@@ -177,7 +177,7 @@ flutter analyze         # static analysis against strict lints
 
 The test suite is 369 tests across crypto, storage, pairing state, transport package, verify screen (including video-mode liveness), backup import/export, and widget layers. The crypto modules are pure-Dart pure functions validated against RFC reference vectors and are safe to port elsewhere.
 
-On-device integration testing (full two-phone pair + verify roundtrip) is manual in v0.1 and lives in the [pre-release checklist](#pre-release-manual-qa).
+On-device tests in `integration_test/` (secure storage on the real Keystore, including a plaintext-leak scan; the secure clipboard; restore a backup and verify through the whole app) run on Android emulators nightly and before every release; see [docs/CI.md](docs/CI.md). Two-phone pairing, release (R8) builds and upgrades from an older Signet stay manual and live in the [pre-release checklist](#pre-release-manual-qa).
 
 ## Project layout
 

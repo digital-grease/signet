@@ -1,17 +1,19 @@
 // On-device check for SecureClipboard (plan Task 2.4): the real native
 // channel, a real clipboard, real time.
 //
-// Run with (takes about five minutes; the last test needs the adb steps
-// below):
+// The first three tests check themselves and run in CI on an emulator
+// (.github/workflows/instrumented-tests.yml); about three and a half
+// minutes:
 //   flutter test integration_test/secure_clipboard_test.dart -d <device-id>
 //
-// While the first test pauses after "SCREENSHOT_NOW", capture the screen
-// (`adb exec-out screencap -p > copy.png`): on Android 13+ the system copy
-// preview must hide the content of a sensitive clip.
-//
-// The background test prints "GO_HOME": press Home within a few seconds
-// (`adb shell input keyevent KEYCODE_HOME`), wait past the minute, then
-// bring the app back (`adb shell monkey -p dev.digitalgrease.signet 1`).
+// Manual extras, with --dart-define=SIGNET_MANUAL_STEPS=true (about five
+// minutes):
+// - While the first test pauses after "SCREENSHOT_NOW", capture the screen
+//   (`adb exec-out screencap -p > copy.png`): on Android 13+ the system
+//   copy preview must hide the content of a sensitive clip.
+// - The background test prints "GO_HOME": press Home within a few seconds
+//   (`adb shell input keyevent KEYCODE_HOME`), wait past the minute, then
+//   bring the app back (`adb shell monkey -p dev.digitalgrease.signet 1`).
 //
 // The test reads the clipboard itself to check the result; Signet never
 // does that.
@@ -23,6 +25,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:signet/shared/secure_clipboard.dart';
 
 const _secret = 'signet:tp1:ON_DEVICE_CLIPBOARD_SENTINEL';
+
+/// Steps that need a person at the device (see the header).
+const _manual = bool.fromEnvironment('SIGNET_MANUAL_STEPS');
 
 Future<String?> _clipboardText() async =>
     (await Clipboard.getData(Clipboard.kTextPlain))?.text;
@@ -53,13 +58,15 @@ void main() {
       (tester) async {
     await app(tester);
     expect(await SecureClipboard.copy(_secret), SecureCopyResult.protected);
-    // ignore: avoid_print
-    print('SCREENSHOT_NOW');
-    await _wait(tester, const Duration(seconds: 4));
+    if (_manual) {
+      // ignore: avoid_print
+      print('SCREENSHOT_NOW');
+      await _wait(tester, const Duration(seconds: 4));
+    }
     expect(await _clipboardText(), _secret,
         reason: 'other apps can paste it as plain text');
 
-    await _wait(tester, const Duration(seconds: 50));
+    await _wait(tester, const Duration(seconds: _manual ? 50 : 54));
     expect(await _clipboardText(), _secret, reason: 'not cleared early');
     await _wait(tester, const Duration(seconds: 10));
     final after = await _clipboardText();
@@ -104,5 +111,5 @@ void main() {
     final after = await _clipboardText();
     expect(after == null || after.isEmpty, isTrue,
         reason: 'cleared on return, got "$after"');
-  });
+  }, skip: !_manual);
 }

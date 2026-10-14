@@ -1,6 +1,6 @@
 # CI / CD
 
-Signet's build pipeline is four GitHub Actions workflows under
+Signet's build pipeline is a set of GitHub Actions workflows under
 `.github/workflows/`. All jobs run on GitHub-hosted runners; no
 self-hosted infrastructure.
 
@@ -52,6 +52,43 @@ conserve minutes — only `main` pushes and tags.
 post-v1.0 concern; this workflow exists to prove the iOS toolchain
 compiles our source.
 
+### `instrumented-tests.yml`: integration tests on Android emulators
+
+**Triggers:** nightly (05:00 UTC), manual dispatch, pull requests that
+change `integration_test/` or this workflow, and `release.yml` on every
+version tag (`workflow_call`).
+
+**Does:** `flutter test integration_test` on two emulators, API 28
+(minSdk) and API 34, `google_apis` x86_64 images on `ubuntu-22.04` via
+`reactivecircus/android-emulator-runner` with KVM. These tests use the
+real Android Keystore behind `flutter_secure_storage`, the real
+clipboard channel and the whole app, which the unit and widget tests in
+`ci.yml` replace with fakes:
+
+- `secure_store_harness_test.dart`: a relationship round-trips through
+  the Keystore; a v1 single-slot record migrates to the keyed store; no
+  label or secret appears in plaintext (raw, base64 or base64url) in any
+  file of the app's data directory, checked against a planted copy so
+  the scan cannot pass by reading nothing.
+- `secure_clipboard_test.dart`: a secret copy pastes as plain text, is
+  cleared after a minute and not before, a newer copy is left alone, and
+  a leftover is cleared at the next start. The copy-preview screenshot
+  and the background test need a person at the device; they run only
+  with `--dart-define=SIGNET_MANUAL_STEPS=true`.
+- `restore_and_verify_test.dart`: restores a bulk backup made by 0.3.6
+  through the UI, then verifies both contacts with words computed from
+  the backup's known secrets, and a wrong set of words fails.
+
+On failure the emulator's logcat is uploaded as a 14-day artifact.
+
+**Limits:** debug builds only (`flutter test` cannot run an R8 release
+build), and no upgrade from an older Signet; both stay manual
+pre-release checks.
+
+**Cost:** about 10 to 15 minutes per API level, Linux runner (1×
+multiplier); the clipboard tests alone wait out three one-minute timers.
+Not run on every PR for that reason.
+
 ### `release.yml` — tagged release with signed AAB + APK
 
 **Triggers:** version tags matching `v<major>.<minor>.<patch>` or
@@ -66,7 +103,9 @@ compiles our source.
    independently). Wipes the keystore + `key.properties` from the
    workspace in an `always()` step before the runner terminates.
 2. **iOS unsigned build** — same as `ios-build.yml`.
-3. **Publish** — creates / updates a GitHub Release at the tag with
+3. **Instrumented tests**: `instrumented-tests.yml` as a reusable
+   workflow. Publishing waits for it and is skipped if it fails.
+4. **Publish** — creates / updates a GitHub Release at the tag with
    both artifacts attached, auto-generated body (SHA-256s + verification
    command + tag message), marked as prerelease if the tag contains
    a hyphen (`-alpha`, `-beta`, `-rc`).
@@ -99,7 +138,8 @@ line, so keep that literal format. To upgrade:
    Flutter.
 2. Change every pin to the new version:
    - `env.FLUTTER_VERSION` in `ci.yml`, `android-build.yml`,
-     `ios-build.yml`, `jdk-canary.yml` and `release.yml`;
+     `ios-build.yml`, `instrumented-tests.yml`, `jdk-canary.yml` and
+     `release.yml`;
    - the quoted `flutter-version:` literal in `release.yml` (the one
      F-Droid reads) and in `codeql.yml`, plus `codeql.yml`'s `cache-key`;
    - the prose in `README.md` and `docs/IOS_VALIDATION.md`.
