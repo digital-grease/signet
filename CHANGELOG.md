@@ -115,6 +115,8 @@ versions still restore on 0.4.0.
 - Screen readers now speak every verify result, including a second
   identical one, and the spoken prompt in video mode does not name the
   gesture.
+- Screen readers say which word box is focused ("Word 2 of 4") instead
+  of only "word", and which theme is selected in Settings.
 - The debug-logging banner clears when its 24 hours are up.
 - The "not verified" help now has a button straight to the binding
   phrase it mentions.
