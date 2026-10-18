@@ -306,6 +306,13 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
+  instrumented-tests:
+    name: Instrumented tests
+    # integration_test/ on emulators (real Keystore, clipboard, whole app);
+    # a release is not published unless they pass.
+    if: startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/instrumented-tests.yml
+
   publish-release:
     name: Publish GitHub Release
     # iOS is treated as best-effort (not gating) — the Android AAB + APK
@@ -314,9 +321,10 @@ jobs:
     # 13.21 anyway; the CI iOS job produces an unsigned verification
     # zip. If iOS compiles, we include it in the release; if it fails
     # (Flutter API shifts, Xcode upgrades on macos-latest, etc.) we
-    # still publish Android. Android failure still gates everything.
-    needs: [build-android, build-ios]
-    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success'
+    # still publish Android. Android failure still gates everything, and
+    # so do the instrumented tests.
+    needs: [build-android, build-ios, instrumented-tests]
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build-android.result == 'success' && needs.instrumented-tests.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
