@@ -81,7 +81,14 @@ jobs:
         run: flutter build ios --release --no-codesign
 
       - name: Package .app as zip
+        # Artifact names cannot contain "/" (or \ " : < > | * ?), and a
+        # manual run from a branch like fix/x has one in its ref name. The
+        # name is untrusted, so it comes in through the environment.
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
+          safe_ref=$(printf '%s' "$REF_NAME" | tr '/\\":<>|*?' '-')
+          echo "artifact=signet-ios-$safe_ref-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
           cd build/ios/iphoneos
           if [ ! -d Runner.app ]; then
             echo "::error::Runner.app not produced by build"
@@ -97,7 +104,7 @@ jobs:
       - name: Upload .app bundle
         uses: actions/upload-artifact@v4
         with:
-          name: signet-ios-${{ github.ref_name }}-${{ github.sha }}
+          name: ${{ steps.package.outputs.artifact }}
           path: |
             build/ios/iphoneos/Runner.app.zip
             build/ios/iphoneos/Runner.app.zip.sha256

@@ -333,6 +333,18 @@ class _ThemeModeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final selected = value == group;
+    // Drawn with radio icons, so tell TalkBack it is a radio group and
+    // which option is selected.
+    return MergeSemantics(
+      child: Semantics(
+        checked: selected,
+        inMutuallyExclusiveGroup: true,
+        child: _tile(scheme, selected),
+      ),
+    );
+  }
+
+  Widget _tile(ColorScheme scheme, bool selected) {
     return InkWell(
       onTap: () => onChanged(value),
       child: Padding(

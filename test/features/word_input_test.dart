@@ -561,4 +561,26 @@ void main() {
       expect(submitted.single.last, 'act');
     });
   });
+
+  // TalkBack focuses the text field node itself, so the slot number has to
+  // be on that node; on a separate wrapper it was read as "Edit box, word".
+  testWidgets('each slot\'s text field node carries its slot number',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(buildHost(onSubmit: (_) async {}));
+    for (var i = 0; i < 4; i++) {
+      final node = tester.getSemantics(find.byType(EditableText).at(i));
+      expect(node, isSemantics(isTextField: true, hasTapAction: true));
+      expect(node.label, startsWith('Word ${i + 1} of 4'));
+      expect(find.bySemanticsLabel(RegExp('^Word ${i + 1} of 4')),
+          findsOneWidget);
+    }
+    // A filled slot keeps its number too.
+    await tester.enterText(slotField(0), 'abandon');
+    await tester.pumpAndSettle();
+    final filled = tester.getSemantics(find.byType(EditableText).at(0));
+    expect(filled.label, startsWith('Word 1 of 4'));
+    expect(filled.value, 'abandon');
+    semantics.dispose();
+  });
 }

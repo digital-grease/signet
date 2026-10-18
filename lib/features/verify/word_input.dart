@@ -415,7 +415,9 @@ class _WordInputState extends State<WordInput> {
     return Semantics(
       label: AppLocalizations.of(context)
           .wordInputSlotSemantics(index + 1, widget.wordCount),
-      textField: true,
+      // No `textField: true`: that made this wrapper a separate text-field
+      // node, so TalkBack focused the inner field and read only "word".
+      // Without it the label merges into the field's own node.
       child: TextField(
         controller: controller,
         focusNode: _focusNodes[index],
