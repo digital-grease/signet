@@ -91,8 +91,11 @@ jobs:
           emulator-boot-timeout: 900
           disable-animations: true
           # One line per shell: the runner runs each line on its own. The
-          # logcat is kept for the failure artifact below.
+          # logcat is kept for the failure artifact below. A boot-time
+          # launcher ANR dialog would otherwise keep focus and block the
+          # clipboard tests (see the script).
           script: |
+            scripts/emulator-clear-error-dialogs.sh || (adb logcat -d > logcat.txt; exit 1)
             flutter test integration_test -d emulator-5554 --reporter expanded || (adb logcat -d > logcat.txt; exit 1)
 
       - name: Upload logcat on failure
