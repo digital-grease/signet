@@ -67,6 +67,9 @@ versions still restore on 0.4.0.
   no longer fail later, and invisible or text-reversing characters are
   removed from names.
 - **Restore can scan the backup QR code.**
+- **Choose Signet's language on its own** (Android 13 and later):
+  Settings → Apps → Signet → Language offers English and Simplified
+  Chinese, without changing the phone's language.
 
 ### Fixed
 - In split screen, wrong words no longer leave the verify screen blank
