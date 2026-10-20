@@ -1,4 +1,4 @@
-import '../crypto/bip39_english_wordlist.dart';
+import '../crypto/wordlists.dart';
 
 /// Pre-write scrubber for crash-log stack traces and error messages.
 ///
@@ -60,6 +60,13 @@ class LogScrubber {
       (Match m) => _redactToken(m.group(0)!.length),
     );
     text = text.split('\n').map(_forcedRedactMechanical).join('\n');
+    // The mechanical patterns are ASCII, so their word boundary falls at an
+    // accent: "élève1abaisser2..." became "élè[redacted:28]". Letters left
+    // touching a redaction belong to the same token (plan Task 8.4d).
+    text = text.replaceAllMapped(_lettersGluedToRedaction, (Match m) {
+      final inside = int.parse(m.group(2)!);
+      return _redactToken(m.group(1)!.length + inside + m.group(3)!.length);
+    });
     // Across line breaks: PAKE words are often written one per line.
     text = _redactBip39Clusters(text);
     return text.split('\n').map(_scrubLineJudgment).join('\n');
@@ -127,6 +134,11 @@ class LogScrubber {
 
   // Hex run ≥ 16 chars — covers shared secrets, AEAD tags, HKDF outputs.
   static final _hexRunPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');
+
+  static final _lettersGluedToRedaction = RegExp(
+    r'([\p{L}\p{M}]*)\[redacted:(\d+)\]([\p{L}\p{M}]*)',
+    unicode: true,
+  );
 
   // Base64-URL run ≥ 16 chars. Signet's transport-wire uses base64url
   // (`A-Za-z0-9_-`), not classic base64. Excluding `/` and `+` from the
@@ -222,22 +234,36 @@ class LogScrubber {
   // BIP-39 cluster detector (100% bar)
   // ===========================================================================
 
-  static final Set<String> _bip39Set = bip39EnglishWordlist.toSet();
-  // Word: sequence of lowercase letters (BIP-39 words are all lowercase).
-  // Word separator: whitespace or hyphen runs. The cluster detector treats
-  // each match as a candidate word and checks ranges of ≥ 4 consecutive
-  // BIP-39 matches separated only by whitespace/hyphen.
-  static final RegExp _candidateWordPattern = RegExp(r'[A-Za-z]+');
-  /// Between two words of a run: spaces, tabs, newlines, hyphens, commas,
-  /// periods, slashes, semicolons, colons, bars, plus signs, quotes and
-  /// brackets, optionally with a list number ("1. abandon\n2. ability") or
-  /// the word "and" ("able, about and above").
+  // Word: a run of letters and combining marks in any script, with any
+  // zero-width or soft-hyphen characters inside it (plan Task 8.4d), so
+  // "élève", its NFD form and "aban\u200Bdon" are each one candidate. A
+  // candidate counts when it is a word of any shipped list after the input
+  // fold ([WordList.fold]); a run may mix lists.
+  static final RegExp _candidateWordPattern = RegExp(
+    '[\\p{L}\\p{M}\u200B-\u200F\u2060\uFEFF\u00AD\u061C]+',
+    unicode: true,
+  );
+
+  static const Set<String> _joinWords = {'and', 'et'};
+
+  static bool _isListWord(String candidate) =>
+      WordList.shipped.any((l) => l.contains(candidate));
+
+  /// Between two words of a run: spaces, tabs, newlines, hyphens,
+  /// underscores, commas, periods, slashes, semicolons, colons, bars, plus
+  /// signs, quotes and brackets, and the typographic ones French text uses
+  /// (en and em dashes, middle dot, « », curly quotes, ellipsis; no-break
+  /// spaces count as whitespace), optionally with a list number
+  /// ("1. abandon\n2. ability") or the word "and" ("able, about and above").
   static const String _bip39SeparatorChars =
-      r'[\s\-,./;:|+' "'" r'"()\[\]{}]';
-  static final RegExp _andWord = RegExp(r'\band\b', caseSensitive: false);
+      r'[\s\-_,./;:|+' "'" r'"()\[\]{}–—·«»‘’“”…]';
+
+  /// "and", or French "et": never a word of any list, they only join one.
+  static final RegExp _andWord =
+      RegExp(r'\b(?:and|et)\b', caseSensitive: false);
   static final RegExp _bip39SeparatorPattern = RegExp(
     '^$_bip39SeparatorChars*'
-    '(?:(?:\\d{1,2}[.)]?|and)$_bip39SeparatorChars*)?\$',
+    '(?:(?:\\d{1,2}[.)]?|and|et)$_bip39SeparatorChars*)?\$',
     caseSensitive: false,
   );
 
@@ -251,7 +277,7 @@ class LogScrubber {
     // "able, about and above".
     final matches = _candidateWordPattern
         .allMatches(line)
-        .where((m) => m.group(0)!.toLowerCase() != 'and')
+        .where((m) => !_joinWords.contains(m.group(0)!.toLowerCase()))
         .toList();
     if (matches.length < 4) return line;
 
@@ -260,7 +286,7 @@ class LogScrubber {
     final paths = _pathRanges(line);
     final isBip39 = matches
         .map((m) =>
-            _bip39Set.contains(m.group(0)!.toLowerCase()) &&
+            _isListWord(m.group(0)!) &&
             !_insideAny(m.start, paths))
         .toList();
 

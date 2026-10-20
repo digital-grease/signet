@@ -22,6 +22,16 @@ String packageErrorText(InvalidPackageException e, AppLocalizations l10n) {
   return l10n.packageDamagedError;
 }
 
+/// User-facing text for 8 words that did not unlock a package. The two
+/// cases the words themselves explain (an unknown word, a mix of languages)
+/// get plain localized copy; the rest keep the unlock error as before.
+String pakeErrorText(InvalidPakeException e, AppLocalizations l10n) =>
+    switch (e.reason) {
+      InvalidPakeReason.unknownWord => l10n.pakeUnknownWordError(e.slot ?? 0),
+      InvalidPakeReason.mixedLanguages => l10n.pakeMixedLanguagesError,
+      null => l10n.commonUnlockFailedError(e.message),
+    };
+
 /// The "update Signet" text when [text] is a package from a newer Signet,
 /// else null. Reads only the unencrypted header, so screens can say so as
 /// soon as a package is pasted or loaded, before the user types 8 words

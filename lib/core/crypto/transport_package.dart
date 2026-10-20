@@ -7,6 +7,7 @@ import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'bip39_english_wordlist.dart';
 import 'pair_role.dart';
+import 'wordlists.dart';
 
 /// Wire format + crypto for Signet's Phase-10 transport package. One
 /// primitive, three payload types:
@@ -158,8 +159,6 @@ class TransportPackage {
   /// Latest representable unix second (9999-12-31T23:59:59Z).
   static const int _maxUnixSeconds = 253402300799;
 
-  static final Set<String> _wordlistSet = bip39EnglishWordlist.toSet();
-
   // ========================================================================
   // Payload-type peek (for import dispatch)
   // ========================================================================
@@ -221,26 +220,51 @@ class TransportPackage {
     );
   }
 
-  /// Normalize + validate a user-entered PAKE word list. Throws
-  /// [InvalidPakeException] on the wrong count or non-wordlist tokens.
-  static List<String> normalizePakeWords(List<String> words) {
+  /// Every reading of a user-entered PAKE phrase, each as the English
+  /// rendering of its indices (the form the key is derived from). The
+  /// words may come from any shipped list ([WordList.shipped]), accented or
+  /// not, but all 8 from the same list; there is one reading per list in
+  /// which all 8 are valid, English first, so English input reads exactly
+  /// as before. More than one reading only when every word is in two
+  /// lists, about 2^-32 for random French words.
+  ///
+  /// Throws [InvalidPakeException] on the wrong count, an unknown word or
+  /// a phrase mixing lists. Messages name the position, never the word:
+  /// they reach the screen and debug logs.
+  static List<List<String>> pakeCandidates(List<String> words) {
     if (words.length != _pakeWordCount) {
       throw InvalidPakeException(
         'PAKE secret must be exactly $_pakeWordCount words; got ${words.length}.',
       );
     }
-    final out = <String>[];
-    for (final w in words) {
-      final normalized = w.trim().toLowerCase();
-      if (!_wordlistSet.contains(normalized)) {
+    final trimmed = [for (final w in words) w.trim()];
+    final readings = <List<String>>[];
+    for (final list in WordList.shipped) {
+      final indices = [for (final w in trimmed) list.indexOf(w)];
+      if (indices.contains(null)) continue;
+      readings.add([for (final i in indices) WordList.english.wordAt(i!)]);
+    }
+    if (readings.isNotEmpty) return readings;
+    for (var i = 0; i < trimmed.length; i++) {
+      if (!WordList.shipped.any((l) => l.contains(trimmed[i]))) {
         throw InvalidPakeException(
-          'Word "$normalized" is not in the BIP-39 English wordlist.',
+          'Word ${i + 1} is not in a supported BIP-39 wordlist.',
+          reason: InvalidPakeReason.unknownWord,
+          slot: i + 1,
         );
       }
-      out.add(normalized);
     }
-    return out;
+    throw const InvalidPakeException(
+      'The words mix languages; all $_pakeWordCount must be in one language.',
+      reason: InvalidPakeReason.mixedLanguages,
+    );
   }
+
+  /// The reading encoders key on: the first of [pakeCandidates], so
+  /// English words are used exactly as given and French words become their
+  /// English rendering.
+  static List<String> normalizePakeWords(List<String> words) =>
+      pakeCandidates(words).first;
 
   // ========================================================================
   // LDP — long-distance pairing
@@ -354,6 +378,7 @@ class TransportPackage {
       timestamp: opened.timestamp,
       version: opened.version,
       extensions: extensions,
+      verifiedPakeWords: opened.pakeWords,
     );
   }
 
@@ -988,22 +1013,30 @@ class TransportPackage {
     final ciphertext = body.sublist(ciphertextStart, tagStart);
     final tag = body.sublist(tagStart);
 
-    final normalized = normalizePakeWords(pakeWords);
-    final key = await _deriveKey(
-      version: version,
-      pakeWords: normalized,
-      payloadType: expectedPayloadType,
-      nonce: nonce,
-    );
+    // Each reading of the words (normally one) until the tag verifies.
     final cipher = AesGcm.with256bits();
-    final List<int> plaintext;
-    try {
-      plaintext = await cipher.decrypt(
-        SecretBox(ciphertext, nonce: nonce, mac: Mac(tag)),
-        secretKey: SecretKey(key),
-        aad: version == _versionV1 ? const <int>[] : header,
+    List<int>? plaintext;
+    late List<String> verifiedWords;
+    for (final reading in pakeCandidates(pakeWords)) {
+      final key = await _deriveKey(
+        version: version,
+        pakeWords: reading,
+        payloadType: expectedPayloadType,
+        nonce: nonce,
       );
-    } on SecretBoxAuthenticationError {
+      try {
+        plaintext = await cipher.decrypt(
+          SecretBox(ciphertext, nonce: nonce, mac: Mac(tag)),
+          secretKey: SecretKey(key),
+          aad: version == _versionV1 ? const <int>[] : header,
+        );
+        verifiedWords = reading;
+        break;
+      } on SecretBoxAuthenticationError {
+        continue;
+      }
+    }
+    if (plaintext == null) {
       throw const InvalidPakeException(
         'PAKE secret is wrong (authentication tag did not verify).',
       );
@@ -1019,6 +1052,7 @@ class TransportPackage {
     return _Opened(
       version: version,
       plaintext: plaintext,
+      pakeWords: verifiedWords,
       timestamp: DateTime.fromMillisecondsSinceEpoch(
         timestampSecs * 1000,
         isUtc: true,
@@ -1101,11 +1135,15 @@ class _Opened {
   const _Opened({
     required this.version,
     required this.plaintext,
+    required this.pakeWords,
     required this.timestamp,
   });
 
   final int version;
   final List<int> plaintext;
+
+  /// The reading of the user's words that verified, in English.
+  final List<String> pakeWords;
   final DateTime timestamp;
 }
 
@@ -1158,11 +1196,17 @@ class LdpPackage {
     required this.timestamp,
     this.version = 1,
     this.extensions = const <int, Uint8List>{},
+    required this.verifiedPakeWords,
   });
 
   final Uint8List publicKey;
   final String labelHint;
   final DateTime timestamp;
+
+  /// The words that opened this package, as the English rendering of their
+  /// indices. The response must be encoded with these, never with the
+  /// receiver's typed words, so it is keyed on the reading that verified.
+  final List<String> verifiedPakeWords;
 
   /// Wire version of this package. A response must be encoded with the
   /// same version so an older peer can read it.
@@ -1277,9 +1321,24 @@ enum TransportPayloadType {
 
 /// Thrown when the 8-word PAKE secret is malformed (wrong count, non-wordlist
 /// tokens) or does not unlock the package (AEAD authentication failed).
+/// Why the 8 words were refused, for screens that explain it in the
+/// user's language. Null for wrong count and wrong words, whose message the
+/// screens show as before.
+enum InvalidPakeReason {
+  /// [InvalidPakeException.slot] (1-based) is not a word of any list.
+  unknownWord,
+
+  /// Every word is a list word, but not all 8 from the same list.
+  mixedLanguages,
+}
+
 class InvalidPakeException implements Exception {
-  const InvalidPakeException(this.message);
+  const InvalidPakeException(this.message, {this.reason, this.slot});
   final String message;
+  final InvalidPakeReason? reason;
+
+  /// 1-based position of the word for [InvalidPakeReason.unknownWord].
+  final int? slot;
 
   @override
   String toString() => 'InvalidPakeException: $message';

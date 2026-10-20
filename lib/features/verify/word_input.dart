@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
-import '../../core/crypto/bip39_english_wordlist.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Multi-slot BIP-39 word input: 4 slots on the Verify screen, 8 for the
@@ -16,6 +16,13 @@ import '../../l10n/app_localizations.dart';
 /// text containing internal whitespace or hyphens and that text splits
 /// into exactly [wordCount] wordlist entries, all slots are filled in
 /// one stroke.
+///
+/// Languages (plan Task 8.4c): [lists] are the word lists a slot accepts.
+/// Verify passes English only; the 8-word PAKE inputs pass every shipped
+/// list, so French words are accepted, with or without accents. Chips come
+/// from the lists that hold every word typed so far, so one French-only
+/// word switches them to French. Words are reported as the matched list's
+/// own spelling (accented, NFC), never as typed.
 ///
 /// Confirmation (plan Task 3.3): 49 wordlist words are also the start of
 /// longer ones ("act" / "action", "car" / "carbon"). A slot counts as
@@ -46,9 +53,13 @@ class WordInput extends StatefulWidget {
     this.prefillWords,
     this.onTypingChanged,
     this.focusOnReset = true,
+    this.lists = const <WordList>[],
   });
 
   final int wordCount;
+
+  /// The word lists a slot accepts; empty means English only.
+  final List<WordList> lists;
   final Future<void> Function(List<String> words)? onSubmit;
 
   /// Called after every edit with the words when every slot holds a valid
@@ -85,21 +96,30 @@ class WordInput extends StatefulWidget {
   State<WordInput> createState() => _WordInputState();
 }
 
-/// Wordlist words that are also the start of a longer wordlist word.
-final Set<String> _prefixWords = () {
-  final words = bip39EnglishWordlist.toSet();
-  return <String>{
-    for (final w in bip39EnglishWordlist)
-      for (var n = 3; n < w.length; n++)
-        if (words.contains(w.substring(0, n))) w.substring(0, n),
-  };
-}();
+/// Per list: every proper start of a folded word ("act" for "action").
+/// A typed word that is one of these, in ANY accepted list, may still be
+/// on its way to a longer word: English "absurd" to French "absurde",
+/// French "futur" to English "future".
+final Map<String, Set<String>> _properPrefixesByList = {};
+
+Set<String> _properPrefixesOf(WordList list) =>
+    _properPrefixesByList.putIfAbsent(list.id, () => <String>{
+          for (final w in _foldedOf(list))
+            for (var n = 1; n < w.length; n++) w.substring(0, n),
+        });
+
+/// Folded form of every word, per list, for prefix matching.
+final Map<String, List<String>> _foldedByList = {};
+
+List<String> _foldedOf(WordList list) => _foldedByList.putIfAbsent(
+      list.id,
+      () => list.words.map((w) => WordList.fold(w)!).toList(),
+    );
 
 class _WordInputState extends State<WordInput> {
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
   late final List<bool> _confirmed;
-  late final Set<String> _wordSet;
   bool _submitting = false;
   bool _typing = false;
 
@@ -119,7 +139,6 @@ class _WordInputState extends State<WordInput> {
       (_) => FocusNode(),
     );
     _confirmed = List<bool>.filled(widget.wordCount, false);
-    _wordSet = bip39EnglishWordlist.toSet();
     final didPrefill = _applyPrefill();
     // Don't steal focus into slot 0 when the slots are already populated;
     // the user's next action is a button tap (UNLOCK), not more typing.
@@ -135,6 +154,47 @@ class _WordInputState extends State<WordInput> {
         if (mounted) _afterChange();
       });
     }
+  }
+
+  List<WordList> get _lists =>
+      widget.lists.isEmpty ? <WordList>[WordList.english] : widget.lists;
+
+  /// The lists that hold every confirmed word so far (all of [_lists] when
+  /// none, or when the words mix lists). A word still being typed does not
+  /// count, so "absurd" on its way to "absurde" does not hide French chips.
+  List<WordList> get _activeLists {
+    final lists = _lists;
+    if (lists.length == 1) return lists;
+    final typed = [
+      for (var i = 0; i < _controllers.length; i++)
+        if (_confirmed[i] && lists.any((l) => l.contains(_controllers[i].text)))
+          _controllers[i].text,
+    ];
+    final active = [
+      for (final l in lists)
+        if (typed.every(l.contains)) l,
+    ];
+    return active.isEmpty ? lists : active;
+  }
+
+  /// [text] as the matched list spells it, or null if it is not a word of
+  /// any accepted list.
+  String? _canonical(String text) {
+    for (final l in [..._activeLists, ..._lists]) {
+      final i = l.indexOf(text);
+      if (i != null) return l.wordAt(i);
+    }
+    return null;
+  }
+
+  bool _isWord(String text) => _canonical(text) != null;
+
+  /// A word that is also the start of a longer word of any accepted list
+  /// (not just the active ones: the next letter may switch languages).
+  bool _isPrefixWord(String text) {
+    final folded = WordList.fold(text);
+    if (folded == null || !_isWord(text)) return false;
+    return _lists.any((l) => _properPrefixesOf(l).contains(folded));
   }
 
   @override
@@ -198,16 +258,26 @@ class _WordInputState extends State<WordInput> {
   }
 
   List<String> _matchesFor(String prefix) {
-    if (prefix.length < 2) return const <String>[];
-    final lower = prefix.toLowerCase();
+    if (prefix.trim().length < 2) return const <String>[];
+    final folded = WordList.fold(prefix.trim());
+    if (folded == null) return const <String>[];
     final hits = <String>[];
-    for (final w in bip39EnglishWordlist) {
-      if (w.startsWith(lower)) {
-        hits.add(w);
-        if (hits.length >= 6) break;
+    for (final l in _activeLists) {
+      final foldedWords = _foldedOf(l);
+      for (var i = 0; i < foldedWords.length; i++) {
+        if (foldedWords[i].startsWith(folded)) {
+          hits.add(l.wordAt(i));
+          if (hits.length >= 6) return hits;
+        }
       }
     }
     return hits;
+  }
+
+  bool _isPrefixOfAnyWord(String text) {
+    final folded = WordList.fold(text);
+    if (folded == null) return false;
+    return _activeLists.any((l) => _foldedOf(l).any((w) => w.startsWith(folded)));
   }
 
   bool _looksLikePaste(String text) {
@@ -223,9 +293,9 @@ class _WordInputState extends State<WordInput> {
         .where((s) => s.isNotEmpty)
         .toList();
     if (parts.length != widget.wordCount) return false;
-    if (!parts.every(_wordSet.contains)) return false;
+    if (!parts.every(_isWord)) return false;
     for (var i = 0; i < widget.wordCount; i++) {
-      _controllers[i].text = parts[i];
+      _controllers[i].text = _canonical(parts[i])!;
       _confirmed[i] = true;
     }
     _focusNodes[widget.wordCount - 1].unfocus();
@@ -242,7 +312,7 @@ class _WordInputState extends State<WordInput> {
     final trimmed = value.trim().toLowerCase();
     // A space typed after a real word means "done with this word", like
     // the keyboard's next key: it confirms even a prefix word ("act ").
-    if (value.endsWith(' ') && _wordSet.contains(trimmed)) {
+    if (value.endsWith(' ') && _isWord(trimmed)) {
       _controllers[index].value = TextEditingValue(
         text: trimmed,
         selection: TextSelection.collapsed(offset: trimmed.length),
@@ -258,8 +328,8 @@ class _WordInputState extends State<WordInput> {
     }
     // A complete word that cannot be the start of a longer one is
     // unambiguous: confirm it and move on.
-    final unambiguous =
-        _wordSet.contains(trimmed) && !_prefixWords.contains(trimmed);
+    final unambiguous = _isWord(trimmed) && !_isPrefixWord(trimmed);
+    if (unambiguous) _showCanonical(index);
     setState(() => _confirmed[index] = unambiguous);
     if (unambiguous) _advanceFrom(index);
     _afterChange();
@@ -270,9 +340,22 @@ class _WordInputState extends State<WordInput> {
   void _confirmSlot(int index, String word) {
     if (_submitting) return;
     if (_controllers[index].text != word) _controllers[index].text = word;
-    setState(() => _confirmed[index] = _wordSet.contains(word));
+    _showCanonical(index);
+    setState(() => _confirmed[index] = _isWord(word));
     _advanceFrom(index);
     _afterChange();
+  }
+
+  /// A confirmed slot shows the word as its list spells it ("eleve" typed
+  /// shows "élève").
+  void _showCanonical(int index) {
+    final controller = _controllers[index];
+    final shown = _canonical(controller.text.trim());
+    if (shown == null || shown == controller.text) return;
+    controller.value = TextEditingValue(
+      text: shown,
+      selection: TextSelection.collapsed(offset: shown.length),
+    );
   }
 
   void _clearSlot(int index) {
@@ -306,8 +389,8 @@ class _WordInputState extends State<WordInput> {
   List<String>? _collectValidWords() {
     final words = <String>[];
     for (final c in _controllers) {
-      final w = c.text.trim().toLowerCase();
-      if (!_wordSet.contains(w)) return null;
+      final w = _canonical(c.text.trim());
+      if (w == null) return null;
       words.add(w);
     }
     return words;
@@ -400,7 +483,7 @@ class _WordInputState extends State<WordInput> {
   bool _showsChips(int index) {
     final text = _controllers[index].text.trim().toLowerCase();
     if (text.length < 2) return false;
-    if (!_wordSet.contains(text)) return true;
+    if (!_isWord(text)) return true;
     return !_confirmed[index];
   }
 
@@ -409,9 +492,9 @@ class _WordInputState extends State<WordInput> {
     final textTheme = Theme.of(context).textTheme;
     final controller = _controllers[index];
     final value = controller.text.trim().toLowerCase();
-    final isKnown = _wordSet.contains(value);
-    final looksInvalid = value.length >= 2 && !isKnown &&
-        !bip39EnglishWordlist.any((w) => w.startsWith(value));
+    final isKnown = _isWord(value);
+    final looksInvalid =
+        value.length >= 2 && !isKnown && !_isPrefixOfAnyWord(value);
     return Semantics(
       label: AppLocalizations.of(context)
           .wordInputSlotSemantics(index + 1, widget.wordCount),
@@ -454,7 +537,7 @@ class _WordInputState extends State<WordInput> {
         onChanged: (v) => _onSlotChanged(index, v),
         onSubmitted: (v) {
           final word = v.trim().toLowerCase();
-          if (_wordSet.contains(word)) {
+          if (_isWord(word)) {
             _confirmSlot(index, word);
           } else {
             _advanceFrom(index);

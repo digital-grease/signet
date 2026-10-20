@@ -1525,5 +1525,11 @@
   "@wordsDisplaySemantics": {"description": "Semantics label of the rotating words display.", "placeholders": {"words": {"type": "String"}, "seconds": {"type": "int"}}},
 
   "wordsDisplayCountdown": "{seconds} s",
-  "@wordsDisplayCountdown": {"description": "Countdown text under the words, e.g. '27 s'.", "placeholders": {"seconds": {"type": "int"}}}
+  "@wordsDisplayCountdown": {"description": "Countdown text under the words, e.g. '27 s'.", "placeholders": {"seconds": {"type": "int"}}},
+
+  "pakeUnknownWordError": "Word {slot} is not one of the words Signet uses. Check its spelling.",
+  "@pakeUnknownWordError": {"description": "Unlock error: one of the 8 backup or pairing words is not in any word list Signet reads. slot is its 1-based position.", "placeholders": {"slot": {"type": "int"}}},
+
+  "pakeMixedLanguagesError": "All 8 words must be in the same language. Check that you copied them from the same place.",
+  "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."}
 }

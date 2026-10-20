@@ -1950,4 +1950,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordsDisplayCountdown(int seconds) {
     return '$seconds s';
   }
+
+  @override
+  String pakeUnknownWordError(int slot) {
+    return 'Word $slot is not one of the words Signet uses. Check its spelling.';
+  }
+
+  @override
+  String get pakeMixedLanguagesError =>
+      'All 8 words must be in the same language. Check that you copied them from the same place.';
 }

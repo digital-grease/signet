@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 
-import 'bip39_english_wordlist.dart';
 import 'transport_package.dart';
+import 'wordlists.dart';
 
 /// Decode the bytes of a backup file as UTF-8 text. Dart's UTF-8 decoder
 /// drops a leading byte order mark (some editors add one), and invalid
@@ -152,8 +152,29 @@ class BackupText {
   static final RegExp _fingerprintLine =
       RegExp(r'^#\s*Fingerprint:\s*(\d{3})\s?(\d{3})\s*$');
 
+  /// Separators between words: anything but letters and combining marks
+  /// (Unicode-aware, so accented French words stay whole).
+  static final RegExp _nonLetters = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
+
+  /// Zero-width and soft-hyphen characters, removed before splitting so a
+  /// pasted word they sit inside stays one token.
+  static final RegExp _formatChars =
+      RegExp('[\u200B-\u200F\u2060\uFEFF\u00AD\u061C]');
+
+  /// [tokens] as words of the first shipped list that holds all of them
+  /// (the list's own spelling), or null. All words must be from one list
+  /// (plan Task 8.4c); the decoder then reads them in every such list.
+  static List<String>? _asWords(List<String> tokens) {
+    for (final list in WordList.shipped) {
+      final indices = [for (final t in tokens) list.indexOf(t)];
+      if (!indices.contains(null)) {
+        return [for (final i in indices) list.wordAt(i!)];
+      }
+    }
+    return null;
+  }
+
   static BackupText read(String text) {
-    final wordSet = bip39EnglishWordlist.toSet();
     final lines =
         text.split(RegExp(r'\r\n|\r|\n')).map((l) => l.trim()).toList();
 
@@ -205,28 +226,21 @@ class BackupText {
         i = j - 1;
         continue;
       }
-      looseTokens.addAll(line
-          .toLowerCase()
-          .split(RegExp(r'[^a-z]+'))
-          .where((t) => t.isNotEmpty));
+      final clean = line.replaceAll(_formatChars, '');
+      looseTokens.addAll(clean.split(_nonLetters).where((t) => t.isNotEmpty));
       if (pake == null) {
-        final tokens = line
-            .toLowerCase()
+        final tokens = clean
             .split(RegExp(r'\s+'))
             .where((t) => t.isNotEmpty)
             .toList();
-        if (tokens.length == 8 && tokens.every(wordSet.contains)) {
-          pake = tokens;
-        }
+        if (tokens.length == 8) pake = _asWords(tokens);
       }
     }
     // No single line held the words: accept them spread over several lines
     // ("1. abandon", one per line, comma-separated) when exactly 8 words
     // turn up and all are wordlist words.
-    if (pake == null &&
-        looseTokens.length == 8 &&
-        looseTokens.every(wordSet.contains)) {
-      pake = looseTokens;
+    if (pake == null && looseTokens.length == 8) {
+      pake = _asWords(looseTokens);
     }
     return BackupText._(
       wireCandidates: List.unmodifiable(candidates),
