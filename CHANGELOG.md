@@ -70,6 +70,10 @@ versions still restore on 0.4.0.
 - **Choose Signet's language on its own** (Android 13 and later):
   Settings → Apps → Signet → Language offers English and Simplified
   Chinese, without changing the phone's language.
+- **The 8 words for a backup or long-distance pairing can also be typed in
+  French**, with or without accents. Signet still shows English words;
+  this lets a later version show French ones without leaving 0.4.0
+  phones unable to read them.
 
 ### Fixed
 - In split screen, wrong words no longer leave the verify screen blank
