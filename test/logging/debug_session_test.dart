@@ -250,6 +250,23 @@ void main() {
       expect(s.eventCount, 0);
     });
 
+    test("an unawaited stop's early wipe never deletes a new session's files",
+        () async {
+      // With the real (fast) cipher the new session's persist writes its
+      // temp file while the stop is still wiping; the wipe used to delete
+      // it, so the rename threw and the start rolled back.
+      final file = File('${tempDir.path}/${DebugSession.sessionFileName}');
+      for (var i = 0; i < 20; i++) {
+        final s = session();
+        await s.start();
+        final stopping = s.stop();
+        await s.start();
+        await stopping;
+        expect(s.isActive, isTrue);
+        expect(file.existsSync(), isTrue);
+      }
+    });
+
     test('a failed start rolls back and leaves logging off', () async {
       final flaky = _FlakyCipher(cipher)..fail = true;
       final s = DebugSession(cipher: flaky, debugDir: tempDir);
