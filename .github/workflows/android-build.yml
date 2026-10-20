@@ -123,7 +123,7 @@ jobs:
           echo "APK SHA-256: $apk_sha"
 
       - name: Upload AAB + APK + checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           # On a PR, ref_name is "<n>/merge", and artifact names cannot contain "/".
           name: signet-android-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}-${{ github.sha }}
