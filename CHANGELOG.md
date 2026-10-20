@@ -118,6 +118,8 @@ versions still restore on 0.4.0.
 - Screen readers say which word box is focused ("Word 2 of 4") instead
   of only "word", and which theme is selected in Settings.
 - The debug-logging banner clears when its 24 hours are up.
+- Turning debug logging back on straight after stopping it no longer
+  fails.
 - The "not verified" help now has a button straight to the binding
   phrase it mentions.
 - Crash reports and debug logs remove more kinds of secret before they
