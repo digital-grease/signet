@@ -94,7 +94,7 @@ class DebugSession {
   /// unexpired session was loaded; expired or corrupt files are wiped.
   Future<bool> restore() async {
     // A kill mid-write can leave ciphertext in the temp file; never keep it.
-    await _deleteQuietly(_tempFile());
+    await _deleteQuietly(_tempFile(), _generation);
     final f = _file();
     if (!await f.exists()) return false;
     try {
@@ -151,7 +151,7 @@ class DebugSession {
     // Wipe immediately: the generation bump already stops any in-flight
     // write from renaming over the deleted file, so the user's "Stop &
     // wipe" never depends on the platform cipher finishing.
-    await _wipeFiles();
+    await _wipeFiles(stopGeneration);
     // Then let queued writes drain (bounded, in case the cipher hangs) and
     // wipe again for anything that slipped in, unless a new session was
     // started meanwhile (its own persist owns the file now).
@@ -161,17 +161,21 @@ class DebugSession {
       // A hung write can no longer rename (generation check); move on.
     }
     if (_generation != stopGeneration) return;
-    await _wipeFiles();
+    await _wipeFiles(stopGeneration);
   }
 
-  Future<void> _wipeFiles() async {
-    await _deleteQuietly(_file());
-    await _deleteQuietly(_tempFile());
+  /// Deletes the session and temp files unless a [start] after the stop
+  /// that owns [generation] has taken them over: its persist may already
+  /// be writing the temp file, and deleting it would fail that rename.
+  Future<void> _wipeFiles(int generation) async {
+    await _deleteQuietly(_file(), generation);
+    await _deleteQuietly(_tempFile(), generation);
   }
 
-  static Future<void> _deleteQuietly(File f) async {
+  Future<void> _deleteQuietly(File f, int generation) async {
     try {
-      if (await f.exists()) await f.delete();
+      if (!await f.exists() || generation != _generation) return;
+      await f.delete();
     } on FileSystemException {
       // Already gone or unreachable; nothing left to wipe.
     }
