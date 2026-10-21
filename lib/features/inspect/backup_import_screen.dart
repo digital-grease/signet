@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
@@ -359,9 +360,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
       } on InvalidPakeException catch (e) {
         if (!mounted) return;
         setState(() {
-          _error = AppLocalizations.of(context).commonUnlockFailedError(
-            e.message,
-          );
+          _error = pakeErrorText(e, AppLocalizations.of(context));
           _busy = false;
           _pakeResetKey++;
         });
@@ -396,8 +395,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
     } on InvalidPakeException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error =
-            AppLocalizations.of(context).commonUnlockFailedError(e.message);
+        _error = pakeErrorText(e, AppLocalizations.of(context));
         _busy = false;
         _pakeResetKey++;
       });
@@ -546,6 +544,7 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         const SizedBox(height: 12),
         WordInput(
           wordCount: 8,
+          lists: WordList.shipped,
           autofocus: false,
           resetKey: _pakeResetKey,
           prefillWords: _pakeWords.length == 8 ? _pakeWords : null,

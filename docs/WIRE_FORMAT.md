@@ -143,6 +143,19 @@ Key: `HKDF-SHA-256(ikm = UTF-8 of the 8 lowercased BIP-39 PAKE words joined
 by single spaces, salt = nonce, info = "signet/v<version>/tp1/<ldp|lpr|blk>",
 length = 32)`.
 
+The words in `ikm` are always the **English** rendering of the words'
+11-bit indices. From 0.4.0 a decoder also accepts the 8 words in any list
+it ships (English and French), accented or not, and composed (NFC) or
+decomposed (NFD): each word is folded (lowercase, zero-width and
+soft-hyphen characters removed, accents removed), looked up, and all 8 must
+come from one list. The indices are then rendered in English for `ikm`, so
+the key, and every byte on the wire, is the same whichever language the
+words were typed in. If the 8 words are valid in more than one list (each
+reading is different indices), the decoder tries each reading, English
+first, until the tag verifies, and a long-distance response is encoded
+with the reading that verified. Encoders in 0.4.0 still mint and show
+English words.
+
 ### Version 1
 
 The header (version, payload type, timestamp) is **not** authenticated. The

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
 import 'package:signet/core/crypto/verification.dart';
+import 'package:signet/core/crypto/wordlists.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_in_screen.dart';
@@ -432,6 +433,49 @@ void main() {
     expect(clip.sensitive.single, startsWith('signet:tp1:'));
     expect(clip.plain, isEmpty);
     expect(find.textContaining('removes it from the clipboard'), findsOneWidget);
+    SecureClipboard.resetForTesting();
+  });
+
+  testWidgets(
+      'the response is keyed on the reading of the words that opened the '
+      'request (plan Task 8.4b)', (tester) async {
+    // Words spelled the same in English and French, at different indices:
+    // the phrase reads two ways, and the sender used the French reading.
+    final shared = [
+      for (final w in WordList.english.words)
+        if (WordList.french.indexOf(w) case final i?
+            when WordList.french.wordAt(i) == w)
+          w,
+    ].take(8).toList();
+    final readings = TransportPackage.pakeCandidates(shared);
+    expect(readings, hasLength(2));
+    final senderWords = readings.last;
+
+    final clip = recordClipboard();
+    final kp = await PairingHandshake.generateEphemeralKeyPair();
+    final wire = await TransportPackage.encodeLdpRequest(
+      publicKey: kp.publicKey,
+      labelHint: 'Alice',
+      pakeWords: senderWords,
+    );
+    await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, wire);
+    await tester.pumpAndSettle();
+    await _enterPakeWords(tester, shared);
+    await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+    await tester.tap(find.text('UNLOCK PACKAGE'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Copy response'));
+    await tester.tap(find.text('Copy response'));
+    await tester.pumpAndSettle();
+
+    final response = await tester.runAsync(() =>
+        TransportPackage.decodeLdpStrict(
+          clip.sensitive.single,
+          pakeWords: senderWords,
+        ));
+    expect(response!.publicKey, hasLength(32));
     SecureClipboard.resetForTesting();
   });
 

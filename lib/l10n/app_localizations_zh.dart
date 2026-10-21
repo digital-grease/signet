@@ -1848,4 +1848,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String wordsDisplayCountdown(int seconds) {
     return '$seconds 秒';
   }
+
+  @override
+  String pakeUnknownWordError(int slot) {
+    return '第 $slot 个单词不是 Signet 使用的单词，请检查拼写。';
+  }
+
+  @override
+  String get pakeMixedLanguagesError => '8 个单词必须是同一种语言。请确认它们抄自同一处。';
 }

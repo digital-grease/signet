@@ -149,17 +149,28 @@ from this wordlist. Embedded in-tree at
 `lib/core/crypto/bip39_english_wordlist.dart` as a Dart `const
 <String>[]`.
 
-**Integrity check:** the in-tree list exactly matches the canonical
-BIP-0039 English wordlist SHA-256 as of reference date. Auditors
-can verify by running:
+**Integrity check:** `test/crypto/wordlists_test.dart` writes each
+in-tree list one word per line with a trailing newline (French
+converted back to the upstream's decomposed form) and compares the
+SHA-256 with the upstream file:
 
-```sh
-# Export the in-tree list one word per line, then hash.
-dart run --enable-asserts bin/dump_wordlist.dart | sha256sum
-# Expected: 2f5eed53a4727b4bf8880d8f3077f0d68a8b9d27e1b0c7e46e0f4b5b3e9f6e5c
-```
+| List | Upstream file | SHA-256 |
+|---|---|---|
+| English | `bip-0039/english.txt` | `2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda` |
+| French | `bip-0039/french.txt` | `ebc3959ab7801a1df6bac4fa7d970652f1df76b683cd2f4003c941c63d517e59` |
 
-(Helper `bin/dump_wordlist.dart` not yet written.)
+Auditors can check the upstream side with
+`curl -s https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt | sha256sum`
+(and `french.txt`).
+
+**French list (from 0.4.0, input only).** Embedded at
+`lib/core/crypto/bip39_french_wordlist.dart`, precomposed (NFC) for
+display; the upstream file is decomposed (NFD) and uses only è and é.
+0.4.0 accepts it for the 8 PAKE words only (see `WIRE_FORMAT.md`,
+key derivation); every word Signet shows is still English. The test
+also checks that no two words of a list share a folded form or their
+first 4 letters, and that NFC, NFD and accent-free input give the
+same index.
 
 **In-tree assertions:**
 - `test/crypto/verification_test.dart` — every word derived by

@@ -7,6 +7,7 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
@@ -128,9 +129,12 @@ class _PairTransportInScreenState
         ownPublicKey: ourKeyPair.publicKey,
         peerPublicKey: ldp.publicKey,
       );
+      // The reading of the words that opened the request, not the typed
+      // words: they may be French, and in the rare case they read as words
+      // of two lists, only this reading matches the sender's key.
       final responseWire = await TransportPackage.encodeLdpResponse(
         publicKey: ourKeyPair.publicKey,
-        pakeWords: pakeWords,
+        pakeWords: ldp.verifiedPakeWords,
       );
       if (!mounted) return;
       setState(() {
@@ -151,8 +155,7 @@ class _PairTransportInScreenState
     } on InvalidPakeException catch (e) {
       if (!mounted) return;
       setState(() {
-        _unlockError = AppLocalizations.of(context)
-            .commonUnlockFailedError(e.message);
+        _unlockError = pakeErrorText(e, AppLocalizations.of(context));
         _unlocking = false;
         _pakeResetKey++;
       });
@@ -304,6 +307,7 @@ class _PairTransportInScreenState
         const SizedBox(height: 12),
         WordInput(
           wordCount: 8,
+          lists: WordList.shipped,
           autofocus: false,
           resetKey: _pakeResetKey,
           onWordsChanged: (words) =>

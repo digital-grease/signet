@@ -3223,6 +3223,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{seconds} s'**
   String wordsDisplayCountdown(int seconds);
+
+  /// Unlock error: one of the 8 backup or pairing words is not in any word list Signet reads. slot is its 1-based position.
+  ///
+  /// In en, this message translates to:
+  /// **'Word {slot} is not one of the words Signet uses. Check its spelling.'**
+  String pakeUnknownWordError(int slot);
+
+  /// Unlock error: the 8 words are all real words, but some are English and some French (or another list).
+  ///
+  /// In en, this message translates to:
+  /// **'All 8 words must be in the same language. Check that you copied them from the same place.'**
+  String get pakeMixedLanguagesError;
 }
 
 class _AppLocalizationsDelegate

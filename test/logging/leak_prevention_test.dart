@@ -125,10 +125,28 @@ void main() {
         publicKey: _canarySecret,
         labelHint: _canaryLabel,
         timestamp: DateTime.utc(2026, 5, 20),
+        verifiedPakeWords: const [],
       );
       _expectNoLeak(pkg.toString(),
           label: _canaryLabel,
           why: 'labelHint can identify the human counterparty');
+    });
+
+    test('does not leak the verified PAKE words', () {
+      const words = [
+        'abandon', 'ability', 'able', 'about', //
+        'above', 'absent', 'absorb', 'abstract',
+      ];
+      final pkg = LdpPackage(
+        publicKey: _canarySecret,
+        labelHint: '',
+        timestamp: DateTime.utc(2026, 5, 20),
+        verifiedPakeWords: words,
+      );
+      for (final w in words) {
+        expect(pkg.toString(), isNot(contains(w)),
+            reason: 'the 8 words unlock the package');
+      }
     });
   });
 
