@@ -1,6 +1,7 @@
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -919,8 +920,25 @@ void main() {
       },
     );
 
+    /// Every live-region node's label: what TalkBack may read aloud without
+    /// the user touching anything.
+    List<String> liveRegionLabels(WidgetTester tester) {
+      final labels = <String>[];
+      void visit(SemanticsNode node) {
+        if (node.flagsCollection.isLiveRegion) labels.add(node.label);
+        node.visitChildren((SemanticsNode child) {
+          visit(child);
+          return true;
+        });
+      }
+
+      visit(tester.getSemantics(find.byType(VerifyScreen)));
+      return labels;
+    }
+
     testWidgets(
-      'WATCH FOR // is a liveRegion so window rollover is announced',
+      'WATCH FOR // announces a new gesture without naming it, and the '
+      'gesture is read only when touched (owner decision 2026-10-20)',
       (tester) async {
         final handle = tester.ensureSemantics();
         // Dispose inline at test end — addTearDown runs AFTER
@@ -934,26 +952,30 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(tester.element(find.byType(VerifyScreen)));
 
         final action = await currentExpectedAction();
-        final watchForSemantics = tester.getSemantics(
+        // The gesture is on the row for a screen reader to read on touch...
+        final gestureNode = tester.getSemantics(
           find.bySemanticsLabel(
             RegExp('Watch for: Mom should ${action.humanReadable}'),
           ),
         );
-        expect(
-          watchForSemantics.flagsCollection.isLiveRegion,
-          isTrue,
-          reason:
-              'blind users need the screen-reader re-announcement on window '
-              'rollover — otherwise the visible prompt updates silently.',
-        );
+        expect(gestureNode.flagsCollection.isLiveRegion, isFalse,
+            reason: 'on speaker, the other side of the call would hear it');
+        // ...and what is spoken by itself only says that there is one.
+        final live = liveRegionLabels(tester);
+        expect(live, contains(l10n.verifyWatchForChangedAnnouncement));
+        for (final label in live) {
+          expect(label, isNot(contains(action.humanReadable)), reason: label);
+        }
         handle.dispose();
       },
     );
 
     testWidgets(
-      'ACTION // judgment panel is a liveRegion when it appears post-words-✅',
+      'ACTION // judgment panel announces itself without naming the gesture '
+      '(Android, owner decision 2026-10-20)',
       (tester) async {
         final handle = tester.ensureSemantics();
         // Android, where Flutter reports no announcement support: the live
@@ -974,28 +996,22 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(tester.element(find.byType(VerifyScreen)));
 
         final words = await _currentWordsFromMom();
         await _enterWords(tester, words);
         await tester.pumpAndSettle();
 
-        // Tree traversal — find the Semantics node that contains the
-        // action-judgment prompt. Can't use bySemanticsLabel because
-        // the prompt includes a generated humanReadable action name.
-        final panelSemantics = tester.getSemantics(
-          find.ancestor(
-            of: find.textContaining('Did you see Mom'),
-            matching: find.byType(Semantics),
-          ).first,
-        );
-        expect(
-          panelSemantics.flagsCollection.isLiveRegion,
-          isTrue,
-          reason:
-              'blind users need the screen-reader re-announcement when the '
-              'UI transitions from type-words to judge-action — otherwise '
-              'they remain at the empty-input state with no cue to proceed.',
-        );
+        final live = liveRegionLabels(tester);
+        expect(live, contains(l10n.verifyActionJudgmentAnnouncement('Mom')),
+            reason: 'TalkBack users need a cue that the step changed');
+        for (final label in live) {
+          for (final a in LivenessAction.values) {
+            expect(label, isNot(contains(a.humanReadable)), reason: label);
+          }
+        }
+        // The question with the gesture is still there to read on touch.
+        expect(find.textContaining('Did you see Mom'), findsOneWidget);
         handle.dispose();
       },
     );

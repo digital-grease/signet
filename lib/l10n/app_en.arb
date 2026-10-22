@@ -479,7 +479,7 @@
   "faqQ9": "Why does video-call verify ask for a physical action?",
   "@faqQ9": {"description": "FAQ question 9."},
 
-  "faqA9": "AI voice and video deepfakes keep getting better. A realtime deepfake that hears you ask for the 4 words can just say them — unless those words came from the paired device, which is why plain verify works. But a deepfake that hears you read a random prompt like \"touch your ear\" aloud can also mimic that action immediately. So Signet turns the action into something derived from the shared secret too: only the real paired device knows which action is expected in this window. When you turn on VIDEO CALL mode, passing requires BOTH the right 4 words AND the counterparty performing the expected action. A deepfake without the paired device can only guess, and the combined odds drop to roughly 1 in 100 trillion per 30-second window.",
+  "faqA9": "AI voice and video deepfakes keep getting better. A realtime deepfake that hears you ask for the 4 words can just say them — unless those words came from the paired device, which is why plain verify works. But a deepfake that hears you read a random prompt like \"touch your ear\" aloud can also mimic that action immediately. So Signet turns the action into something derived from the shared secret too: only the real paired device knows which action is expected in this window. When you turn on VIDEO CALL mode, passing requires BOTH the right 4 words AND the counterparty performing the expected action. A deepfake without the paired device can only guess, and the combined odds drop to roughly 1 in 100 trillion per 30-second window. If you use a screen reader, wear headphones during the call: Signet never reads the action aloud by itself, but touching the WATCH FOR line reads it, and on speaker the other side could hear it.",
   "@faqA9": {"description": "FAQ answer 9. 'VIDEO CALL' refers to the on-screen toggle label."},
 
   "faqQ10": "Why no account? What if I need recovery?",
@@ -1531,5 +1531,8 @@
   "@pakeUnknownWordError": {"description": "Unlock error: one of the 8 backup or pairing words is not in any word list Signet reads. slot is its 1-based position.", "placeholders": {"slot": {"type": "int"}}},
 
   "pakeMixedLanguagesError": "All 8 words must be in the same language. Check that you copied them from the same place.",
-  "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."}
+  "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."},
+
+  "verifyWatchForChangedAnnouncement": "New gesture to watch for. Touch the WATCH FOR line to hear it.",
+  "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."}
 }

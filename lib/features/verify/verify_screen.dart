@@ -1030,19 +1030,15 @@ class _ExpectedActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    // liveRegion: true so TalkBack / VoiceOver re-announces the expected
-    // action when it changes on window rollover. Without it, a blind user
-    // watching the video can hear the first-derived action but misses the
-    // cutover to the next one 30 seconds later.
+    // Never spoken by itself (owner decision 2026-10-20): on speaker, the
+    // other side of a video call could hear the gesture. The header is a
+    // live region that only says a gesture appeared or changed, keyed per
+    // gesture so each change is a new announcement; the gesture itself is
+    // read when the user touches the line.
     return Semantics(
       container: true,
-      liveRegion: true,
-      label: l10n.verifyExpectedActionSemantics(
-        label,
-        livenessActionText(action, l10n),
-      ),
-      child: ExcludeSemantics(
-        child: Container(
+      explicitChildNodes: true,
+      child: Container(
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
@@ -1051,29 +1047,44 @@ class _ExpectedActionRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                l10n.verifyWatchForHeader,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 10,
-                  color: scheme.primary,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.w700,
+              Semantics(
+                key: ValueKey<LivenessAction>(action),
+                liveRegion: true,
+                label: l10n.verifyWatchForChangedAnnouncement,
+                child: ExcludeSemantics(
+                  child: Text(
+                    l10n.verifyWatchForHeader,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      color: scheme.primary,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                l10n.verifyExpectedActionText(label, livenessActionText(action, l10n)),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurface,
-                  height: 1.3,
+              Semantics(
+                label: l10n.verifyExpectedActionSemantics(
+                  label,
+                  livenessActionText(action, l10n),
+                ),
+                child: ExcludeSemantics(
+                  child: Text(
+                    l10n.verifyExpectedActionText(
+                        label, livenessActionText(action, l10n)),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                      height: 1.3,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -1101,14 +1112,16 @@ class _ActionJudgmentPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    // liveRegion: true so the "Words ✅. Did you see …" prompt is
-    // announced the moment it replaces the words-input once the
-    // verifier's typed 4 words have verified. Without it, a blind user
-    // doesn't know the UI has moved from "type words" to "judge action."
+    // A screen-reader user needs a cue that the screen moved from "type
+    // words" to "judge the action", but the cue must not name the gesture
+    // (owner decision 2026-10-20: on speaker, the other side of the call
+    // could hear it). Where Flutter cannot announce (Android) the header
+    // is a live region with the same gesture-free sentence
+    // [_announceResult] speaks elsewhere (never both); the question with
+    // the gesture is read when touched.
     return Semantics(
       container: true,
-      // Announced by _announceResult where supported (never both).
-      liveRegion: !MediaQuery.supportsAnnounceOf(context),
+      explicitChildNodes: true,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1118,14 +1131,20 @@ class _ActionJudgmentPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
-              l10n.verifyActionHeader,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 10,
-                color: scheme.secondary,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w700,
+            Semantics(
+              liveRegion: !MediaQuery.supportsAnnounceOf(context),
+              label: l10n.verifyActionJudgmentAnnouncement(label),
+              child: ExcludeSemantics(
+                child: Text(
+                  l10n.verifyActionHeader,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: scheme.secondary,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 6),

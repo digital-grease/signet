@@ -1103,7 +1103,7 @@ abstract class AppLocalizations {
   /// FAQ answer 9. 'VIDEO CALL' refers to the on-screen toggle label.
   ///
   /// In en, this message translates to:
-  /// **'AI voice and video deepfakes keep getting better. A realtime deepfake that hears you ask for the 4 words can just say them — unless those words came from the paired device, which is why plain verify works. But a deepfake that hears you read a random prompt like \"touch your ear\" aloud can also mimic that action immediately. So Signet turns the action into something derived from the shared secret too: only the real paired device knows which action is expected in this window. When you turn on VIDEO CALL mode, passing requires BOTH the right 4 words AND the counterparty performing the expected action. A deepfake without the paired device can only guess, and the combined odds drop to roughly 1 in 100 trillion per 30-second window.'**
+  /// **'AI voice and video deepfakes keep getting better. A realtime deepfake that hears you ask for the 4 words can just say them — unless those words came from the paired device, which is why plain verify works. But a deepfake that hears you read a random prompt like \"touch your ear\" aloud can also mimic that action immediately. So Signet turns the action into something derived from the shared secret too: only the real paired device knows which action is expected in this window. When you turn on VIDEO CALL mode, passing requires BOTH the right 4 words AND the counterparty performing the expected action. A deepfake without the paired device can only guess, and the combined odds drop to roughly 1 in 100 trillion per 30-second window. If you use a screen reader, wear headphones during the call: Signet never reads the action aloud by itself, but touching the WATCH FOR line reads it, and on speaker the other side could hear it.'**
   String get faqA9;
 
   /// FAQ question 10.
@@ -3235,6 +3235,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All 8 words must be in the same language. Check that you copied them from the same place.'**
   String get pakeMixedLanguagesError;
+
+  /// Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line.
+  ///
+  /// In en, this message translates to:
+  /// **'New gesture to watch for. Touch the WATCH FOR line to hear it.'**
+  String get verifyWatchForChangedAnnouncement;
 }
 
 class _AppLocalizationsDelegate
