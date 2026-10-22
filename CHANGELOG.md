@@ -120,8 +120,10 @@ versions still restore on 0.4.0.
   home screen, intro, pairing); they scroll instead, also with the
   keyboard open.
 - Screen readers now speak every verify result, including a second
-  identical one, and the spoken prompt in video mode does not name the
-  gesture.
+  identical one, and in video mode never read the gesture aloud by
+  themselves: they say a new gesture appeared, and read it only when you
+  touch the WATCH FOR line. On speaker, the other side of the call could
+  otherwise hear it. The help suggests headphones.
 - Screen readers say which word box is focused ("Word 2 of 4") instead
   of only "word", and which theme is selected in Settings.
 - The debug-logging banner clears when its 24 hours are up.
