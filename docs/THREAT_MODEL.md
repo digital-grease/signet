@@ -109,6 +109,17 @@ during the active window (a physical co-location attack, out of
 scope). Camera-integrated automated action grading is explicitly
 deferred to a later plan.
 
+**Screen readers and speakerphone:** a TalkBack or VoiceOver user on a
+speakerphone video call would leak the expected action to the other side
+if the screen reader spoke it. That matters against exactly the attacker
+the action exists for: one who has the right words (for example by
+relaying the real person). So Signet never speaks the action by itself
+(owner decision 2026-10-20): the WATCH FOR live region says only that a
+new gesture appeared, the post-words cue on Android says "did they do the
+action shown on screen", and the action is read only when the user
+touches the WATCH FOR line. The FAQ advises headphones. Residual: a user
+who touches the line while on speaker still leaks it.
+
 **Relevant code:**
 - `lib/core/crypto/totp_words.dart` — `deriveLivenessAction` +
   `verifyLivenessAction` + role-asymmetric HKDF info string
