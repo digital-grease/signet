@@ -45,6 +45,7 @@ enum _Phase { setup, shareAndWait, confirm }
 class _PairTransportOutScreenState
     extends ConsumerState<PairTransportOutScreen> {
   final TextEditingController _labelController = TextEditingController();
+  String? _labelError;
   // Optional: the sender's own name, sent as the hint the receiver's phone
   // suggests as the name for them (plan Task 3.6, P6).
   final TextEditingController _ownNameController = TextEditingController();
@@ -80,7 +81,7 @@ class _PairTransportOutScreenState
     final l10n = AppLocalizations.of(context);
     final rejection = LabelPolicy.check(label);
     if (rejection != null) {
-      setState(() => _errorText = rejection == LabelRejection.empty
+      setState(() => _labelError = rejection == LabelRejection.empty
           ? l10n.commonGiveContactName
           : labelRejectionText(rejection, l10n));
       return;
@@ -101,6 +102,7 @@ class _PairTransportOutScreenState
     setState(() {
       _busy = true;
       _errorText = null;
+      _labelError = null;
       _ownNameError = null;
     });
     try {
@@ -327,7 +329,13 @@ class _PairTransportOutScreenState
           ],
           buildCounter:
               utf8ByteCounter(_labelController, LabelPolicy.maxBytes),
-          decoration: InputDecoration(hintText: l10n.commonNameHintExample),
+          decoration: InputDecoration(
+            hintText: l10n.commonNameHintExample,
+            errorText: _labelError,
+          ),
+          onChanged: (_) {
+            if (_labelError != null) setState(() => _labelError = null);
+          },
         ),
         const SizedBox(height: 12),
         _SectionHeader(l10n.pairTransportOutYourNameHeader),
