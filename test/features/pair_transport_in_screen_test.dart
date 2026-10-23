@@ -263,8 +263,21 @@ void main() {
       await tester.tap(find.text('COMMIT PAIR'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Give this contact a name.'), findsOneWidget);
+      final error = find.text('Give this contact a name.');
+      expect(error, findsOneWidget);
+      expect(
+        find.ancestor(
+          of: error,
+          matching: find.widgetWithText(TextField, '   '),
+        ),
+        findsOneWidget,
+      );
       expect(await store.listRelationships(), isEmpty);
+
+      // Typing in the field clears the error.
+      await tester.enterText(find.widgetWithText(TextField, '   '), 'A');
+      await tester.pumpAndSettle();
+      expect(error, findsNothing);
     },
   );
 

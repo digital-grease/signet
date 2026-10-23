@@ -46,6 +46,7 @@ class _PairTransportInScreenState
     extends ConsumerState<PairTransportInScreen> {
   final TextEditingController _packageController = TextEditingController();
   final TextEditingController _labelController = TextEditingController();
+  String? _labelError;
   List<String> _pakeWords = const <String>[];
   int _pakeResetKey = 0;
 
@@ -192,12 +193,15 @@ class _PairTransportInScreenState
     final l10n = AppLocalizations.of(context);
     final rejection = LabelPolicy.check(label);
     if (rejection != null) {
-      setState(() => _unlockError = rejection == LabelRejection.empty
+      setState(() => _labelError = rejection == LabelRejection.empty
           ? l10n.commonGiveContactName
           : labelRejectionText(rejection, l10n));
       return;
     }
-    setState(() => _committing = true);
+    setState(() {
+      _committing = true;
+      _labelError = null;
+    });
     try {
       final role = PairRole.assign(
         ourPublicKey: unlocked.ourKeyPair.publicKey,
@@ -451,7 +455,11 @@ class _PairTransportInScreenState
               utf8ByteCounter(_labelController, LabelPolicy.maxBytes),
           decoration: InputDecoration(
             hintText: l10n.commonNameHintExample,
+            errorText: _labelError,
           ),
+          onChanged: (_) {
+            if (_labelError != null) setState(() => _labelError = null);
+          },
         ),
         if (_unlockError != null) ...<Widget>[
           const SizedBox(height: 8),

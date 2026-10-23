@@ -131,6 +131,9 @@ versions still restore on 0.4.0.
   fails.
 - The "not verified" help now has a button straight to the binding
   phrase it mentions.
+- In long-distance pairing, "Give this contact a name." now shows on the
+  contact name box (on the sending phone it appeared under "Your name")
+  and goes away as soon as you type.
 - Crash reports and debug logs remove more kinds of secret before they
   are saved or shared: keys printed as lists of numbers, the storage
   format of secrets, the input a parse error echoes, the 8 backup words

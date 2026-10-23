@@ -116,7 +116,18 @@ void main() {
     await tester.tap(find.text('GENERATE PACKAGE'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Give this contact a name.'), findsOneWidget);
+    // Shown on the contact-name field itself, not under "Your name".
+    final error = find.text('Give this contact a name.');
+    expect(error, findsOneWidget);
+    final field = tester.widget<TextField>(
+      find.ancestor(of: error, matching: find.byType(TextField)),
+    );
+    expect(field.decoration?.hintText, 'e.g. Alice');
+
+    // Typing in the field clears the error.
+    await tester.enterText(find.byType(TextField).first, 'A');
+    await tester.pumpAndSettle();
+    expect(error, findsNothing);
   });
 
   testWidgets(
