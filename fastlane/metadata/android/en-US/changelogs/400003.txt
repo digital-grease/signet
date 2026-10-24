@@ -2,4 +2,4 @@ v0.4.0
 
 Both phones need Signet 0.4.0 or later to pair. Backups made with 0.4.0 need 0.4.0 or later to restore. Update only from the store you installed Signet from.
 
-New: safer in-person pairing (one phone taps Start, the other Join), 8-word check for long-distance pairing, and backups in two parts you keep apart: a PACKAGE file and 8 words. Plus fixes to verify, restore, the clipboard and large text.
+New: safer in-person pairing (one phone taps Start, the other Join), 8-word check for long-distance pairing, and backups in two parts you keep apart: a PACKAGE file and 8 words. Signet's language can be set apart from the phone's (Android 13+). Plus fixes to verify, restore, the clipboard and large text.

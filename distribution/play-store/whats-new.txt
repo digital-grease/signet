@@ -5,6 +5,7 @@ v0.4.0: safer pairing and two-part backups.
 • In-person pairing: one phone taps Start, the other Join.
 • Long-distance pairing checks 8 words.
 • Backups are two parts you keep apart: a PACKAGE file and 8 words.
+• Set Signet's language on its own (Android 13+).
 • Fixes to verify, restore, the clipboard and large text.
 
 Issues: https://github.com/digital-grease/signet/issues.
