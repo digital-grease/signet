@@ -172,6 +172,34 @@ also checks that no two words of a list share a folded form or their
 first 4 letters, and that NFC, NFD and accent-free input give the
 same index.
 
+**Chinese list zh-1 (frozen 2026-10-26, not yet shown or accepted).**
+Embedded at `lib/core/crypto/zh_wordlist.dart`: 2048 Mandarin words of
+two or three characters, curated by Signet (not a BIP-39 list), built
+by `tool/zh_wordlist/` (selection, review and listening checks in its
+README). Each entry holds the simplified form, the Taiwan traditional
+form (OpenCC `s2tw`), other accepted written forms (OpenCC `s2t`,
+`s2hk`), Mainland pinyin, Taiwan Zhuyin, a canonical toneless key
+(ASCII, ü written v) and the accepted Latin readings; entries are in
+key order. There is no upstream file, so the checksum is over Signet's
+own serialization: UTF-8, NFC, one line per index in index order,
+fields joined by U+0009, multi-valued fields by U+002C, LF line ends.
+
+| List | SHA-256 of the serialization |
+|------|------------------------------|
+| zh-1 | `13c5f616df16fb69bbe4e2332f17cf071ccb85db6be2734b2a1f078696203dc0` |
+
+`test/crypto/zh_wordlist_test.dart` recomputes it and checks that every
+written form names one entry across scripts, that keys are unique,
+follow the pinyin and set the order, and that pinyin and Zhuyin have
+one syllable per character. `uv run freeze.py --check` in
+`tool/zh_wordlist/` regenerates the file and fails on any difference.
+Sources and licences: HSK 3.0 syllabus (GF0025-2021) and SUBTLEX-CH for
+the selection; pypinyin (MIT) for pinyin; OpenCC (Apache-2.0) for
+traditional forms; libchewing data (LGPL-2.1-or-later) or McBopomofo
+(MIT) for Zhuyin. Readings were checked against the MOE dictionary,
+which is not a source of anything shipped. The list never changes; any
+change is a new list id (`zh-2`).
+
 **In-tree assertions:**
 - `test/crypto/verification_test.dart` — every word derived by
   `PairingVerification.derivePhrase` is a BIP-39 member.
