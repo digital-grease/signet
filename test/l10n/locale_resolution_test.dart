@@ -13,6 +13,18 @@ void main() {
     expect(resolve(const [Locale('en', 'US')]), const Locale('en'));
   });
 
+  test('French devices resolve to fr, whatever the region', () {
+    for (final locale in const [
+      Locale('fr'),
+      Locale('fr', 'FR'),
+      Locale('fr', 'CA'),
+      Locale('fr', 'BE'),
+      Locale('fr', 'CH'),
+    ]) {
+      expect(resolve([locale]), const Locale('fr'), reason: '$locale');
+    }
+  });
+
   test('Simplified Chinese devices resolve to zh', () {
     expect(resolve(const [Locale('zh')]), const Locale('zh'));
     expect(resolve(const [Locale('zh', 'CN')]), const Locale('zh'));
@@ -62,7 +74,7 @@ void main() {
   });
 
   test('unsupported or empty preferences fall back to English', () {
-    expect(resolve(const [Locale('fr', 'FR')]), const Locale('en'));
+    expect(resolve(const [Locale('de', 'DE')]), const Locale('en'));
     expect(resolve(const []), const Locale('en'));
     expect(resolveSignetLocale(null, supported), const Locale('en'));
   });

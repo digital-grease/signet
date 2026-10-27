@@ -21,6 +21,8 @@ import 'package:signet/l10n/app_localizations.dart';
 import '../support/fake_secure_store.dart';
 import '../support/in_person_pairing.dart';
 
+const _locales = <Locale>[Locale('en'), Locale('fr')];
+
 const _cases = <(Size, double)>[
   (Size(360, 640), 1.3),
   (Size(412, 915), 2.0),
@@ -42,8 +44,11 @@ void main() {
     expect(find.text(text).hitTestable(), findsOneWidget, reason: text);
   }
 
+  for (final locale in _locales) {
+  final l10n = lookupAppLocalizations(locale);
   for (final (size, scale) in _cases) {
-    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    final tag =
+        '${locale.languageCode} ${size.width.toInt()}x${size.height.toInt()} @${scale}x';
 
     testWidgets('empty Home, $tag', (tester) async {
       await setScreen(tester, size, scale);
@@ -60,13 +65,14 @@ void main() {
           secureStoreProvider.overrideWithValue(FakeSecureStore()),
         ],
         child: MaterialApp.router(
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
         ),
       ));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      final l10n = lookupAppLocalizations(const Locale('en'));
       await reach(tester, l10n.homeEmptyPairContactButton);
       await reach(tester, l10n.homeEmptyRestoreBackupButton);
       expect(tester.takeException(), isNull);
@@ -87,14 +93,17 @@ void main() {
         ],
       );
       await tester.pumpWidget(MaterialApp.router(
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
       ));
       await tester.pumpAndSettle();
-      for (var i = 0; i < 8 && find.text('CONTINUE').evaluate().isNotEmpty; i++) {
+      final next = l10n.onboardingContinueButton;
+      for (var i = 0; i < 8 && find.text(next).evaluate().isNotEmpty; i++) {
         expect(tester.takeException(), isNull, reason: 'slide $i');
-        expect(find.text('CONTINUE').hitTestable(), findsOneWidget);
-        await tester.tap(find.text('CONTINUE'));
+        expect(find.text(next).hitTestable(), findsOneWidget);
+        await tester.tap(find.text(next));
         await tester.pumpAndSettle();
       }
       expect(tester.takeException(), isNull);
@@ -103,7 +112,9 @@ void main() {
     testWidgets('two-step backup export, $tag', (tester) async {
       await setScreen(tester, size, scale);
       await tester.pumpWidget(MaterialApp(
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
             child: TwoStepBackupSaver(
@@ -123,18 +134,19 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
-      await reach(tester, 'I saved it another way');
-      await tester.tap(find.text('I saved it another way'));
+      await reach(tester, l10n.backupSavedAnotherWay);
+      await tester.tap(find.text(l10n.backupSavedAnotherWay));
       await tester.pumpAndSettle();
-      await reach(tester, 'I wrote them on paper');
-      await reach(tester, "I'VE SAVED BOTH");
+      await reach(tester, l10n.backupWroteOnPaper);
+      await reach(tester, l10n.backupSavedBoth);
       expect(tester.takeException(), isNull);
     });
   }
 
   // Phase 5 review: the pairing screens had the same overflow.
   for (final (size, scale) in _cases) {
-    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    final tag =
+        '${locale.languageCode} ${size.width.toInt()}x${size.height.toInt()} @${scale}x';
 
     Widget routed(String location, Widget screen,
             {ProviderContainer? container}) =>
@@ -144,7 +156,9 @@ void main() {
                 secureStoreProvider.overrideWithValue(FakeSecureStore()),
               ]),
           child: MaterialApp.router(
+            locale: locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: GoRouter(
               initialLocation: location,
               routes: <RouteBase>[
@@ -160,7 +174,7 @@ void main() {
       await tester.pumpWidget(routed('/pair/start', const PairStartScreen()));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await reach(tester, 'Continue');
+      await reach(tester, l10n.pairStartContinueButton);
     });
 
     testWidgets('pair complete, $tag', (tester) async {
@@ -169,7 +183,7 @@ void main() {
           '/pair/complete/x', const PairCompleteScreen(relationshipId: 'x')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await reach(tester, 'SKIP — DO IT LATER');
+      await reach(tester, l10n.pairCompleteSkipButton);
     });
 
     testWidgets('pair confirm, $tag', (tester) async {
@@ -185,8 +199,9 @@ void main() {
           container: container));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await reach(tester, 'It matches');
+      await reach(tester, l10n.pairConfirmMatchButton);
     });
+  }
   }
 
   testWidgets('pair start with the keyboard up at normal text, 360x640',
