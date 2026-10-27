@@ -6,6 +6,7 @@ import '../../core/crypto/backup_bundle.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
@@ -87,9 +88,12 @@ class _BulkBackupExportScreenState
       if (records.isEmpty) {
         throw StateError(l10n.bulkBackupExportNoSecretsError);
       }
-      // Spelled in the phone's default word language once there is one
-      // (plan Task 1.4); English until then.
-      final pakeWords = TransportPackage.mintPakeWords();
+      // The contacts may each use a different language: the words follow
+      // the phone's default (word-language spike §2). Any Signet that
+      // reads the list can type them back.
+      final pakeWords = TransportPackage.mintPakeWords(
+        list: ref.read(defaultWordListProvider),
+      );
       final wire = await TransportPackage.encodeBlk(
         records: records,
         pakeWords: pakeWords,

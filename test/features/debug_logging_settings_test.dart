@@ -19,6 +19,7 @@ import 'package:signet/features/settings/settings_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 import '../support/in_memory_secure_storage.dart';
 
 DebugLog _wiredDebugLog(Directory dir, {DateTime Function()? now}) {
@@ -229,6 +230,7 @@ void main() {
           overrides: [
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(_wiredDebugLog(dir)),
+            appPrefsProvider.overrideWithValue(await testPrefs()),
           ],
           child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: HomeScreen()),
         ),
@@ -249,6 +251,7 @@ void main() {
           overrides: [
             secureStoreProvider.overrideWithValue(FakeSecureStore()),
             debugLogProvider.overrideWithValue(debugLog),
+            appPrefsProvider.overrideWithValue(await testPrefs()),
           ],
           child: const MaterialApp(localizationsDelegates: AppLocalizations.localizationsDelegates, home: HomeScreen()),
         ),

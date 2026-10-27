@@ -1978,4 +1978,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordLanguageDamagedMessage(String label) {
     return 'The word language saved for $label came from a damaged backup, so their words cannot be shown. Pair with $label again, in person if you can.';
   }
+
+  @override
+  String get wordLanguageTitle => 'Word language';
+
+  @override
+  String get wordLanguagePickerBody =>
+      'Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.';
+
+  @override
+  String get settingsWordLanguageSection => 'WORD LANGUAGE';
+
+  @override
+  String get settingsWordLanguageBody =>
+      'The language of the words for new contacts. Contacts you already have keep theirs.';
+
+  @override
+  String wordLanguageSampleSemantics(String language, String sample) {
+    return '$language. Words look like: $sample';
+  }
+
+  @override
+  String homeWordLanguageNotice(String language) {
+    return 'Signet can now show your words in $language. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.';
+  }
+
+  @override
+  String get homeWordLanguageNoticeSettings => 'SETTINGS';
 }

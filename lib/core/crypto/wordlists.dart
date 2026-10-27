@@ -13,22 +13,33 @@ import 'bip39_english_wordlist.dart';
 import 'bip39_french_wordlist.dart';
 
 class WordList {
-  WordList._(this.id, this.words, this._fold)
+  WordList._(this.id, this.endonym, this.words, this._fold)
       : assert(words.length == size),
         _index = {
           for (var i = 0; i < words.length; i++) _fold(words[i])!: i,
         };
 
   static final WordList english =
-      WordList._('en', bip39EnglishWordlist, _latinFold);
+      WordList._('en', 'English', bip39EnglishWordlist, _latinFold);
   static final WordList french =
-      WordList._('fr', bip39FrenchWordlist, _latinFold);
+      WordList._('fr', 'Français', bip39FrenchWordlist, _latinFold);
 
   /// Every list this version can read, English first.
   static final List<WordList> shipped = [english, french];
 
   /// Words in every list: one per 11-bit index.
   static const int size = 2048;
+
+  /// The first shipped list for one of [languageCodes] (BCP-47 primary
+  /// language subtags, most preferred first, as the device lists them), or
+  /// null when none has a list.
+  static WordList? suggestFor(Iterable<String> languageCodes) {
+    for (final code in languageCodes) {
+      final list = byId(code.toLowerCase());
+      if (list != null) return list;
+    }
+    return null;
+  }
 
   /// The shipped list registered as [id], or null for an id this version
   /// does not have.
@@ -39,8 +50,13 @@ class WordList {
     return null;
   }
 
-  /// Registered wordlist id (the `0x01` extension value in a later release).
+  /// Registered wordlist id: the `0x01` extension value in backups
+  /// (docs/WIRE_FORMAT.md).
   final String id;
+
+  /// The language's own name for itself ("Français"), shown on pickers
+  /// whatever the UI language, so a person finds their language by sight.
+  final String endonym;
 
   /// The 2048 words, precomposed (NFC), as shown to users.
   final List<String> words;

@@ -4,12 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/models/relationship.dart';
+import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/home/home_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 
 Widget _wrap({required FakeSecureStore store}) {
   final router = GoRouter(
@@ -52,7 +55,10 @@ Widget _wrap({required FakeSecureStore store}) {
     ],
   );
   return ProviderScope(
-    overrides: [secureStoreProvider.overrideWithValue(store)],
+    overrides: [
+      secureStoreProvider.overrideWithValue(store),
+      appPrefsProvider.overrideWithValue(_prefs),
+    ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: signetTheme(dark: false),
@@ -76,7 +82,10 @@ Relationship _rel({
       silentHaptics: silentHaptics,
     );
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
   final mom = _rel(id: 'ab123cdef', label: 'Mom');
   final secret = List<int>.generate(32, (i) => i);
 

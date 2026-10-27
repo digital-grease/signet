@@ -10,6 +10,7 @@ import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/word_language_options.dart';
 import 'debug_logging_controller.dart';
 import 'log_export_sheet.dart';
 
@@ -36,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final wordList = ref.watch(defaultWordListProvider);
     final relationshipsAsync = ref.watch(relationshipsProvider);
     final relationshipCount = relationshipsAsync.maybeWhen(
       data: (rels) => rels.length,
@@ -63,6 +65,16 @@ class SettingsScreen extends ConsumerWidget {
                   current: themeMode,
                   onChanged: (mode) =>
                       ref.read(themeModeProvider.notifier).set(mode),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _Section(
+                title: l10n.settingsWordLanguageSection,
+                body: l10n.settingsWordLanguageBody,
+                child: WordLanguageOptions(
+                  selected: wordList,
+                  onChanged: (list) =>
+                      ref.read(defaultWordListProvider.notifier).set(list),
                 ),
               ),
               const SizedBox(height: 12),

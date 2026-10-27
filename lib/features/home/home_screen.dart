@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
@@ -379,6 +381,21 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final relationshipsAsync = ref.watch(relationshipsProvider);
     final debugActive = ref.watch(debugLoggingProvider).active;
+    final wordLanguageList = ref.watch(wordLanguageNoticeProvider);
+    // Scrolls with the list, never above it: at 2x text a fixed notice
+    // pushed the contacts and its own buttons off screen.
+    final wordLanguageNotice = wordLanguageList == null
+        ? null
+        : _WordLanguageNotice(
+            list: wordLanguageList,
+            onSettings: () {
+              unawaited(
+                  ref.read(wordLanguageNoticeProvider.notifier).dismiss());
+              context.push('/settings');
+            },
+            onDismiss: () => unawaited(
+                ref.read(wordLanguageNoticeProvider.notifier).dismiss()),
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -471,8 +488,9 @@ class HomeScreen extends ConsumerWidget {
                     onRetry: () => ref.invalidate(relationshipsProvider),
                   ),
                   data: (relationships) => relationships.isEmpty
-                      ? const _EmptyState()
+                      ? _EmptyState(notice: wordLanguageNotice)
                       : _PairedList(
+                          notice: wordLanguageNotice,
                           relationships: relationships,
                           onTapRow: (r) => context.push('/verify/${r.id}'),
                           onLongPressRow: (r) => _openRowMenu(context, ref, r),
@@ -492,6 +510,55 @@ class HomeScreen extends ConsumerWidget {
                 label: Text(AppLocalizations.of(context).homeFabPair),
               ),
         orElse: () => null,
+      ),
+    );
+  }
+}
+
+/// One-time notice after upgrading to the first version with word
+/// languages, when the phone's language has a word list (plan Task 1.4).
+/// Shown until either button is tapped.
+class _WordLanguageNotice extends StatelessWidget {
+  const _WordLanguageNotice({
+    required this.list,
+    required this.onSettings,
+    required this.onDismiss,
+  });
+
+  final WordList list;
+  final VoidCallback onSettings;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: scheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              l10n.homeWordLanguageNotice(list.endonym),
+              style: TextStyle(color: scheme.onSecondaryContainer),
+            ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              children: <Widget>[
+                TextButton(
+                  onPressed: onSettings,
+                  child: Text(l10n.homeWordLanguageNoticeSettings),
+                ),
+                TextButton(
+                  onPressed: onDismiss,
+                  child: Text(l10n.commonGotIt),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -546,7 +613,10 @@ class _DebugRecordingBanner extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({this.notice});
+
+  /// Shown first, inside the scroll.
+  final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
@@ -555,6 +625,7 @@ class _EmptyState extends StatelessWidget {
     return FillOrScroll(child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        if (notice != null) ...<Widget>[notice!, const SizedBox(height: 12)],
         const Spacer(),
         Center(
           child: Container(
@@ -625,7 +696,11 @@ class _PairedList extends StatelessWidget {
     required this.relationships,
     required this.onTapRow,
     required this.onLongPressRow,
+    this.notice,
   });
+
+  /// Shown as the first item, so it scrolls away with the list.
+  final Widget? notice;
 
   final List<Relationship> relationships;
   final void Function(Relationship) onTapRow;
@@ -643,13 +718,17 @@ class _PairedList extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.only(bottom: 96),
-            itemCount: relationships.length,
+            itemCount: relationships.length + (notice == null ? 0 : 1),
             separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (_, i) => _RelationshipRow(
-              relationship: relationships[i],
-              onTap: () => onTapRow(relationships[i]),
-              onLongPress: () => onLongPressRow(relationships[i]),
-            ),
+            itemBuilder: (_, index) {
+              final i = notice == null ? index : index - 1;
+              if (i < 0) return notice!;
+              return _RelationshipRow(
+                relationship: relationships[i],
+                onTap: () => onTapRow(relationships[i]),
+                onLongPress: () => onLongPressRow(relationships[i]),
+              );
+            },
           ),
         ),
       ],

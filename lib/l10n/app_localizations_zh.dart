@@ -1875,4 +1875,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String wordLanguageDamagedMessage(String label) {
     return '$label 的单词语言来自一个损坏的备份，因此无法显示其单词。请与 $label 重新配对，最好当面进行。';
   }
+
+  @override
+  String get wordLanguageTitle => '单词语言';
+
+  @override
+  String get wordLanguagePickerBody =>
+      'Signet 会显示一些简短的单词，你们互相读给对方听，以证明身份。请选择这些单词的语言。你和每位配对的人必须为彼此选择相同的语言。配对时，你可以为某位联系人选择不同的语言。';
+
+  @override
+  String get settingsWordLanguageSection => '单词语言';
+
+  @override
+  String get settingsWordLanguageBody => '新联系人的单词所用的语言。已有的联系人保持各自的语言。';
+
+  @override
+  String wordLanguageSampleSemantics(String language, String sample) {
+    return '$language。单词示例：$sample';
+  }
+
+  @override
+  String homeWordLanguageNotice(String language) {
+    return 'Signet 现在可以用$language显示你的单词。要让新联系人使用它，请在设置中选择。已有的联系人仍使用英语，直到你们双方都更改：在主屏幕上长按该联系人。';
+  }
+
+  @override
+  String get homeWordLanguageNoticeSettings => '设置';
 }

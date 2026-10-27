@@ -114,6 +114,11 @@ Future<void> main() async {
       await seedMockContactsIfEnabled(SecureStore());
       await prefs.setOnboardingCompleted(true);
     }
+    // The raw device list, not the resolved UI locale: the words can be
+    // French on a phone whose UI language has no catalog.
+    await prefs.settleWordLanguageForUpgrade(<String>[
+      for (final l in PlatformDispatcher.instance.locales) l.languageCode,
+    ]);
 
     runApp(
       ProviderScope(

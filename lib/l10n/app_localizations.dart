@@ -3259,6 +3259,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.'**
   String wordLanguageDamagedMessage(String label);
+
+  /// Title of the first-run word-language picker. When the UI is not English the picker also shows the English title under it, so a person who cannot read the UI language still finds the screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Word language'**
+  String get wordLanguageTitle;
+
+  /// Body of the first-run word-language picker (feature plan Task 5.3). 'Words' are Signet's verification words, not the app's interface language.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.'**
+  String get wordLanguagePickerBody;
+
+  /// Settings section title for the default word language. Uppercase like the other section titles.
+  ///
+  /// In en, this message translates to:
+  /// **'WORD LANGUAGE'**
+  String get settingsWordLanguageSection;
+
+  /// Settings section body: the default only affects new pairings.
+  ///
+  /// In en, this message translates to:
+  /// **'The language of the words for new contacts. Contacts you already have keep theirs.'**
+  String get settingsWordLanguageBody;
+
+  /// Screen-reader label of one word-language option: the language name and three sample words in that language.
+  ///
+  /// In en, this message translates to:
+  /// **'{language}. Words look like: {sample}'**
+  String wordLanguageSampleSemantics(String language, String sample);
+
+  /// One-time notice on Home after upgrading to the first version with word languages, when the phone's language has a word list. {language} is the language's own name (e.g. Français).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet can now show your words in {language}. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.'**
+  String homeWordLanguageNotice(String language);
+
+  /// Button on the one-time word-language notice: opens Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get homeWordLanguageNoticeSettings;
 }
 
 class _AppLocalizationsDelegate

@@ -1543,5 +1543,26 @@
   "@wordLanguageUnknownWarning": {"description": "Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.", "placeholders": {"label": {"type": "String"}}},
 
   "wordLanguageDamagedMessage": "The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.",
-  "@wordLanguageDamagedMessage": {"description": "Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.", "placeholders": {"label": {"type": "String"}}}
+  "@wordLanguageDamagedMessage": {"description": "Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageTitle": "Word language",
+  "@wordLanguageTitle": {"description": "Title of the first-run word-language picker. When the UI is not English the picker also shows the English title under it, so a person who cannot read the UI language still finds the screen."},
+
+  "wordLanguagePickerBody": "Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.",
+  "@wordLanguagePickerBody": {"description": "Body of the first-run word-language picker (feature plan Task 5.3). 'Words' are Signet's verification words, not the app's interface language."},
+
+  "settingsWordLanguageSection": "WORD LANGUAGE",
+  "@settingsWordLanguageSection": {"description": "Settings section title for the default word language. Uppercase like the other section titles."},
+
+  "settingsWordLanguageBody": "The language of the words for new contacts. Contacts you already have keep theirs.",
+  "@settingsWordLanguageBody": {"description": "Settings section body: the default only affects new pairings."},
+
+  "wordLanguageSampleSemantics": "{language}. Words look like: {sample}",
+  "@wordLanguageSampleSemantics": {"description": "Screen-reader label of one word-language option: the language name and three sample words in that language.", "placeholders": {"language": {"type": "String"}, "sample": {"type": "String"}}},
+
+  "homeWordLanguageNotice": "Signet can now show your words in {language}. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.",
+  "@homeWordLanguageNotice": {"description": "One-time notice on Home after upgrading to the first version with word languages, when the phone's language has a word list. {language} is the language's own name (e.g. Français).", "placeholders": {"language": {"type": "String"}}},
+
+  "homeWordLanguageNoticeSettings": "SETTINGS",
+  "@homeWordLanguageNoticeSettings": {"description": "Button on the one-time word-language notice: opens Settings."}
 }
