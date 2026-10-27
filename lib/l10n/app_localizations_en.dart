@@ -362,7 +362,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRowMenuVerifyVideoSubtitle =>
-      'Adds a physical-action check — deepfake-resistant';
+      'Also checks a gesture. Resists deepfakes.';
 
   @override
   String get homeRowMenuCrGrid => 'Challenge-response grid';
@@ -1788,18 +1788,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyVideoModeSemanticsHint =>
-      'Turn on to also check a physical action on video.';
+      'Turn on to also check a gesture on video.';
 
   @override
   String get verifyVideoModeHeader => 'VIDEO CALL //';
 
   @override
   String get verifyVideoModeOnText =>
-      'Request a physical action too. Defeats deepfakes.';
+      'Also checks a gesture. Never say it aloud. Defeats deepfakes.';
 
   @override
-  String get verifyVideoModeOffText =>
-      'Turn on to also check a physical action.';
+  String get verifyVideoModeOffText => 'Turn on to also check a gesture.';
 
   @override
   String get verifyWatchForHeader => 'WATCH FOR //';

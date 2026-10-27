@@ -817,7 +817,7 @@
 
   "verifyVideoModeHeader": "视频通话 //",
 
-  "verifyVideoModeOnText": "额外要求一个肢体动作。可击败深度伪造。",
+  "verifyVideoModeOnText": "额外检查一个肢体动作，不要说出来。可抵御深度伪造。",
 
   "verifyVideoModeOffText": "开启后额外检查一个肢体动作。",
 
