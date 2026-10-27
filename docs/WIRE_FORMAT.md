@@ -270,6 +270,7 @@ loudly instead of being repaired downstream.
 
 | Tag | Critical | Name | Payloads | Value | Since |
 |---|---|---|---|---|---|
+| `0x01` | no | Word-list id | LPR, BLK record | UTF-8 registered word-list id: `en` (BIP-39 English), `fr` (BIP-39 French). Ids match `[a-z0-9-]{2,16}`. A missing tag means `en`. A well-formed id the decoder does not know is kept on the contact and written back on re-export; its words cannot be shown until Signet is updated. Any other value (not UTF-8, other characters, wrong length) is a damaged tag: the contact keeps its secret and is marked damaged (stored and re-exported as `!`, which no id can be). | 0.5.0 |
 | `0x81` | yes | Strong pair-time phrase | LDP | 1 byte, the phrase scheme: `0x01` = the 8-word long-distance phrase above. A value that is not exactly one byte is a damaged package; another scheme value needs a newer Signet. | 0.4.0 |
 
 Known critical tags are per payload type. `0x81` is understood only in

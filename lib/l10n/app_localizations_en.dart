@@ -1963,4 +1963,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get verifyWatchForChangedAnnouncement =>
       'New gesture to watch for. Touch the WATCH FOR line to hear it.';
+
+  @override
+  String wordLanguageUnknownMessage(String label) {
+    return '$label\'s words use a language this version of Signet does not have. Update Signet to see them.';
+  }
+
+  @override
+  String wordLanguageUnknownWarning(String label) {
+    return 'Until this is fixed you cannot check $label. Do not act on an urgent request: hang up and call $label back on a number you already know.';
+  }
+
+  @override
+  String wordLanguageDamagedMessage(String label) {
+    return 'The word language saved for $label came from a damaged backup, so their words cannot be shown. Pair with $label again, in person if you can.';
+  }
 }

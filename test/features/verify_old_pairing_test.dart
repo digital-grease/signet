@@ -58,11 +58,12 @@ void main() {
     }
   }
 
-  void seedOld({DateTime? savedAt}) {
+  void seedOld({DateTime? savedAt, String wordLanguage = 'en'}) {
     store.previous['abc'] = PreviousPairing(
       secret: Uint8List.fromList(_oldSecret),
       role: _oldRole,
       savedAt: savedAt ?? DateTime.utc(2025, 1, 1, 12),
+      wordLanguage: wordLanguage,
     );
   }
 
@@ -81,6 +82,16 @@ void main() {
     expect(find.textContaining('before a rekey'), findsOneWidget);
     expect(find.textContaining('treat this call as a scam'), findsOneWidget);
     expect(find.text('VERIFIED'), findsNothing);
+  });
+
+  testWidgets(
+      'old words are read in the old pairing\'s language: one this '
+      'version lacks gets no note (v0.5.0 Task 1.3)', (tester) async {
+    seedOld(wordLanguage: 'zh-9');
+    await open(tester);
+    await type(tester, await oldPairingWords());
+    expect(find.text('NOT VERIFIED — BE SUSPICIOUS'), findsOneWidget);
+    expect(find.textContaining('before a rekey'), findsNothing);
   });
 
   testWidgets('with no old pairing kept, the same words get no note',

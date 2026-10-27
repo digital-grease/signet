@@ -8,6 +8,7 @@ import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_notice.dart';
 import 'cr_grid_pdf.dart';
 
 /// Digital viewer for the challenge-response grid. Renders the full 8×8
@@ -52,6 +53,10 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
       if (relationship == null || secret == null) {
         setState(() => _loadError = StateError(
             AppLocalizations.of(context).commonRelationshipNotFound));
+        return;
+      }
+      if (relationship.knownWordList == null) {
+        setState(() => _relationship = relationship);
         return;
       }
       final grid = await ChallengeResponseGrid.derive(
@@ -121,6 +126,12 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     }
     final grid = _grid;
     final relationship = _relationship;
+    if (relationship != null && relationship.knownWordList == null) {
+      return WordLanguageUnknownNotice(
+        label: relationship.label,
+        damaged: relationship.wordLanguageDamaged,
+      );
+    }
     if (grid == null || relationship == null) {
       return const Center(child: CircularProgressIndicator());
     }

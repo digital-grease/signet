@@ -104,7 +104,11 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
           keepPrevious: true,
         );
       } else {
-        relationship = Relationship.fresh(label: label, role: role);
+        relationship = Relationship.fresh(
+          label: label,
+          role: role,
+          wordLanguage: _wordList.id,
+        );
         await store.saveRelationshipV2(relationship, sharedSecret: secret);
       }
       ref

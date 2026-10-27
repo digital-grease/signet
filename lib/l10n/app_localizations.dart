@@ -3241,6 +3241,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New gesture to watch for. Touch the WATCH FOR line to hear it.'**
   String get verifyWatchForChangedAnnouncement;
+
+  /// Shown instead of a contact's words (verify, challenge grid, binding phrase) when the contact was restored from a backup made by a newer Signet with a word language this version lacks. Showing English words instead would fail against the real contact.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}\'s words use a language this version of Signet does not have. Update Signet to see them.'**
+  String wordLanguageUnknownMessage(String label);
+
+  /// Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.
+  ///
+  /// In en, this message translates to:
+  /// **'Until this is fixed you cannot check {label}. Do not act on an urgent request: hang up and call {label} back on a number you already know.'**
+  String wordLanguageUnknownWarning(String label);
+
+  /// Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.
+  ///
+  /// In en, this message translates to:
+  /// **'The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.'**
+  String wordLanguageDamagedMessage(String label);
 }
 
 class _AppLocalizationsDelegate

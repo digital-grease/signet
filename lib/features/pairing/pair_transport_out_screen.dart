@@ -256,7 +256,11 @@ class _PairTransportOutScreenState
         ourPublicKey: gen.ourKeyPair.publicKey,
         theirPublicKey: conf.peerPublicKey,
       );
-      final relationship = Relationship.fresh(label: gen.label, role: role);
+      final relationship = Relationship.fresh(
+        label: gen.label,
+        role: role,
+        wordLanguage: _wordList.id,
+      );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             relationship,
             sharedSecret: conf.totpSecret,

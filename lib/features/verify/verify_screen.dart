@@ -7,12 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/totp_words.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_notice.dart';
 import '../../shared/widgets/words_display.dart';
 import 'word_input.dart';
 
@@ -216,6 +218,8 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         _relationship = relationship;
         _secret = secret;
       });
+      // No words to show or check in a language this version lacks.
+      if (relationship.knownWordList == null) return;
       ref
           .read(debugLogProvider)
           .log(BreadcrumbEvent.verifyOpen, relationship: relationship);
@@ -327,13 +331,18 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       // stand between the user and the red result.
       try {
         final previous = await store.getPreviousPairing(relationship.id);
-        if (previous != null) {
+        // The other phone did not finish the rekey: its words are in the
+        // language the old pairing had.
+        final previousList = previous == null
+            ? null
+            : WordList.byId(previous.wordLanguage);
+        if (previous != null && previousList != null) {
           matchedOldPairing = await TotpWords.verify(
             secret: previous.secret,
             candidate: candidate,
             unixTimeSeconds: nowUnix,
             senderRole: previous.role.other,
-            list: relationship.wordList,
+            list: previousList,
           );
         }
       } catch (_) {
@@ -561,6 +570,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     final relationship = _relationship;
     if (relationship == null) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (relationship.knownWordList == null) {
+      return WordLanguageUnknownNotice(
+        label: relationship.label,
+        damaged: relationship.wordLanguageDamaged,
+      );
     }
 
     final scheme = Theme.of(context).colorScheme;

@@ -904,5 +904,11 @@
 
   "pakeMixedLanguagesError": "8 个单词必须是同一种语言。请确认它们抄自同一处。",
 
-  "verifyWatchForChangedAnnouncement": "有新的要注意观察的动作。轻触“注意观察”这一行即可听到。"
+  "verifyWatchForChangedAnnouncement": "有新的要注意观察的动作。轻触“注意观察”这一行即可听到。",
+
+  "wordLanguageUnknownMessage": "{label} 的单词使用了此版本 Signet 没有的语言。请更新 Signet 后再查看。",
+
+  "wordLanguageUnknownWarning": "在此问题解决之前，你无法验证 {label}。不要按紧急要求行事：请挂断电话，用你已知的号码回拨给 {label}。",
+
+  "wordLanguageDamagedMessage": "{label} 的单词语言来自一个损坏的备份，因此无法显示其单词。请与 {label} 重新配对，最好当面进行。"
 }

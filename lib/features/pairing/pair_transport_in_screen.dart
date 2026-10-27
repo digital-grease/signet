@@ -211,7 +211,11 @@ class _PairTransportInScreenState
         ourPublicKey: unlocked.ourKeyPair.publicKey,
         theirPublicKey: unlocked.senderPublicKey,
       );
-      final relationship = Relationship.fresh(label: label, role: role);
+      final relationship = Relationship.fresh(
+        label: label,
+        role: role,
+        wordLanguage: _wordList.id,
+      );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             relationship,
             sharedSecret: unlocked.totpSecret,

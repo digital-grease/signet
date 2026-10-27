@@ -7,6 +7,7 @@ import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_notice.dart';
 
 /// Re-derives the pair-time 4-word phrase from the currently-stored shared
 /// secret and renders it for the user to read aloud to the peer (who
@@ -52,6 +53,11 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
       if (relationship == null || secret == null) {
         if (!mounted) return;
         setState(() => _loadError = StateError('No paired contact.'));
+        return;
+      }
+      if (relationship.knownWordList == null) {
+        if (!mounted) return;
+        setState(() => _relationship = relationship);
         return;
       }
       final phrase = await PairingVerification.derivePhrase(
@@ -102,6 +108,12 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
     }
     final relationship = _relationship;
     final phrase = _phrase;
+    if (relationship != null && relationship.knownWordList == null) {
+      return WordLanguageUnknownNotice(
+        label: relationship.label,
+        damaged: relationship.wordLanguageDamaged,
+      );
+    }
     if (relationship == null || phrase == null) {
       return const Center(child: CircularProgressIndicator());
     }

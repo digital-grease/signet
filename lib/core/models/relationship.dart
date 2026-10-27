@@ -20,6 +20,8 @@ class Relationship {
     required this.pairedAt,
     required this.role,
     this.silentHaptics = false,
+    this.wordLanguage = defaultWordLanguage,
+    this.wordLanguageChangedAt,
   });
 
   factory Relationship.fromJson(String source) {
@@ -35,6 +37,11 @@ class Relationship {
     // to false (= haptics on, which is the grandma-test default). This is
     // an additive migration — no blob is invalidated.
     final silent = map['silentHaptics'] as bool?;
+    // wordLanguage was added in v0.5.0; every contact saved before it was
+    // English. Any string is kept as it is, even one this version does
+    // not know, so it survives a re-export (see [knownWordList]).
+    final language = map['wordLanguage'];
+    final changedAtMs = map['wordLanguageChangedAtMs'];
     return Relationship(
       id: map['id']! as String,
       label: map['label']! as String,
@@ -44,6 +51,10 @@ class Relationship {
       ),
       role: PairRole.fromWireName(roleWire),
       silentHaptics: silent ?? false,
+      wordLanguage: language is String ? language : defaultWordLanguage,
+      wordLanguageChangedAt: changedAtMs is int
+          ? DateTime.fromMillisecondsSinceEpoch(changedAtMs, isUtc: true)
+          : null,
     );
   }
 
@@ -52,6 +63,7 @@ class Relationship {
     required String label,
     required PairRole role,
     bool silentHaptics = false,
+    String wordLanguage = defaultWordLanguage,
     DateTime? now,
     Random? random,
   }) {
@@ -65,8 +77,13 @@ class Relationship {
       pairedAt: when.toUtc(),
       role: role,
       silentHaptics: silentHaptics,
+      wordLanguage: wordLanguage,
     );
   }
+
+  /// The word language of contacts saved before v0.5.0, and of restored
+  /// backups that do not say: English ([WordList.english]).
+  static const String defaultWordLanguage = 'en';
 
   final String id;
   final String label;
@@ -79,11 +96,37 @@ class Relationship {
   /// activist audience. Default `false` (haptics on) — grandma test wins.
   final bool silentHaptics;
 
+  /// The registered word-list id this pair agreed on ([WordList.id]):
+  /// `en`, `fr`, or an id from a newer Signet, kept as it came so a backup
+  /// made here carries it on. Backups carry it as transport-package
+  /// extension `0x01`.
+  final String wordLanguage;
+
+  /// When [wordLanguage] was last changed for an existing contact, shown
+  /// on the contact so a change a caller talked the user into leaves a
+  /// trace. Null when it never changed since pairing.
+  final DateTime? wordLanguageChangedAt;
+
+  /// The [wordLanguage] of a contact restored from a backup whose language
+  /// tag was damaged (`TransportPackage.damagedWordListId`, the same
+  /// value): it breaks the id grammar, so no list can ever have it.
+  static const String damagedWordLanguage = '!';
+
+  /// Whether [wordLanguage] came from a damaged backup tag: no update will
+  /// make its words showable.
+  bool get wordLanguageDamaged => wordLanguage == damagedWordLanguage;
+
+  /// The list [wordLanguage] names, or null when this version of Signet
+  /// does not have it. Word surfaces then ask the user to update Signet
+  /// instead of showing words: English words would fail against the real
+  /// contact.
+  WordList? get knownWordList => WordList.byId(wordLanguage);
+
   /// The list this contact's words are spelled in: the rotating words, the
   /// challenge grid, the binding phrase and the backup's PAKE words. Every
-  /// word surface for a contact reads it here. English until Task 1.3
-  /// stores a language per contact.
-  WordList get wordList => WordList.english;
+  /// word surface for a contact reads it here. English when
+  /// [knownWordList] is null; surfaces that show words check that first.
+  WordList get wordList => knownWordList ?? WordList.english;
 
   Relationship copyWith({
     String? id,
@@ -91,6 +134,8 @@ class Relationship {
     DateTime? pairedAt,
     PairRole? role,
     bool? silentHaptics,
+    String? wordLanguage,
+    DateTime? wordLanguageChangedAt,
   }) {
     return Relationship(
       id: id ?? this.id,
@@ -98,6 +143,9 @@ class Relationship {
       pairedAt: pairedAt ?? this.pairedAt,
       role: role ?? this.role,
       silentHaptics: silentHaptics ?? this.silentHaptics,
+      wordLanguage: wordLanguage ?? this.wordLanguage,
+      wordLanguageChangedAt:
+          wordLanguageChangedAt ?? this.wordLanguageChangedAt,
     );
   }
 
@@ -107,6 +155,10 @@ class Relationship {
         'pairedAtMs': pairedAt.toUtc().millisecondsSinceEpoch,
         'role': role.wireName,
         'silentHaptics': silentHaptics,
+        'wordLanguage': wordLanguage,
+        if (wordLanguageChangedAt != null)
+          'wordLanguageChangedAtMs':
+              wordLanguageChangedAt!.toUtc().millisecondsSinceEpoch,
       });
 
   @override
@@ -118,11 +170,16 @@ class Relationship {
           label == other.label &&
           pairedAt.isAtSameMomentAs(other.pairedAt) &&
           role == other.role &&
-          silentHaptics == other.silentHaptics;
+          silentHaptics == other.silentHaptics &&
+          wordLanguage == other.wordLanguage &&
+          _sameMoment(wordLanguageChangedAt, other.wordLanguageChangedAt);
+
+  static bool _sameMoment(DateTime? a, DateTime? b) =>
+      a == null ? b == null : b != null && a.isAtSameMomentAs(b);
 
   @override
-  int get hashCode =>
-      Object.hash(id, label, pairedAt.toUtc(), role, silentHaptics);
+  int get hashCode => Object.hash(id, label, pairedAt.toUtc(), role,
+      silentHaptics, wordLanguage, wordLanguageChangedAt?.toUtc());
 
   // The label is the human-identifying field on this model ("Mom", "Source A").
   // Per the Phase 7 leak-prevention audit it stays out of toString so the
@@ -132,5 +189,5 @@ class Relationship {
   String toString() =>
       'Relationship(id: $id, label: [redacted], role: ${role.wireName}, '
       'pairedAt: ${pairedAt.toIso8601String()}, '
-      'silentHaptics: $silentHaptics)';
+      'silentHaptics: $silentHaptics, wordLanguage: $wordLanguage)';
 }

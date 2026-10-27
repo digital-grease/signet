@@ -115,6 +115,7 @@ class FakeSecureStore implements SecureStore {
         secret: oldSecret,
         role: old.role,
         savedAt: now().toUtc(),
+        wordLanguage: old.wordLanguage,
       );
     }
     _relationships[relationship.id] = relationship;

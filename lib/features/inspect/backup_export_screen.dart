@@ -74,6 +74,9 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
         silentHaptics: relationship.silentHaptics,
         sharedSecret: secret,
         pakeWords: pakeWords,
+        extensions: [
+          TransportPackage.wordListExtension(relationship.wordLanguage),
+        ],
       );
       final fingerprint = await BackupFiles.fingerprint(wire);
       if (!mounted) return;

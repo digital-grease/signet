@@ -1534,5 +1534,14 @@
   "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."},
 
   "verifyWatchForChangedAnnouncement": "New gesture to watch for. Touch the WATCH FOR line to hear it.",
-  "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."}
+  "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."},
+
+  "wordLanguageUnknownMessage": "{label}'s words use a language this version of Signet does not have. Update Signet to see them.",
+  "@wordLanguageUnknownMessage": {"description": "Shown instead of a contact's words (verify, challenge grid, binding phrase) when the contact was restored from a backup made by a newer Signet with a word language this version lacks. Showing English words instead would fail against the real contact.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageUnknownWarning": "Until this is fixed you cannot check {label}. Do not act on an urgent request: hang up and call {label} back on a number you already know.",
+  "@wordLanguageUnknownWarning": {"description": "Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageDamagedMessage": "The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.",
+  "@wordLanguageDamagedMessage": {"description": "Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.", "placeholders": {"label": {"type": "String"}}}
 }

@@ -1860,4 +1860,19 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get verifyWatchForChangedAnnouncement =>
       '有新的要注意观察的动作。轻触“注意观察”这一行即可听到。';
+
+  @override
+  String wordLanguageUnknownMessage(String label) {
+    return '$label 的单词使用了此版本 Signet 没有的语言。请更新 Signet 后再查看。';
+  }
+
+  @override
+  String wordLanguageUnknownWarning(String label) {
+    return '在此问题解决之前，你无法验证 $label。不要按紧急要求行事：请挂断电话，用你已知的号码回拨给 $label。';
+  }
+
+  @override
+  String wordLanguageDamagedMessage(String label) {
+    return '$label 的单词语言来自一个损坏的备份，因此无法显示其单词。请与 $label 重新配对，最好当面进行。';
+  }
 }

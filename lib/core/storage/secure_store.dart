@@ -470,9 +470,10 @@ class SecureStore {
   /// This is the rekey path too, so an interrupted rekey can no longer
   /// make a paired contact disappear.
   ///
-  /// [keepPrevious] (rekey): the secret and role being replaced are kept
-  /// as the previous pairing ([getPreviousPairing]). They go into the same
-  /// journal entry, so they are saved before the old secret is overwritten.
+  /// [keepPrevious] (rekey): the secret, role and word language being
+  /// replaced are kept as the previous pairing ([getPreviousPairing]). They
+  /// go into the same journal entry, so they are saved before the old
+  /// secret is overwritten.
   Future<void> saveRelationshipV2(
     Relationship relationship, {
     required List<int> sharedSecret,
@@ -505,6 +506,7 @@ class SecureStore {
         previousJson = jsonEncode(<String, dynamic>{
           'secret': base64Encode(oldSecret),
           'role': oldRelationship.role.wireName,
+          'wordLanguage': oldRelationship.wordLanguage,
           'savedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
         });
       }
@@ -913,13 +915,14 @@ class _JournalEntry {
   String toString() => '_JournalEntry(op: $op, id: $id, secret: [redacted])';
 }
 
-/// The secret and role a relationship had before its last rekey (see
-/// [SecureStore.getPreviousPairing]).
+/// The secret, role and word language a relationship had before its last
+/// rekey (see [SecureStore.getPreviousPairing]).
 class PreviousPairing {
   PreviousPairing({
     required this.secret,
     required this.role,
     required this.savedAt,
+    this.wordLanguage = Relationship.defaultWordLanguage,
   });
 
   static PreviousPairing? _fromJson(String raw) {
@@ -933,12 +936,16 @@ class PreviousPairing {
           : null;
       final savedAt = map['savedAt'];
       if (secret is! String || role == null || savedAt is! int) return null;
+      // Kept since v0.5.0; an older entry was English.
+      final language = map['wordLanguage'];
       final bytes = base64Decode(secret);
       if (bytes.length != 32) return null;
       return PreviousPairing(
         secret: Uint8List.fromList(bytes),
         role: role,
         savedAt: DateTime.fromMillisecondsSinceEpoch(savedAt, isUtc: true),
+        wordLanguage:
+            language is String ? language : Relationship.defaultWordLanguage,
       );
     } on FormatException {
       return null;
@@ -950,6 +957,11 @@ class PreviousPairing {
   /// This device's role in the previous pairing.
   final PairRole role;
   final DateTime savedAt;
+
+  /// The word language of the previous pairing ([Relationship.wordLanguage]
+  /// at rekey time): the other phone, which did not finish the rekey, still
+  /// reads its words in it.
+  final String wordLanguage;
 
   // Never print secret material.
   @override

@@ -146,6 +146,43 @@ class TransportPackage {
     <int>[_ldpStrongPhraseScheme],
   );
 
+  /// Non-critical: the word-list id a contact's words use (`en`, `fr`;
+  /// [WordList.id]), as UTF-8, in each LPR and BLK record. Older builds
+  /// ignore it and restore the contact as English. Registered in
+  /// docs/WIRE_FORMAT.md.
+  static const int wordListTag = 0x01;
+
+  /// The [wordListTag] extension for word-list [id].
+  static TransportExtension wordListExtension(String id) =>
+      TransportExtension(wordListTag, utf8.encode(id));
+
+  /// The word-list id in [extensions], or null when there is none (a
+  /// package from v0.4.0 or earlier). A well-formed id this version does
+  /// not know is returned as it is, so a re-export carries it on. Anything
+  /// else (not UTF-8, wrong characters, too long) is a damaged tag and
+  /// comes back as [damagedWordListId]: short, so a hostile 64 KB value
+  /// cannot later make every backup too long, and never a real id, so the
+  /// contact's words are not shown in a wrong list. Never throws: a bad
+  /// tag must not cost the user the secret.
+  static String? wordListIdOf(Map<int, List<int>> extensions) {
+    final value = extensions[wordListTag];
+    if (value == null) return null;
+    final String text;
+    try {
+      text = utf8.decode(value);
+    } on FormatException {
+      return damagedWordListId;
+    }
+    return _wordListIdPattern.hasMatch(text) ? text : damagedWordListId;
+  }
+
+  /// What [wordListIdOf] returns for a damaged tag. It breaks the id
+  /// grammar on purpose, so no list can ever have it.
+  static const String damagedWordListId = '!';
+
+  /// A registered word-list id (docs/WIRE_FORMAT.md).
+  static final RegExp _wordListIdPattern = RegExp(r'^[a-z0-9-]{2,16}$');
+
   /// Critical tags this build understands, per payload type; any other
   /// critical tag is refused with an "update Signet" error. Per type so a
   /// tag understood in one payload is never silently ignored in another.

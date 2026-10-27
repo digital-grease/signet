@@ -78,6 +78,10 @@ class _BulkBackupExportScreenState
           label: LabelPolicy.truncateToBytes(r.label, LabelPolicy.maxBytes),
           pairedAt: r.pairedAt,
           silentHaptics: r.silentHaptics,
+          extensions: <int, List<int>>{
+            TransportPackage.wordListTag:
+                TransportPackage.wordListExtension(r.wordLanguage).value,
+          },
         ));
       }
       if (records.isEmpty) {

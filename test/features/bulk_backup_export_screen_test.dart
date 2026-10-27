@@ -79,6 +79,39 @@ Widget _wrap({required FakeSecureStore store}) {
 // ---------------------------------------------------------------------------
 
 void main() {
+  testWidgets('each record carries its contact\'s word language '
+      '(v0.5.0 Task 1.3)', (tester) async {
+    final mom = _pair(id: 'id-mom', label: 'Mom', secretSeed: 1);
+    final dad = _pair(id: 'id-dad', label: 'Dad', secretSeed: 2);
+    final store = await _storeWith(<_Pair>[
+      _Pair(mom.relationship.copyWith(wordLanguage: 'fr'), mom.secret),
+      _Pair(dad.relationship, dad.secret),
+    ]);
+    await tester.pumpWidget(_wrap(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE BULK BACKUP'));
+    await tester.pumpAndSettle();
+    final wire = tester
+        .widgetList<SelectableText>(find.byType(SelectableText))
+        .firstWhere((s) => (s.data ?? '').startsWith('signet:tp1:'))
+        .data!;
+    await tester.ensureVisible(find.text('I saved it another way'));
+    await tester.tap(find.text('I saved it another way'));
+    await tester.pumpAndSettle();
+    final words = tester
+        .widgetList<Text>(find.byType(Text))
+        .where((t) =>
+            t.style?.fontFamily == 'monospace' && t.style?.fontSize == 16)
+        .take(8)
+        .map((t) => t.data!)
+        .toList();
+    final decoded = await TransportPackage.decodeBlk(wire, pakeWords: words);
+    expect({
+      for (final r in decoded.records)
+        r.label: TransportPackage.wordListIdOf(r.extensions),
+    }, {'Mom': 'fr', 'Dad': 'en'});
+  });
+
   testWidgets(
     'three relationships — preview shows counts + labels; Generate produces a valid BLK bundle',
     (tester) async {

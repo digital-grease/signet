@@ -430,6 +430,9 @@ class _BackupImportScreenState extends ConsumerState<BackupImportScreen> {
         label: _restoredLabel(decoded),
         role: decoded.role,
         silentHaptics: decoded.silentHaptics,
+        // A backup from v0.4.0 or earlier has no word language: English.
+        wordLanguage: TransportPackage.wordListIdOf(decoded.extensions) ??
+            Relationship.defaultWordLanguage,
         now: decoded.pairedAt.toUtc(),
       );
       await ref.read(secureStoreProvider).saveRelationshipV2(

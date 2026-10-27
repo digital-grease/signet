@@ -543,6 +543,34 @@ void main() {
       }
     });
 
+    test('the old pairing keeps the word language it was made in '
+        '(v0.5.0 Task 1.3)', () async {
+      final storage = _FaultyStorage();
+      await SecureStore(storage: storage).saveRelationshipV2(
+          oldRel.copyWith(wordLanguage: 'fr'),
+          sharedSecret: oldSecret);
+      final store = SecureStore(storage: storage);
+      await store.saveRelationshipV2(newRel.copyWith(wordLanguage: 'en'),
+          sharedSecret: newSecret, keepPrevious: true);
+      expect((await store.getPreviousPairing(oldRel.id))!.wordLanguage, 'fr');
+      expect((await store.getRelationshipById(oldRel.id))!.wordLanguage, 'en');
+    });
+
+    test('an old pairing saved before v0.5.0 reads as English', () async {
+      final storage = await seededWithOld();
+      await storage.write(
+        key: 'signet.v2.prev.${oldRel.id}',
+        value: jsonEncode(<String, dynamic>{
+          'secret': base64Encode(oldSecret),
+          'role': 'a',
+          'savedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
+        }),
+      );
+      final previous =
+          await SecureStore(storage: storage).getPreviousPairing(oldRel.id);
+      expect(previous!.wordLanguage, 'en');
+    });
+
     test('unpair deletes the old secret too', () async {
       final storage = await seededWithOld();
       final store = SecureStore(storage: storage);

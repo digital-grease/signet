@@ -170,6 +170,9 @@ class _BulkBackupImportScreenState
       for (var i = 0; i < widget.decoded.records.length; i++) {
         final record = widget.decoded.records[i];
         final disposition = _dispositions[i] ?? _Disposition.skip;
+        // A backup from v0.4.0 or earlier has no word language: English.
+        final language = TransportPackage.wordListIdOf(record.extensions) ??
+            Relationship.defaultWordLanguage;
         // One record failing to save must not stop the rest, and the
         // summary counts what actually happened.
         String? writingId;
@@ -186,6 +189,7 @@ class _BulkBackupImportScreenState
                   pairedAt: record.pairedAt,
                   role: record.role,
                   silentHaptics: record.silentHaptics,
+                  wordLanguage: language,
                 ),
                 sharedSecret: record.sharedSecret,
               );
@@ -199,6 +203,7 @@ class _BulkBackupImportScreenState
                   pairedAt: record.pairedAt,
                   role: record.role,
                   silentHaptics: record.silentHaptics,
+                  wordLanguage: language,
                 ),
                 sharedSecret: record.sharedSecret,
               );
@@ -215,12 +220,18 @@ class _BulkBackupImportScreenState
               }
               // Reuse the existing id so verify screens keyed by id keep
               // working after the restore. Label stays the existing one.
+              // The word language is the backup's: its partner phone
+              // matched that secret in that language.
               writingId = target.id;
               await store.saveRelationshipV2(
                 target.copyWith(
                   pairedAt: record.pairedAt,
                   role: record.role,
                   silentHaptics: record.silentHaptics,
+                  wordLanguage: language,
+                  wordLanguageChangedAt: language == target.wordLanguage
+                      ? null
+                      : DateTime.now().toUtc(),
                 ),
                 sharedSecret: record.sharedSecret,
               );
