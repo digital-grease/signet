@@ -10,6 +10,7 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -44,6 +45,10 @@ enum _Phase { setup, shareAndWait, confirm }
 
 class _PairTransportOutScreenState
     extends ConsumerState<PairTransportOutScreen> {
+  /// The list this pairing's words are shown in. English until the
+  /// language row (plan Task 1.5) lets the user choose.
+  final WordList _wordList = WordList.english;
+
   final TextEditingController _labelController = TextEditingController();
   String? _labelError;
   // Optional: the sender's own name, sent as the hint the receiver's phone
@@ -107,7 +112,7 @@ class _PairTransportOutScreenState
     });
     try {
       final keyPair = await PairingHandshake.generateEphemeralKeyPair();
-      final pakeWords = TransportPackage.mintPakeWords();
+      final pakeWords = TransportPackage.mintPakeWords(list: _wordList);
       final outgoing = await TransportPackage.encodeLdpRequest(
         publicKey: keyPair.publicKey,
         labelHint: ownName,
@@ -585,7 +590,7 @@ class _PairTransportOutScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (var i = 0; i < conf.phrase.length; i++)
+              for (final (i, word) in _wordList.respell(conf.phrase).indexed)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -605,7 +610,7 @@ class _PairTransportOutScreenState
                       ),
                       Expanded(
                         child: Text(
-                          conf.phrase[i],
+                          word,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,
@@ -663,6 +668,9 @@ class _ConfirmState {
 
   final List<int> peerPublicKey;
   final List<int> totpSecret;
+
+  /// In English, the canonical rendering; shown through `_wordList`, so
+  /// the language switch (plan Task 1.5) re-renders the same indices.
   final List<String> phrase;
 }
 

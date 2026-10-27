@@ -113,7 +113,7 @@ final Map<String, List<String>> _foldedByList = {};
 
 List<String> _foldedOf(WordList list) => _foldedByList.putIfAbsent(
       list.id,
-      () => list.words.map((w) => WordList.fold(w)!).toList(),
+      () => list.words.map((w) => list.fold(w)!).toList(),
     );
 
 class _WordInputState extends State<WordInput> {
@@ -192,9 +192,11 @@ class _WordInputState extends State<WordInput> {
   /// A word that is also the start of a longer word of any accepted list
   /// (not just the active ones: the next letter may switch languages).
   bool _isPrefixWord(String text) {
-    final folded = WordList.fold(text);
-    if (folded == null || !_isWord(text)) return false;
-    return _lists.any((l) => _properPrefixesOf(l).contains(folded));
+    if (!_isWord(text)) return false;
+    return _lists.any((l) {
+      final folded = l.fold(text);
+      return folded != null && _properPrefixesOf(l).contains(folded);
+    });
   }
 
   @override
@@ -259,10 +261,10 @@ class _WordInputState extends State<WordInput> {
 
   List<String> _matchesFor(String prefix) {
     if (prefix.trim().length < 2) return const <String>[];
-    final folded = WordList.fold(prefix.trim());
-    if (folded == null) return const <String>[];
     final hits = <String>[];
     for (final l in _activeLists) {
+      final folded = l.fold(prefix.trim());
+      if (folded == null) continue;
       final foldedWords = _foldedOf(l);
       for (var i = 0; i < foldedWords.length; i++) {
         if (foldedWords[i].startsWith(folded)) {
@@ -275,9 +277,10 @@ class _WordInputState extends State<WordInput> {
   }
 
   bool _isPrefixOfAnyWord(String text) {
-    final folded = WordList.fold(text);
-    if (folded == null) return false;
-    return _activeLists.any((l) => _foldedOf(l).any((w) => w.startsWith(folded)));
+    return _activeLists.any((l) {
+      final folded = l.fold(text);
+      return folded != null && _foldedOf(l).any((w) => w.startsWith(folded));
+    });
   }
 
   bool _looksLikePaste(String text) {

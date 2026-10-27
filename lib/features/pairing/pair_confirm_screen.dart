@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/pair_role.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
@@ -37,6 +38,10 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
   /// The phrase last shown, kept on screen while the route animates out
   /// after the pairing state is reset.
   List<String>? _shownPhrase;
+
+  /// The list the phrase is shown in. English until the language row and
+  /// switch (plan Tasks 1.3 and 1.5) set it: for a rekey, the contact's.
+  final WordList _wordList = WordList.english;
 
   Future<void> _onMatch(BuildContext context, WidgetRef ref) async {
     if (_busy) return;
@@ -261,7 +266,7 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
                 ),
                 child: Column(
                   children: <Widget>[
-                    for (final word in phrase)
+                    for (final word in _wordList.respell(phrase))
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Text(

@@ -50,7 +50,7 @@ void main() {
       onWordsChanged: (w) => reported = w,
     ));
     for (var i = 0; i < 8; i++) {
-      await tester.enterText(slot(i), WordList.fold(french[i])!);
+      await tester.enterText(slot(i), WordList.french.fold(french[i])!);
       await tester.pump();
     }
     expect(reported, french);
@@ -136,7 +136,7 @@ void main() {
       expect(await typeLetters(tester, 0, typed), isTrue);
       expect(
         tester.widget<TextField>(slot(0)).controller!.text,
-        WordList.fold(typed),
+        WordList.french.fold(typed),
       );
       expect(tester.widget<TextField>(slot(1)).controller!.text, isEmpty);
       expect(reported, isNull);
@@ -174,10 +174,10 @@ void main() {
     // An accented French word that starts a longer word, so only the space
     // (not auto-confirm) can confirm it.
     final foldedAll = [
-      for (final l in WordList.shipped) ...l.words.map(WordList.fold),
+      for (final l in WordList.shipped) ...l.words.map(l.fold),
     ];
     final word = WordList.french.words.firstWhere((w) {
-      final f = WordList.fold(w)!;
+      final f = WordList.french.fold(w)!;
       return w != f && foldedAll.any((o) => o != f && o!.startsWith(f));
     });
     await tester.pumpWidget(host(
@@ -186,7 +186,7 @@ void main() {
     ));
     await tester.tap(slot(0));
     await tester.pump();
-    await typeLetters(tester, 0, '${WordList.fold(word)!} ');
+    await typeLetters(tester, 0, '${WordList.french.fold(word)!} ');
     expect(tester.widget<TextField>(slot(0)).controller!.text, word);
   });
 

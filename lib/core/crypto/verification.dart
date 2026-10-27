@@ -4,7 +4,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:cryptography/dart.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 
-import 'bip39_english_wordlist.dart';
+import 'wordlists.dart';
 
 /// Argon2id cost for the in-person phrase (pairing-commitment spike, option
 /// E: defence in depth on top of commit-then-reveal).
@@ -45,7 +45,6 @@ class PairingVerification {
   static const int defaultWordCount = 4;
   static const int longDistanceWordCount = 8;
   static const int _bitsPerWord = 11;
-  static const int _wordlistSize = 2048; // 2^11
   static const int _publicKeyLength = 32;
   static const int _nonceLength = 16;
   static const String _hkdfInfo = 'signet/v1/verification-phrase';
@@ -64,6 +63,7 @@ class PairingVerification {
   static Future<List<String>> derivePhrase({
     required List<int> sharedSecret,
     int wordCount = defaultWordCount,
+    WordList? list,
   }) async {
     _checkSecret(sharedSecret);
     if (wordCount <= 0) {
@@ -79,7 +79,7 @@ class PairingVerification {
       info: _hkdfInfo,
       length: _bytesFor(wordCount),
     );
-    return _bytesToWords(bytes, wordCount);
+    return _render(bytes, wordCount, list);
   }
 
   /// `SHA-256("signet/v2/transcript" || pub_low || pub_high || nonce)`: the
@@ -123,6 +123,7 @@ class PairingVerification {
     required List<int> ownPublicKey,
     required List<int> peerPublicKey,
     required List<int> nonce,
+    WordList? list,
   }) =>
       _deriveInPerson(
         sharedSecret: sharedSecret,
@@ -130,6 +131,7 @@ class PairingVerification {
         peerPublicKey: peerPublicKey,
         nonce: nonce,
         params: inPersonKdf,
+        list: list,
       );
 
   /// [deriveInPersonPhrase] with cheap Argon2id parameters, for tests that
@@ -141,6 +143,7 @@ class PairingVerification {
     required List<int> peerPublicKey,
     required List<int> nonce,
     required PhraseKdfParams params,
+    WordList? list,
   }) =>
       _deriveInPerson(
         sharedSecret: sharedSecret,
@@ -148,6 +151,7 @@ class PairingVerification {
         peerPublicKey: peerPublicKey,
         nonce: nonce,
         params: params,
+        list: list,
       );
 
   static Future<List<String>> _deriveInPerson({
@@ -156,6 +160,7 @@ class PairingVerification {
     required List<int> peerPublicKey,
     required List<int> nonce,
     required PhraseKdfParams params,
+    WordList? list,
   }) async {
     _checkSecret(sharedSecret);
     if (nonce.length != _nonceLength) {
@@ -187,7 +192,7 @@ class PairingVerification {
       nonce: salt,
     ))
         .extractBytes();
-    return _bytesToWords(out, defaultWordCount);
+    return _render(out, defaultWordCount, list);
   }
 
   /// The 8-word phrase both phones compare after a long-distance pairing.
@@ -195,6 +200,7 @@ class PairingVerification {
     required List<int> sharedSecret,
     required List<int> ownPublicKey,
     required List<int> peerPublicKey,
+    WordList? list,
   }) async {
     _checkSecret(sharedSecret);
     final salt = await transcriptSalt(ownPublicKey, peerPublicKey);
@@ -204,7 +210,7 @@ class PairingVerification {
       info: _longDistanceInfo,
       length: _bytesFor(longDistanceWordCount),
     );
-    return _bytesToWords(bytes, longDistanceWordCount);
+    return _render(bytes, longDistanceWordCount, list);
   }
 
   static int _bytesFor(int wordCount) => (wordCount * _bitsPerWord + 7) ~/ 8;
@@ -251,8 +257,12 @@ class PairingVerification {
     return 0;
   }
 
-  static List<String> _bytesToWords(List<int> bytes, int wordCount) {
-    final words = <String>[];
+  /// The words [bytes] pick, spelled in [list] (English when null).
+  static List<String> _render(List<int> bytes, int wordCount, WordList? list) =>
+      (list ?? WordList.english).render(_bytesToIndices(bytes, wordCount));
+
+  static List<int> _bytesToIndices(List<int> bytes, int wordCount) {
+    final words = <int>[];
     var buffer = 0;
     var bits = 0;
     var cursor = 0;
@@ -269,8 +279,7 @@ class PairingVerification {
         throw StateError('Insufficient entropy extracted for phrase.');
       }
       final shift = bits - _bitsPerWord;
-      final index = (buffer >> shift) & (_wordlistSize - 1);
-      words.add(bip39EnglishWordlist[index]);
+      words.add((buffer >> shift) & (WordList.size - 1));
       buffer &= (1 << shift) - 1;
       bits = shift;
     }

@@ -54,7 +54,10 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
             AppLocalizations.of(context).commonRelationshipNotFound));
         return;
       }
-      final grid = await ChallengeResponseGrid.derive(secret);
+      final grid = await ChallengeResponseGrid.derive(
+        secret,
+        list: relationship.wordList,
+      );
       if (!mounted) return;
       setState(() {
         _relationship = relationship;

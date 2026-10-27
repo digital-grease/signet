@@ -241,6 +241,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       secret: secret,
       unixTimeSeconds: nowUnix,
       senderRole: relationship.role,
+      list: relationship.wordList,
     );
     // Always derive both sides of the liveness action so toggling video
     // mode is instant (~2 HKDF-SHA-256 calls is cheap). Counterparty's
@@ -310,6 +311,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       candidate: candidate,
       unixTimeSeconds: nowUnix,
       senderRole: relationship.role.other,
+      list: relationship.wordList,
     );
     final ok = matchedCounter != null;
     final store = ref.read(secureStoreProvider);
@@ -331,6 +333,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             candidate: candidate,
             unixTimeSeconds: nowUnix,
             senderRole: previous.role.other,
+            list: relationship.wordList,
           );
         }
       } catch (_) {
@@ -633,6 +636,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           ),
           const SizedBox(height: 8),
           WordInput(
+            lists: [relationship.wordList],
             onSubmit: _handleSubmit,
             submitLabel: AppLocalizations.of(context).verifyCheckWordsButton,
             resetKey: _resetKey,

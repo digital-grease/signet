@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import 'bip39_english_wordlist.dart';
+import 'wordlists.dart';
 
 /// Deterministic 8×8 challenge-response grid derived from a pair's
 /// shared secret. Used as a fallback verification mode for when the
@@ -20,8 +20,9 @@ import 'bip39_english_wordlist.dart';
 /// Derivation: HKDF-SHA-256 with two domain-separated info strings:
 /// - `signet/v2/cr-axis-v1` — picks the 16 axis labels (8 row, 8 col)
 ///   with de-duplication. Each draw uses a fresh one-byte salt; if the
-///   drawn word already collided, we advance the salt counter until we
-///   get a new word. In practice collisions are rare (~6% across 16
+///   drawn index already collided, we advance the salt counter until we
+///   get a new one (on indices, never on rendered words, so every list
+///   shows the same grid). In practice collisions are rare (~6% across 16
 ///   draws from a 2048-word pool).
 /// - `signet/v2/cr-grid-v1` — picks each cell's 3 words, salted by the
 ///   two-byte row/col coordinates. 5 output bytes per cell = 40 bits;
@@ -52,15 +53,19 @@ class ChallengeResponseGrid {
   static const int rowCount = 8;
   static const int colCount = 8;
   static const int wordsPerCell = 3;
-  static const int _wordlistSize = 2048;
   static const int _bitsPerWord = 11;
   static const int _cellOutputBytes = 5; // ≥ (3 × 11) / 8
 
   static const String _axisInfo = 'signet/v2/cr-axis-v1';
   static const String _gridInfo = 'signet/v2/cr-grid-v1';
 
-  /// Build the grid deterministically from the pair's shared secret.
-  static Future<ChallengeResponseGrid> derive(List<int> sharedSecret) async {
+  /// Build the grid deterministically from the pair's shared secret,
+  /// spelled in [list] (English when null).
+  static Future<ChallengeResponseGrid> derive(
+    List<int> sharedSecret, {
+    WordList? list,
+  }) async {
+    final words = list ?? WordList.english;
     if (sharedSecret.isEmpty) {
       throw ArgumentError.value(
         sharedSecret,
@@ -70,8 +75,8 @@ class ChallengeResponseGrid {
     }
 
     // Draw axis labels first (8 row + 8 col = 16 distinct words).
-    final axisLabels = <String>[];
-    final seen = <String>{};
+    final axisLabels = <int>[];
+    final seen = <int>{};
     var saltCounter = 0;
     const maxAttempts = 256; // 16 target words × small collision allowance
     while (axisLabels.length < rowCount + colCount &&
@@ -82,10 +87,13 @@ class ChallengeResponseGrid {
         salt: <int>[saltCounter],
         outputBytes: 2,
       );
-      final index = ((raw[0] << 8) | raw[1]) & (_wordlistSize - 1);
-      final word = bip39EnglishWordlist[index];
-      if (seen.add(word)) {
-        axisLabels.add(word);
+      final index = ((raw[0] << 8) | raw[1]) & (WordList.size - 1);
+      // Dedupe on the index, never on a rendered word: the grid must be
+      // the same in every list. (wordlists_test.dart pins that every list
+      // spells its indices distinctly, so the two only differ for a list
+      // that breaks that rule.)
+      if (seen.add(index)) {
+        axisLabels.add(index);
       }
       saltCounter++;
     }
@@ -96,8 +104,8 @@ class ChallengeResponseGrid {
         '$saltCounter attempts.',
       );
     }
-    final rows = axisLabels.sublist(0, rowCount);
-    final cols = axisLabels.sublist(rowCount, rowCount + colCount);
+    final rows = words.render(axisLabels.sublist(0, rowCount));
+    final cols = words.render(axisLabels.sublist(rowCount, rowCount + colCount));
 
     // Draw cell contents — 8×8 = 64 cells × 3 words each.
     final cellGrid = <List<List<String>>>[];
@@ -110,7 +118,7 @@ class ChallengeResponseGrid {
           salt: <int>[row, col],
           outputBytes: _cellOutputBytes,
         );
-        rowCells.add(_unpackThreeWords(raw));
+        rowCells.add(words.render(_unpackThreeIndices(raw)));
       }
       cellGrid.add(rowCells);
     }
@@ -127,7 +135,9 @@ class ChallengeResponseGrid {
   }
 
   /// Return the 3-word answer for the challenge `{rowLabel} × {colLabel}`.
-  /// Throws [ArgumentError] if either label isn't in the axis arrays.
+  /// The labels must be spelled exactly as in [rowLabels] and [colLabels]
+  /// (no fold: "eleve" does not find "élève"). Throws [ArgumentError] if
+  /// either label isn't in the axis arrays.
   List<String> answerFor({
     required String rowLabel,
     required String colLabel,
@@ -170,8 +180,8 @@ class ChallengeResponseGrid {
 
   /// Consume 33 bits from [raw] (≥ 5 bytes) as 3 × 11-bit BIP-39 indexes.
   /// Bit layout: top bit → bit 0, standard big-endian stream.
-  static List<String> _unpackThreeWords(List<int> raw) {
-    final words = <String>[];
+  static List<int> _unpackThreeIndices(List<int> raw) {
+    final words = <int>[];
     var buffer = 0;
     var bits = 0;
     var cursor = 0;
@@ -185,8 +195,7 @@ class ChallengeResponseGrid {
         throw StateError('Insufficient HKDF output for cell words.');
       }
       final shift = bits - _bitsPerWord;
-      final index = (buffer >> shift) & (_wordlistSize - 1);
-      words.add(bip39EnglishWordlist[index]);
+      words.add((buffer >> shift) & (WordList.size - 1));
       buffer &= (1 << shift) - 1;
       bits = shift;
     }

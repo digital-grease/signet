@@ -83,6 +83,8 @@ class _BulkBackupExportScreenState
       if (records.isEmpty) {
         throw StateError(l10n.bulkBackupExportNoSecretsError);
       }
+      // Spelled in the phone's default word language once there is one
+      // (plan Task 1.4); English until then.
       final pakeWords = TransportPackage.mintPakeWords();
       final wire = await TransportPackage.encodeBlk(
         records: records,

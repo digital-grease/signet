@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 
-import 'bip39_english_wordlist.dart';
 import 'pair_role.dart';
 import 'wordlists.dart';
 
@@ -210,13 +209,19 @@ class TransportPackage {
   // PAKE words
   // ========================================================================
 
-  /// Mint a fresh 8-word PAKE secret from a cryptographically-secure RNG.
-  /// Each call returns a new list.
-  static List<String> mintPakeWords({Random? random, int wordCount = _pakeWordCount}) {
+  /// Mint a fresh 8-word PAKE secret from a cryptographically-secure RNG,
+  /// spelled in [list] (English when null). Each call returns a new list.
+  /// The encoders take the words in any shipped list and key on their
+  /// English rendering ([normalizePakeWords]), so the list changes only
+  /// what the user sees and types.
+  static List<String> mintPakeWords({
+    Random? random,
+    int wordCount = _pakeWordCount,
+    WordList? list,
+  }) {
     final rng = random ?? Random.secure();
-    return List<String>.generate(
-      wordCount,
-      (_) => bip39EnglishWordlist[rng.nextInt(bip39EnglishWordlist.length)],
+    return (list ?? WordList.english).render(
+      List<int>.generate(wordCount, (_) => rng.nextInt(WordList.size)),
     );
   }
 

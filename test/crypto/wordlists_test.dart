@@ -44,12 +44,12 @@ void main() {
 
       test('uses no letters the fold does not cover', () {
         for (final w in list.words) {
-          expect(WordList.fold(w), isNotNull, reason: w);
+          expect(list.fold(w), isNotNull, reason: w);
         }
       });
 
       test('no two words share a folded form or their first 4 letters', () {
-        final folded = list.words.map(WordList.fold).toList();
+        final folded = list.words.map(list.fold).toList();
         expect(folded.toSet(), hasLength(2048));
         expect(
           folded.map((w) => w!.substring(0, w.length < 4 ? w.length : 4)).toSet(),
@@ -73,19 +73,19 @@ void main() {
 
   group('fold', () {
     test('lowercases, trims nothing else, and drops accents', () {
-      expect(WordList.fold('Élève'), 'eleve');
-      expect(WordList.fold('ÉLÈVE'), 'eleve');
-      expect(WordList.fold('e\u0301le\u0300ve'), 'eleve');
-      expect(WordList.fold('abandon'), 'abandon');
+      expect(WordList.english.fold('Élève'), 'eleve');
+      expect(WordList.english.fold('ÉLÈVE'), 'eleve');
+      expect(WordList.english.fold('e\u0301le\u0300ve'), 'eleve');
+      expect(WordList.english.fold('abandon'), 'abandon');
     });
 
     test('removes zero-width and soft-hyphen characters', () {
-      expect(WordList.fold('aban\u200Bdon'), 'abandon');
-      expect(WordList.fold('aban\u00ADdon'), 'abandon');
-      expect(WordList.fold('\uFEFFabandon'), 'abandon');
-      expect(WordList.fold('aban\u2060don'), 'abandon');
-      expect(WordList.fold('abandon\u200F'), 'abandon'); // RLM
-      expect(WordList.fold('\u200Eabandon'), 'abandon'); // LRM
+      expect(WordList.english.fold('aban\u200Bdon'), 'abandon');
+      expect(WordList.english.fold('aban\u00ADdon'), 'abandon');
+      expect(WordList.english.fold('\uFEFFabandon'), 'abandon');
+      expect(WordList.english.fold('aban\u2060don'), 'abandon');
+      expect(WordList.english.fold('abandon\u200F'), 'abandon'); // RLM
+      expect(WordList.english.fold('\u200Eabandon'), 'abandon'); // LRM
     });
 
     test('rejects anything that is not a plain Latin word', () {
@@ -100,14 +100,14 @@ void main() {
         'ābandon',
         'straße',
       ]) {
-        expect(WordList.fold(bad), isNull, reason: bad);
+        expect(WordList.english.fold(bad), isNull, reason: bad);
       }
     });
 
     test('compatibility letters Dart lowercases onto a-z reach that word', () {
       // Harmless: the word they look like, never a different one.
-      expect(WordList.fold('İnfant'), 'infant');
-      expect(WordList.fold('\u212Aey'), 'key'); // Kelvin sign
+      expect(WordList.english.fold('İnfant'), 'infant');
+      expect(WordList.english.fold('\u212Aey'), 'key'); // Kelvin sign
     });
 
     test('accent-free and wrongly-accented input reach the same French word',

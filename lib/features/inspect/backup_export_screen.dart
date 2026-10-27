@@ -62,7 +62,8 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
         );
         return;
       }
-      final pakeWords = TransportPackage.mintPakeWords();
+      final pakeWords =
+          TransportPackage.mintPakeWords(list: relationship.wordList);
       final wire = await TransportPackage.encodeLpr(
         // A name saved before the 64-byte limit is cut to fit rather than
         // failing the backup.

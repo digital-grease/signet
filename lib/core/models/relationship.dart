@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../crypto/pair_role.dart';
+import '../crypto/wordlists.dart';
 
 /// A paired contact. Holds only non-secret metadata — the shared secret
 /// never lives on this model and is stored separately in the secure enclave.
@@ -77,6 +78,12 @@ class Relationship {
   /// surveillance scenarios; silent mode is meant for the journalist +
   /// activist audience. Default `false` (haptics on) — grandma test wins.
   final bool silentHaptics;
+
+  /// The list this contact's words are spelled in: the rotating words, the
+  /// challenge grid, the binding phrase and the backup's PAKE words. Every
+  /// word surface for a contact reads it here. English until Task 1.3
+  /// stores a language per contact.
+  WordList get wordList => WordList.english;
 
   Relationship copyWith({
     String? id,

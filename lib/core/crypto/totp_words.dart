@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import 'bip39_english_wordlist.dart';
 import 'liveness_challenge.dart';
 import 'pair_role.dart';
+import 'wordlists.dart';
 
 // Re-export LivenessAction alongside the TOTP API so consumers of the
 // rotating-verify flow get the video-mode action type from a single
@@ -41,7 +41,6 @@ class TotpWords {
   static const int defaultWindowTolerance = 1;
 
   static const int _bitsPerWord = 11;
-  static const int _wordlistSize = 2048;
 
   static String _hkdfInfoFor(PairRole role) =>
       'signet/v1/totp-words-from-${role.wireName}';
@@ -54,9 +53,27 @@ class TotpWords {
       'signet/v2/liveness-action-from-${role.wireName}';
 
   /// Derive the 4-word code that [senderRole] should read aloud in the
-  /// window containing [unixTimeSeconds]. Each role has a distinct code
-  /// for any given window — see class docs for why.
+  /// window containing [unixTimeSeconds], spelled in [list] (English when
+  /// null). Each role has a distinct code for any given window — see class
+  /// docs for why. The list only renders [generateIndices].
   static Future<List<String>> generate({
+    required List<int> secret,
+    required int unixTimeSeconds,
+    required PairRole senderRole,
+    int timeStepSeconds = defaultTimeStepSeconds,
+    int wordCount = defaultWordCount,
+    WordList? list,
+  }) async =>
+      (list ?? WordList.english).render(await generateIndices(
+        secret: secret,
+        unixTimeSeconds: unixTimeSeconds,
+        senderRole: senderRole,
+        timeStepSeconds: timeStepSeconds,
+        wordCount: wordCount,
+      ));
+
+  /// The word indices of [generate], before any list renders them.
+  static Future<List<int>> generateIndices({
     required List<int> secret,
     required int unixTimeSeconds,
     required PairRole senderRole,
@@ -99,9 +116,10 @@ class TotpWords {
 
   /// Verify [candidate] as the words the caller (who holds role
   /// [senderRole]) should be reading this window. Walks ±[windowTolerance]
-  /// windows. Case-insensitive; any candidate word not in the BIP-39
-  /// wordlist is an automatic fail. Constant-time per-window compare over
-  /// word indexes.
+  /// windows. Each candidate word is read in [list] (English when null)
+  /// through its fold, so case, accents and invisible format characters do
+  /// not matter; a word not in [list] is an automatic fail. Constant-time
+  /// per-window compare over word indexes.
   ///
   /// Reflection-attack note: callers MUST pass their counterparty's role
   /// here, not their own. `Alice.verify(..., senderRole: bobRole)` checks
@@ -116,6 +134,7 @@ class TotpWords {
     int timeStepSeconds = defaultTimeStepSeconds,
     int wordCount = defaultWordCount,
     int windowTolerance = defaultWindowTolerance,
+    WordList? list,
   }) async =>
       await verifyWindow(
         secret: secret,
@@ -125,6 +144,7 @@ class TotpWords {
         timeStepSeconds: timeStepSeconds,
         wordCount: wordCount,
         windowTolerance: windowTolerance,
+        list: list,
       ) !=
       null;
 
@@ -140,6 +160,7 @@ class TotpWords {
     int timeStepSeconds = defaultTimeStepSeconds,
     int wordCount = defaultWordCount,
     int windowTolerance = defaultWindowTolerance,
+    WordList? list,
   }) async {
     _validateInputs(
       secret: secret,
@@ -155,9 +176,10 @@ class TotpWords {
     }
     if (candidate.length != wordCount) return null;
 
+    final words = list ?? WordList.english;
     final candidateIndexes = <int>[];
     for (final word in candidate) {
-      final idx = _wordIndex[word.trim().toLowerCase()];
+      final idx = words.indexOf(word.trim());
       if (idx == null) return null;
       candidateIndexes.add(idx);
     }
@@ -165,15 +187,12 @@ class TotpWords {
     final baseCounter = counterFor(unixTimeSeconds, timeStepSeconds);
     int? matched;
     for (var offset = -windowTolerance; offset <= windowTolerance; offset++) {
-      final expected = await _derive(
+      final expectedIndexes = await _derive(
         secret: secret,
         counter: baseCounter + offset,
         wordCount: wordCount,
         senderRole: senderRole,
       );
-      final expectedIndexes = <int>[
-        for (final w in expected) _wordIndex[w]!,
-      ];
       // Every window is compared (no early exit), so timing does not
       // reveal which window matched.
       if (_constantTimeEqualsInts(candidateIndexes, expectedIndexes)) {
@@ -295,7 +314,7 @@ class TotpWords {
     }
   }
 
-  static Future<List<String>> _derive({
+  static Future<List<int>> _derive({
     required List<int> secret,
     required int counter,
     required int wordCount,
@@ -311,11 +330,11 @@ class TotpWords {
       info: _hkdfInfoFor(senderRole).codeUnits,
     );
     final bytes = await derived.extractBytes();
-    return _bytesToWords(bytes, wordCount);
+    return _bytesToIndices(bytes, wordCount);
   }
 
-  static List<String> _bytesToWords(List<int> bytes, int wordCount) {
-    final words = <String>[];
+  static List<int> _bytesToIndices(List<int> bytes, int wordCount) {
+    final words = <int>[];
     var buffer = 0;
     var bits = 0;
     var cursor = 0;
@@ -329,8 +348,7 @@ class TotpWords {
         throw StateError('Insufficient entropy extracted for TOTP words.');
       }
       final shift = bits - _bitsPerWord;
-      final index = (buffer >> shift) & (_wordlistSize - 1);
-      words.add(bip39EnglishWordlist[index]);
+      words.add((buffer >> shift) & (WordList.size - 1));
       buffer &= (1 << shift) - 1;
       bits = shift;
     }
@@ -355,9 +373,4 @@ class TotpWords {
     }
     return diff == 0;
   }
-
-  static final Map<String, int> _wordIndex = <String, int>{
-    for (var i = 0; i < bip39EnglishWordlist.length; i++)
-      bip39EnglishWordlist[i]: i,
-  };
 }

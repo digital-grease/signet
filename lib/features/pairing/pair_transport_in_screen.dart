@@ -44,6 +44,10 @@ class PairTransportInScreen extends ConsumerStatefulWidget {
 
 class _PairTransportInScreenState
     extends ConsumerState<PairTransportInScreen> {
+  /// The list this pairing's words are shown in. English until the
+  /// language row (plan Task 1.5) lets the user choose.
+  final WordList _wordList = WordList.english;
+
   final TextEditingController _packageController = TextEditingController();
   final TextEditingController _labelController = TextEditingController();
   String? _labelError;
@@ -369,7 +373,7 @@ class _PairTransportInScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (var i = 0; i < unlocked.phrase.length; i++)
+              for (final (i, word) in _wordList.respell(unlocked.phrase).indexed)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -389,7 +393,7 @@ class _PairTransportInScreenState
                       ),
                       Expanded(
                         child: Text(
-                          unlocked.phrase[i],
+                          word,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,
@@ -495,6 +499,9 @@ class _UnlockedState {
   final List<int> senderPublicKey;
   final PairingKeyPair ourKeyPair;
   final List<int> totpSecret;
+
+  /// In English, the canonical rendering; shown through `_wordList`, so
+  /// the language switch (plan Task 1.5) re-renders the same indices.
   final List<String> phrase;
   final String responseWire;
 }

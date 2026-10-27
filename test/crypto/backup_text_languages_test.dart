@@ -31,7 +31,7 @@ void main() {
   test('accent-free, NFD and upper-case French are read as the same words',
       () {
     for (final line in [
-      accented.map((w) => WordList.fold(w)!).join(' '),
+      accented.map((w) => WordList.english.fold(w)!).join(' '),
       accented.map(toNfd).join(' '),
       accented.map((w) => w.toUpperCase()).join(' '),
     ]) {

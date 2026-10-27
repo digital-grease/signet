@@ -56,6 +56,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
       }
       final phrase = await PairingVerification.derivePhrase(
         sharedSecret: secret,
+        list: relationship.wordList,
       );
       if (!mounted) return;
       setState(() {

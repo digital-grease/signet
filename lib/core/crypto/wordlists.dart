@@ -1,10 +1,11 @@
-// The BIP-39 word lists Signet ships, and the fold every typed or pasted
-// word goes through before it is looked up.
+// The word lists Signet ships, and the fold every typed or pasted word goes
+// through before it is looked up in a list.
 //
 // A word is only ever a rendering of an 11-bit index: every list maps the
 // same 2048 indices, so crypto code works on indices (or on their English
-// rendering, the canonical form) and a list is a display and input choice.
-// See .devloop/spikes/word-language.md §1.
+// rendering, the canonical form) and a list is a display and input choice:
+// derivations produce indices and [WordList.render] spells them in the
+// contact's list. See .devloop/spikes/word-language.md §1-2.
 //
 // Pure Dart, no Flutter imports.
 
@@ -12,16 +13,31 @@ import 'bip39_english_wordlist.dart';
 import 'bip39_french_wordlist.dart';
 
 class WordList {
-  WordList._(this.id, this.words)
-      : _index = {
-          for (var i = 0; i < words.length; i++) fold(words[i])!: i,
+  WordList._(this.id, this.words, this._fold)
+      : assert(words.length == size),
+        _index = {
+          for (var i = 0; i < words.length; i++) _fold(words[i])!: i,
         };
 
-  static final WordList english = WordList._('en', bip39EnglishWordlist);
-  static final WordList french = WordList._('fr', bip39FrenchWordlist);
+  static final WordList english =
+      WordList._('en', bip39EnglishWordlist, _latinFold);
+  static final WordList french =
+      WordList._('fr', bip39FrenchWordlist, _latinFold);
 
   /// Every list this version can read, English first.
   static final List<WordList> shipped = [english, french];
+
+  /// Words in every list: one per 11-bit index.
+  static const int size = 2048;
+
+  /// The shipped list registered as [id], or null for an id this version
+  /// does not have.
+  static WordList? byId(String id) {
+    for (final list in shipped) {
+      if (list.id == id) return list;
+    }
+    return null;
+  }
 
   /// Registered wordlist id (the `0x01` extension value in a later release).
   final String id;
@@ -31,7 +47,23 @@ class WordList {
 
   final Map<String, int> _index;
 
+  final String? Function(String) _fold;
+
   String wordAt(int index) => words[index];
+
+  /// [indices] spelled in this list, in order.
+  List<String> render(Iterable<int> indices) =>
+      [for (final i in indices) words[i]];
+
+  /// [canonical], words of the English list (the canonical rendering
+  /// crypto code passes around), spelled in this list. Throws [StateError]
+  /// on a string that is not an English word: that is a caller bug, never
+  /// user input.
+  List<String> respell(List<String> canonical) => render([
+        for (final w in canonical)
+          english.indexOf(w) ??
+              (throw StateError('respell takes English words only')),
+      ]);
 
   /// The index of [input] in this list after [fold], or null.
   int? indexOf(String input) {
@@ -40,6 +72,11 @@ class WordList {
   }
 
   bool contains(String input) => indexOf(input) != null;
+
+  /// The lookup form of a typed word under this list's fold, or null if it
+  /// cannot be a word of this list. Each list has its own fold so a list
+  /// in another script never changes how the Latin lists read input.
+  String? fold(String input) => _fold(input);
 
   /// Precomposed Latin letters folded to their base letter. Covers the
   /// shipped lists' accents and the near misses a user might type instead
@@ -69,15 +106,15 @@ class WordList {
 
   static final RegExp _plainWord = RegExp(r'^[a-z]+$');
 
-  /// The lookup form of a typed word, or null if it cannot be a word of any
-  /// shipped list. In order: locale-independent lowercase; drop format
+  /// The fold of the Latin lists: the lookup form of a typed word, or null
+  /// if it cannot be a word of a Latin list. In order: locale-independent lowercase; drop format
   /// characters; fold precomposed accents; drop their combining marks;
   /// require a-z only (so fullwidth letters, look-alike scripts and
   /// anything with spaces, digits or hyphens are rejected). Dart's
   /// lowercase also maps a few compatibility letters onto a-z (the Kelvin
   /// sign to k, the Angstrom sign to å): harmless, since they reach the
   /// index of the word they look like.
-  static String? fold(String input) {
+  static String? _latinFold(String input) {
     final lower = input.toLowerCase().replaceAll(_formatChars, '');
     final buffer = StringBuffer();
     for (final rune in lower.runes) {
