@@ -634,18 +634,28 @@ class _WordLanguageNotice extends StatelessWidget {
               l10n.homeWordLanguageNotice(list.endonym),
               style: TextStyle(color: scheme.onSecondaryContainer),
             ),
-            Wrap(
-              alignment: WrapAlignment.end,
-              children: <Widget>[
-                TextButton(
-                  onPressed: onSettings,
-                  child: Text(l10n.homeWordLanguageNoticeSettings),
+            // The theme's button colour is unreadable on the container
+            // (teal on orange, QA 2026-10-28): use the container's own.
+            TextButtonTheme(
+              data: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onSecondaryContainer,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                TextButton(
-                  onPressed: onDismiss,
-                  child: Text(l10n.commonGotIt),
-                ),
-              ],
+              ),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                children: <Widget>[
+                  TextButton(
+                    onPressed: onSettings,
+                    child: Text(l10n.homeWordLanguageNoticeSettings),
+                  ),
+                  TextButton(
+                    onPressed: onDismiss,
+                    child: Text(l10n.commonGotIt),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

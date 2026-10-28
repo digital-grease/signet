@@ -7,6 +7,7 @@
 import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +19,7 @@ import 'package:signet/core/models/relationship.dart';
 import 'package:signet/core/prefs/app_prefs.dart';
 import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
+import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/home/home_screen.dart';
 import 'package:signet/features/inspect/bulk_backup_export_screen.dart';
 import 'package:signet/features/onboarding/word_language_screen.dart';
@@ -310,6 +312,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(prefs.wordLanguageNotice, isNull);
     });
+
+    for (final dark in [false, true]) {
+      testWidgets('the notice buttons are readable on the notice '
+          '(${dark ? 'dark' : 'light'} theme)', (tester) async {
+        final prefs = await upgraded();
+        await prefs.settleWordLanguageForUpgrade(['fr']);
+        final router = GoRouter(routes: <RouteBase>[
+          GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+        ]);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            appPrefsProvider.overrideWithValue(prefs),
+            secureStoreProvider.overrideWithValue(FakeSecureStore()),
+          ],
+          child: MaterialApp.router(
+            theme: signetTheme(dark: dark),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            routerConfig: router,
+          ),
+        ));
+        await tester.pumpAndSettle();
+        final background = tester
+            .widget<Material>(find
+                .ancestor(
+                    of: find.textContaining('show your words in'),
+                    matching: find.byType(Material))
+                .first)
+            .color!;
+        for (final label in ['SETTINGS', 'GOT IT']) {
+          final text = tester.renderObject<RenderParagraph>(
+              find.descendant(
+                  of: find.widgetWithText(TextButton, label),
+                  matching: find.byType(RichText)));
+          final color = text.text.style!.color!;
+          double lum(Color c) => c.computeLuminance();
+          final hi = lum(color) > lum(background) ? color : background;
+          final lo = hi == color ? background : color;
+          final ratio = (lum(hi) + 0.05) / (lum(lo) + 0.05);
+          expect(ratio, greaterThanOrEqualTo(4.5), reason: label);
+        }
+      });
+    }
 
     testWidgets('SETTINGS on the notice opens Settings and dismisses it',
         (tester) async {
