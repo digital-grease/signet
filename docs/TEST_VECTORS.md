@@ -182,6 +182,8 @@ Example, the rotating code for secret `ASCII("12345678901234567890123456789012")
 |---|---|---|
 | English | 215, 983, 634, 646 | brain kit exercise express |
 | French | 215, 983, 634, 646 | baudrier hommage égaliser élucider |
+| zh-1, simplified | 215, 983, 634, 646 | 床铺 麻雀 幻灯机 回声 |
+| zh-1, traditional | 215, 983, 634, 646 | 床鋪 麻雀 幻燈機 回聲 |
 
 `test/crypto/word_list_rendering_test.dart` checks, for one secret, that
 every list spells the same indices on every surface (rotating words,

@@ -30,6 +30,32 @@ void main() {
   List<int> indicesOf(List<String> words) =>
       [for (final w in words) english.indexOf(w)!];
 
+  test('the documented vector in every list (docs/TEST_VECTORS.md)',
+      () async {
+    final words = <String, List<String>>{};
+    for (final (name, list, traditional) in <(String, WordList, bool)>[
+      ('en', WordList.english, false),
+      ('fr', WordList.french, false),
+      ('zh-Hans', WordList.zh1, false),
+      ('zh-Hant', WordList.zh1, true),
+    ]) {
+      WordList.showTraditionalChinese = traditional;
+      words[name] = await TotpWords.generate(
+        secret: '12345678901234567890123456789012'.codeUnits,
+        unixTimeSeconds: 59,
+        senderRole: PairRole.a,
+        list: list,
+      );
+    }
+    WordList.showTraditionalChinese = false;
+    expect(words, <String, List<String>>{
+      'en': ['brain', 'kit', 'exercise', 'express'],
+      'fr': ['baudrier', 'hommage', 'égaliser', 'élucider'],
+      'zh-Hans': ['床铺', '麻雀', '幻灯机', '回声'],
+      'zh-Hant': ['床鋪', '麻雀', '幻燈機', '回聲'],
+    });
+  });
+
   test('English is the default rendering everywhere', () async {
     expect(
       await TotpWords.generate(
