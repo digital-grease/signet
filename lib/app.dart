@@ -198,6 +198,11 @@ class _SignetAppState extends ConsumerState<SignetApp> {
               path: '/pair/complete/:id',
               builder: (_, state) => PairCompleteScreen(
                 relationshipId: state.pathParameters['id']!,
+                distance: switch (state.uri.queryParameters['distance']) {
+                  'sent' => PairDistance.sent,
+                  'received' => PairDistance.received,
+                  _ => PairDistance.together,
+                },
               ),
             ),
             GoRoute(

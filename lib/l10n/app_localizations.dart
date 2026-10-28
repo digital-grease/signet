@@ -1689,6 +1689,24 @@ abstract class AppLocalizations {
   /// **'This is the easiest moment to practice. Ask {label} to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.'**
   String pairCompletePracticeBody(String label);
 
+  /// Heading after a long-distance pairing: the two people are not together, so the practice verify waits for their next call.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired at a distance.\nPractice on your next call.'**
+  String get pairCompleteRemoteHeading;
+
+  /// Body after a long-distance pairing. label is the contact's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Next time you talk with {label}, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.'**
+  String pairCompleteRemoteBody(String label);
+
+  /// Shown to the person who received a long-distance package: the sender must still paste the response before their words match. label is the contact's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify works once {label} has pasted your response package.'**
+  String pairCompleteRemoteWaitNote(String label);
+
   /// Fallback for the peer label in pair-complete texts when the label can't be resolved yet.
   ///
   /// In en, this message translates to:

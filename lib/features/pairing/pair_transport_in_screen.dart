@@ -268,7 +268,7 @@ class _PairTransportInScreenState
           .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
       ref.invalidate(relationshipsProvider);
       if (!mounted) return;
-      context.go('/pair/complete/${relationship.id}');
+      context.go('/pair/complete/${relationship.id}?distance=received');
     } catch (e) {
       if (!mounted) return;
       setState(() {

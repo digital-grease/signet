@@ -885,6 +885,19 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pairCompleteRemoteHeading => '已远程配对。\n下次通话时练习一次。';
+
+  @override
+  String pairCompleteRemoteBody(String label) {
+    return '下次和 $label 说话时，请对方打开 Signet，点你的名字，念出“显示我的单词”界面上的 4 个单词。把你听到的输入到验证输入框。绿色横幅出现时，你就知道它是真实可用的。';
+  }
+
+  @override
+  String pairCompleteRemoteWaitNote(String label) {
+    return '$label 粘贴你的响应包之后，验证才会生效。';
+  }
+
+  @override
   String get pairCompleteFallbackPeer => '对方';
 
   @override
@@ -2867,6 +2880,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String pairCompletePracticeBody(String label) {
     return '現在是練習的最好時機。請 $label 開啟 Signet，點你的名字，唸出「顯示我的 4 個字詞」畫面上的 4 個字詞。把你聽到的輸入驗證欄位。綠色橫幅出現時，你就知道它真的可用。';
+  }
+
+  @override
+  String get pairCompleteRemoteHeading => '已遠端配對。\n下次通話時練習一次。';
+
+  @override
+  String pairCompleteRemoteBody(String label) {
+    return '下次和 $label 說話時，請對方打開 Signet，點選你的名字，唸出「顯示我的字詞」畫面上的 4 個字詞。把你聽到的輸入到驗證欄位。綠色橫幅出現時，你就知道它真的可用。';
+  }
+
+  @override
+  String pairCompleteRemoteWaitNote(String label) {
+    return '$label 貼上你的回應包之後，驗證才會生效。';
   }
 
   @override

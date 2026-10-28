@@ -772,6 +772,12 @@
 
   "pairCompletePracticeBody": "This is the easiest moment to practice. Ask {label} to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you'll know it works for real.",
   "@pairCompletePracticeBody": {"description": "Instruction body on pair complete; 'Show-my-words' refers to the verify screen's own-words panel.", "placeholders": {"label": {"type": "String"}}},
+  "pairCompleteRemoteHeading": "Paired at a distance.\nPractice on your next call.",
+  "@pairCompleteRemoteHeading": {"description": "Heading after a long-distance pairing: the two people are not together, so the practice verify waits for their next call."},
+  "pairCompleteRemoteBody": "Next time you talk with {label}, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you'll know it works for real.",
+  "@pairCompleteRemoteBody": {"description": "Body after a long-distance pairing. label is the contact's name.", "placeholders": {"label": {"type": "String"}}},
+  "pairCompleteRemoteWaitNote": "Verify works once {label} has pasted your response package.",
+  "@pairCompleteRemoteWaitNote": {"description": "Shown to the person who received a long-distance package: the sender must still paste the response before their words match. label is the contact's name.", "placeholders": {"label": {"type": "String"}}},
 
   "pairCompleteFallbackPeer": "your peer",
   "@pairCompleteFallbackPeer": {"description": "Fallback for the peer label in pair-complete texts when the label can't be resolved yet."},

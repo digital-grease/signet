@@ -18,13 +18,17 @@ final _mom = Relationship(
   role: PairRole.a,
 );
 
-Widget _wrap({required FakeSecureStore store}) {
+Widget _wrap({
+  required FakeSecureStore store,
+  PairDistance distance = PairDistance.together,
+}) {
   final router = GoRouter(
     initialLocation: '/pair/complete',
     routes: <RouteBase>[
       GoRoute(
         path: '/pair/complete',
-        builder: (_, _) => const PairCompleteScreen(relationshipId: 'abc123'),
+        builder: (_, _) =>
+            PairCompleteScreen(relationshipId: 'abc123', distance: distance),
       ),
       GoRoute(
         path: '/',
@@ -104,4 +108,34 @@ void main() {
       expect(find.text('HOME'), findsOneWidget);
     },
   );
+
+  group('after a long-distance pairing', () {
+    FakeSecureStore store() => FakeSecureStore(
+          seeded: _mom,
+          secret: List<int>.generate(32, (i) => i),
+        );
+
+    testWidgets('the sender is not told the two are together',
+        (tester) async {
+      await tester.pumpWidget(
+          _wrap(store: store(), distance: PairDistance.sent));
+      await tester.pumpAndSettle();
+      expect(find.textContaining("You're both still here"), findsNothing);
+      expect(find.textContaining('Paired at a distance'), findsOneWidget);
+      expect(find.textContaining('Next time you talk with Mom'),
+          findsOneWidget);
+      expect(find.textContaining('pasted your response'), findsNothing);
+    });
+
+    testWidgets('the receiver learns verify waits for the response',
+        (tester) async {
+      await tester.pumpWidget(
+          _wrap(store: store(), distance: PairDistance.received));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Paired at a distance'), findsOneWidget);
+      expect(
+          find.text('Verify works once Mom has pasted your response package.'),
+          findsOneWidget);
+    });
+  });
 }

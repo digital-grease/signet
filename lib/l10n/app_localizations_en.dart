@@ -929,6 +929,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pairCompleteRemoteHeading =>
+      'Paired at a distance.\nPractice on your next call.';
+
+  @override
+  String pairCompleteRemoteBody(String label) {
+    return 'Next time you talk with $label, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.';
+  }
+
+  @override
+  String pairCompleteRemoteWaitNote(String label) {
+    return 'Verify works once $label has pasted your response package.';
+  }
+
+  @override
   String get pairCompleteFallbackPeer => 'your peer';
 
   @override

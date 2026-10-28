@@ -278,7 +278,7 @@ class _PairTransportOutScreenState
           );
       ref.invalidate(relationshipsProvider);
       if (!mounted) return;
-      context.go('/pair/complete/${relationship.id}');
+      context.go('/pair/complete/${relationship.id}?distance=sent');
     } catch (e) {
       if (!mounted) return;
       setState(() {
