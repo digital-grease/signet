@@ -29,6 +29,12 @@ class ZhInput {
         for (final key in _keysOf(syllables)) {
           (_byKey[key] ??= <int>{}).add(i);
         }
+        // The starts of longer words: typed so far, they must wait rather
+        // than name a shorter entry the mergers make them sound like
+        // ("bei ji" on the way to 北极熊 sounds like 飞机).
+        for (var k = 1; k < syllables.length; k++) {
+          _prefixKeys.addAll(_keysOf(syllables.sublist(0, k)));
+        }
       }
     }
     for (final line in zhReadingTable.split('\n')) {
@@ -36,7 +42,7 @@ class ZhInput {
       final syllable = line.substring(0, tab);
       _syllables.add(syllable);
       for (final rune in line.substring(tab + 1).runes) {
-        _charReading[rune] = syllable;
+        (_charReadings[rune] ??= <String>[]).add(syllable);
       }
     }
   }
@@ -48,7 +54,8 @@ class ZhInput {
   final Map<String, int> _forms = <String, int>{};
   final Map<String, Set<int>> _byKey = <String, Set<int>>{};
   final Set<String> _syllables = <String>{};
-  final Map<int, String> _charReading = <int, String>{};
+  final Map<int, List<String>> _charReadings = <int, List<String>>{};
+  final Set<String> _prefixKeys = <String>{};
 
   /// The one entry [input] names, or null when it names none or more than
   /// one.
@@ -69,6 +76,29 @@ class ZhInput {
     if (han == runes.length) return _byCharacters(runes);
     if (han > 0) return const <int>{}; // Latin and Han mixed in one slot
     return _byLatin(text);
+  }
+
+  /// Whether [input] may be the start of a longer entry: one or two
+  /// syllables (or characters) that some entry with more syllables begins
+  /// with, after the mergers. Input should wait for more letters instead
+  /// of taking the word [indexOf] names now.
+  bool isPrefix(String input) {
+    final text = _clean(input);
+    if (text.isEmpty) return false;
+    final runes = text.runes.toList();
+    final List<List<String>> readings;
+    if (runes.every(_isHan)) {
+      if (runes.length > 2) return false;
+      readings = _characterReadings(runes);
+    } else if (runes.any(_isHan)) {
+      return false;
+    } else {
+      readings = _latinReadings(text, minSyllables: 1, maxSyllables: 2);
+    }
+    for (final r in readings) {
+      if (_keysOf(r).any(_prefixKeys.contains)) return true;
+    }
+    return false;
   }
 
   /// The lookup form of a typed word: format characters, variation
@@ -114,32 +144,48 @@ class ZhInput {
 
   Set<int> _byCharacters(List<int> runes) {
     if (runes.length < 2 || runes.length > 3) return const <int>{};
-    final syllables = <String>[];
-    for (final r in runes) {
-      final s = _charReading[r];
-      if (s == null) return const <int>{};
-      syllables.add(s);
-    }
-    return _entriesFor(<List<String>>[syllables]);
+    return _entriesFor(_characterReadings(runes));
   }
 
-  Set<int> _byLatin(String text) {
+  /// Every combination of the characters' readings (a character can have
+  /// two: its first reading and the one it has in a list word).
+  List<List<String>> _characterReadings(List<int> runes) {
+    var out = <List<String>>[<String>[]];
+    for (final r in runes) {
+      final readings = _charReadings[r];
+      if (readings == null) return const <List<String>>[];
+      out = [
+        for (final sofar in out)
+          for (final s in readings) <String>[...sofar, s],
+      ];
+    }
+    return out;
+  }
+
+  Set<int> _byLatin(String text) => _entriesFor(_latinReadings(text));
+
+  /// Every way to read [text] as [minSyllables] to [maxSyllables] syllables.
+  List<List<String>> _latinReadings(
+    String text, {
+    int minSyllables = 2,
+    int maxSyllables = 3,
+  }) {
     final chunks = _latinChunks(text);
-    if (chunks == null || chunks.isEmpty) return const <int>{};
+    if (chunks == null || chunks.isEmpty) return const <List<String>>[];
     final readings = <List<String>>[];
     void walk(int chunk, List<String> sofar) {
-      if (sofar.length > 3) return;
+      if (sofar.length > maxSyllables) return;
       if (chunk == chunks.length) {
-        if (sofar.length >= 2) readings.add(List<String>.of(sofar));
+        if (sofar.length >= minSyllables) readings.add(List<String>.of(sofar));
         return;
       }
-      for (final cut in _splits(chunks[chunk])) {
+      for (final cut in _splits(chunks[chunk], maxSyllables - sofar.length)) {
         walk(chunk + 1, <String>[...sofar, ...cut]);
       }
     }
 
     walk(0, <String>[]);
-    return _entriesFor(readings);
+    return readings;
   }
 
   /// [text] cut at typed boundaries (spaces, apostrophes, hyphens, tone
@@ -177,13 +223,8 @@ class ZhInput {
           ..write('${s.substring(0, s.length - 1)}v');
       } else if (r >= 0x0300 && r <= 0x036F) {
         continue; // NFD tone mark
-      } else if ((r >= 0x31 && r <= 0x35) ||
-          r == 0x20 ||
-          r == 0x27 ||
-          r == 0x2019 ||
-          r == 0x2018 ||
-          r == 0x2D) {
-        close(); // tone digit or typed boundary
+      } else if ((r >= 0x30 && r <= 0x35) || _isBoundary(r)) {
+        close(); // tone digit (0 or 5 for the neutral tone) or boundary
       } else {
         return null;
       }
@@ -192,17 +233,39 @@ class ZhInput {
     return chunks;
   }
 
+  /// A typed syllable boundary: whitespace of any kind, apostrophes
+  /// (including U+02BC), hyphens and dashes, and the middle dot.
+  static bool _isBoundary(int r) =>
+      r == 0x20 ||
+      r == 0x09 ||
+      r == 0x0A ||
+      r == 0x0D ||
+      r == 0xA0 ||
+      r == 0x202F ||
+      r == 0x27 ||
+      r == 0x2018 ||
+      r == 0x2019 ||
+      r == 0x02BC ||
+      r == 0x2D ||
+      r == 0x2010 ||
+      r == 0x2011 ||
+      r == 0xB7 ||
+      r == 0x30FB;
+
   /// Every way to cut a letter run into syllables of the inventory.
-  Iterable<List<String>> _splits(String s) sync* {
+  /// At most [budget] syllables, pruned before recursing so a long run of
+  /// letters ("anananan…", from a paste or a crafted file) costs little:
+  /// no run longer than three six-letter syllables is tried at all.
+  Iterable<List<String>> _splits(String s, [int budget = 3]) sync* {
     if (s.isEmpty) {
       yield const <String>[];
       return;
     }
+    if (budget == 0 || s.length > budget * 6) return;
     for (var k = 1; k <= s.length && k <= 6; k++) {
       final head = s.substring(0, k);
       if (!_syllables.contains(head)) continue;
-      for (final rest in _splits(s.substring(k))) {
-        if (rest.length >= 3) continue;
+      for (final rest in _splits(s.substring(k), budget - 1)) {
         yield <String>[head, ...rest];
       }
     }

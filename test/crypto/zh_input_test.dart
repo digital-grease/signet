@@ -195,4 +195,85 @@ void main() {
     expect(WordList.shipped.contains(zh), WordList.chineseEnabled);
     expect(WordList.byId('zh-1') == zh, WordList.chineseEnabled);
   });
+
+  group('review fixes (Task 3.1 review)', () {
+    test('the first two syllables of every three-syllable entry are a '
+        'prefix, so input waits instead of naming a shorter entry', () {
+      for (final w in zhWordlist) {
+        final syl = w.key.split(' ');
+        if (syl.length != 3) continue;
+        expect(z.isPrefix('${syl[0]} ${syl[1]}'), isTrue, reason: w.key);
+        expect(z.isPrefix(syl[0]), isTrue, reason: w.key);
+        expect(z.isPrefix(w.simplified.substring(0, 2)), isTrue,
+            reason: w.simplified);
+      }
+      // "bei ji" on the way to 北极熊 sounds like 飞机 (b>f): it waits.
+      expect(z.isPrefix('bei ji'), isTrue);
+      expect(z.isPrefix('ping guo huo'), isFalse); // three syllables
+      expect(z.isPrefix('abandon'), isFalse);
+    });
+
+    test('a one-character homophone slip reaches the word, also for '
+        'characters with more than one reading', () {
+      String find(String s) => zhWordlist.firstWhere((w) => w.simplified == s).simplified;
+      expect(zh.indexOf('因乐'), zhWordlist.indexWhere((w) => w.simplified == find('音乐')));
+      expect(zh.indexOf('长低'), zhWordlist.indexWhere((w) => w.simplified == find('长笛')));
+      expect(zh.indexOf('凡茄'), zhWordlist.indexWhere((w) => w.simplified == find('番茄')));
+    });
+
+    test('exhaustive slips: replacing one character of any entry by a '
+        'character with the reading it has there names that entry or none, '
+        'never another', () {
+      final bySyllable = <String, List<int>>{};
+      for (final line in zhReadingTable.split('\n')) {
+        final tab = line.indexOf('\t');
+        bySyllable[line.substring(0, tab)] =
+            line.substring(tab + 1).runes.take(12).toList();
+      }
+      var resolved = 0;
+      var none = 0;
+      for (var i = 0; i < zhWordlist.length; i++) {
+        final w = zhWordlist[i];
+        final syl = w.key.split(' ');
+        final runes = w.simplified.runes.toList();
+        if (runes.length != syl.length) continue;
+        for (var pos = 0; pos < runes.length; pos++) {
+          for (final alt in bySyllable[syl[pos]] ?? const <int>[]) {
+            if (alt == runes[pos]) continue;
+            final slipped = [...runes]..[pos] = alt;
+            final got = zh.indexOf(String.fromCharCodes(slipped));
+            if (got == null) {
+              none++;
+            } else {
+              expect(got, i, reason: '${w.simplified} -> '
+                  '${String.fromCharCodes(slipped)}');
+              resolved++;
+            }
+          }
+        }
+      }
+      expect(resolved, greaterThan(none * 4));
+    }, timeout: const Timeout(Duration(minutes: 5)));
+
+    test('more boundaries: neutral-tone 0, tabs, no-break spaces, U+02BC, '
+        'dashes and the middle dot', () {
+      final apple = zhWordlist.indexWhere((w) => w.simplified == '苹果');
+      for (final input in [
+        'ping0 guo0', 'ping\tguo', 'ping guo', 'pingʼguo',
+        'ping‐guo', 'ping·guo', ' ping guo\n',
+      ]) {
+        expect(zh.indexOf(input), apple, reason: input);
+      }
+    });
+  });
+
+  test('long letter runs cost little (no exponential splitting)', () {
+    final sw = Stopwatch()..start();
+    for (final n in [10, 15, 23, 40, 200]) {
+      expect(zh.indexOf('an' * n), isNull);
+      expect(zh.indexOf('na' * n), isNull);
+      expect(z.isPrefix('an' * n), isFalse);
+    }
+    expect(sw.elapsedMilliseconds, lessThan(500));
+  });
 }
