@@ -80,6 +80,7 @@ class LogScrubber {
     });
     // Across line breaks: PAKE words are often written one per line.
     text = _redactBip39Clusters(text);
+    text = _redactBip39ClustersDecoded(text);
     text = _redactZhClusters(text);
     return text.split('\n').map(_scrubLineJudgment).join('\n');
   }
@@ -307,13 +308,29 @@ class LogScrubber {
   /// triple BIP-39 words are NOT redacted — they're common English and
   /// don't carry enough entropy to fingerprint a verify code or PAKE.
   static String _redactBip39Clusters(String line) {
+    final words = _bip39WordRanges(line);
+    if (words.isEmpty) return line;
+    final buf = StringBuffer();
+    var cursor = 0;
+    for (final (start, end) in words) {
+      buf.write(line.substring(cursor, start));
+      buf.write(_redactToken(end - start));
+      cursor = end;
+    }
+    buf.write(line.substring(cursor));
+    return buf.toString();
+  }
+
+  /// The words [_redactBip39Clusters] redacts in [line], as UTF-16 ranges
+  /// in order.
+  static List<(int, int)> _bip39WordRanges(String line) {
     // "and" is never a code word itself: it is part of the separator in
     // "able, about and above".
     final matches = _candidateWordPattern
         .allMatches(line)
         .where((m) => !_joinWords.contains(m.group(0)!.toLowerCase()))
         .toList();
-    if (matches.length < 4) return line;
+    if (matches.length < 4) return const <(int, int)>[];
 
     // Mark each candidate word as BIP-39-or-not. Words in a package:/dart:
     // path ("package:flutter/src/widgets/...") are code, never secrets.
@@ -351,20 +368,62 @@ class LogScrubber {
       i = runEnd;
     }
 
-    if (ranges.isEmpty) return line;
+    return [
+      for (final r in ranges)
+        for (var k = r[0]; k < r[1]; k++) (matches[k].start, matches[k].end),
+    ];
+  }
 
-    // Rebuild line, redacting each ranged match.
-    final buf = StringBuffer();
-    var cursor = 0;
-    for (final r in ranges) {
-      for (var k = r[0]; k < r[1]; k++) {
-        final m = matches[k];
-        buf.write(line.substring(cursor, m.start));
-        buf.write(_redactToken(m.end - m.start));
-        cursor = m.end;
+  /// Text the Latin pass cannot see through as it stands: escapes and
+  /// entities ([_ZhView] decodes them), ligatures and joiners inside words,
+  /// and list markers made of letters ("I.", "Ⅳ.", "a)").
+  static final RegExp _needsDecodedPass = RegExp(
+    '[\\\\%&<\uFB00-\uFB06\u034F\u180E]|'
+    '(?<=^|[\\s(（,，;；:：、])(?:[A-Za-z]|[ivxIVX]{1,4}|[\u2160-\u217F])[.)．）]\\s',
+    unicode: true,
+    multiLine: true,
+  );
+
+  /// A list marker made of letters, blanked before the Latin pass reads a
+  /// decoded view (same length, so offsets keep). It starts a line or
+  /// follows a space or punctuation, so the "g." of "e.g." is not one.
+  static final RegExp _letterListMarker = RegExp(
+    '(?<=^|[\\s(（,，;；:：、])(?:[A-Za-z]|[ivxIVX]{1,4}|[\u2160-\u217F])[.)．）](?=\\s)',
+    unicode: true,
+    multiLine: true,
+  );
+
+  /// The Latin pass again, over [text] as [_ZhView] decodes it (`\n`,
+  /// `\u3001`, `%0A`, `%E3%80%81`, `&nbsp;`, `<br>`, ligatures, joiners
+  /// dropped), with letter list markers read as separators: plan Task 0.6.
+  /// Each word found is redacted in the original text, escapes and all.
+  static String _redactBip39ClustersDecoded(String text) {
+    if (!_needsDecodedPass.hasMatch(text)) return text;
+    final view = _ZhView.of(text);
+    final read = view.text.replaceAllMapped(
+        _letterListMarker, (m) => ' ' * (m.end - m.start));
+    // Nothing decoded and no marker blanked: the first pass saw it all.
+    if (read == text) return text;
+    final words = _bip39WordRanges(read);
+    if (words.isEmpty) return text;
+    final runs = <(int, int)>[];
+    for (final (s16, e16) in words) {
+      final start = view.starts[view.runeAt(s16)];
+      final end = view.ends[view.runeAt(e16) - 1];
+      if (runs.isNotEmpty && start <= runs.last.$2) {
+        runs[runs.length - 1] = (runs.last.$1, end);
+      } else {
+        runs.add((start, end));
       }
     }
-    buf.write(line.substring(cursor));
+    final buf = StringBuffer();
+    var cursor = 0;
+    for (final (start, end) in runs) {
+      buf.write(text.substring(cursor, start));
+      buf.write(_redactToken(end - start));
+      cursor = end;
+    }
+    buf.write(text.substring(cursor));
     return buf.toString();
   }
 
@@ -967,6 +1026,15 @@ class _ZhView {
 
     var i = 0;
     while (i < text.length) {
+      final named = _namedEscape(text, i);
+      if (named != null) {
+        final (decoded, end) = named;
+        for (final r in decoded.runes) {
+          add(r, i, end);
+        }
+        i = end;
+        continue;
+      }
       final entity = _htmlEntity(text, i);
       if (entity != null) {
         add(entity.$1, i, entity.$2);
@@ -1009,6 +1077,8 @@ class _ZhView {
   }
 
   static bool _ignored(int r) =>
+      r == 0x034F || // combining grapheme joiner
+      r == 0x180E || // Mongolian vowel separator
       (r >= 0x200B && r <= 0x200F) ||
       r == 0x2060 ||
       r == 0xFEFF ||
@@ -1021,6 +1091,48 @@ class _ZhView {
     final s = text.substring(from, from + count);
     if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(s)) return null;
     return int.parse(s, radix: 16);
+  }
+
+  static final RegExp _namedEscapePattern = RegExp(
+    r'\\+[ntr]|&(?:nbsp|ensp|emsp|thinsp|amp|lt|gt|quot|apos);'
+    r'|<br\s*/?>|[\uFB00-\uFB06]',
+    caseSensitive: false,
+  );
+
+  static const Map<String, String> _ligatures = {
+    '\uFB00': 'ff', '\uFB01': 'fi', '\uFB02': 'fl', '\uFB03': 'ffi',
+    '\uFB04': 'ffl', '\uFB05': 'st', '\uFB06': 'st',
+  };
+
+  /// A backslash escape for a line break or tab (`\n`, in a string printed
+  /// with its escapes), a named HTML entity, `<br>`, or a ligature from a
+  /// PDF copy at [i]: what it stands for and the offset after it.
+  static (String, int)? _namedEscape(String text, int i) {
+    final c = text.codeUnitAt(i);
+    if (c != 0x5C && c != 0x26 && c != 0x3C && (c < 0xFB00 || c > 0xFB06)) {
+      return null;
+    }
+    final m = _namedEscapePattern.matchAsPrefix(text, i);
+    if (m == null) return null;
+    final s = m[0]!;
+    final String decoded;
+    if (s.startsWith(r'\')) {
+      decoded = switch (s[s.length - 1]) { 'n' => '\n', 't' => '\t', _ => '\r' };
+    } else if (s.startsWith('<')) {
+      decoded = '\n';
+    } else if (s.startsWith('&')) {
+      decoded = switch (s.toLowerCase()) {
+        '&amp;' => '&',
+        '&lt;' => '<',
+        '&gt;' => '>',
+        '&quot;' => '"',
+        '&apos;' => "'",
+        _ => ' ',
+      };
+    } else {
+      decoded = _ligatures[s]!;
+    }
+    return (decoded, m.end);
   }
 
   /// `&#20843;` or `&#x516B;` at [i]: the code point and the offset after
