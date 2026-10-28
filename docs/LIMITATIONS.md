@@ -362,6 +362,12 @@ Each limitation carries four fields:
     Chinese and emoji print as boxes until the Chinese font lands.
   - Language names in notices, the menu and snackbars are read in the
     interface's voice; the words themselves are read in their own.
+  - Chinese words are tagged zh-Hans-CN or zh-Hant-TW for screen
+    readers. On a phone with no Mandarin text-to-speech voice (some
+    OEM builds), Android reads them with its default voice, which may
+    spell the characters or skip them; the reading line (pinyin or
+    Zhuyin) is not read. Install a Mandarin voice in the system's
+    text-to-speech settings. Not yet tested on such a device.
 - **Why:** no runtime Unicode normaliser by design; the CJK font is
   planned work (v0.5.0 plan D5).
 - **Status:** accepted for 0.5.0.

@@ -3,6 +3,7 @@
 // word text, and 2x text.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show LocaleStringAttribute;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -202,5 +203,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('CHINESE CHARACTERS', skipOffstage: false),
         WordList.chineseEnabled ? findsOneWidget : findsNothing);
+  });
+
+  group('screen readers (plan Task 3.4)', () {
+    Future<List<String>> tags(WidgetTester tester, String word) async {
+      await _word(tester, word);
+      final label = tester
+          .getSemantics(find.bySemanticsLabel(word))
+          .getSemanticsData()
+          .attributedLabel;
+      return [
+        for (final a in label.attributes)
+          if (a is LocaleStringAttribute) a.locale.toLanguageTag(),
+      ];
+    }
+
+    testWidgets('simplified words are read as zh-Hans-CN', (tester) async {
+      final handle = tester.ensureSemantics();
+      expect(await tags(tester, '苹果'), ['zh-Hans-CN']);
+      handle.dispose();
+    });
+
+    testWidgets('traditional words are read as zh-Hant-TW', (tester) async {
+      final handle = tester.ensureSemantics();
+      _traditional(true);
+      expect(await tags(tester, '蘋果'), ['zh-Hant-TW']);
+      handle.dispose();
+    });
   });
 }
