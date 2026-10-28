@@ -29,10 +29,12 @@ import '../crypto/wordlists.dart';
 ///   - The literal `signet:tp1:` transport-wire prefix.
 ///   - The source line a `FormatException` echoes (above its `^` caret,
 ///     or right after the message when there is no offset).
-///   - Runs of 4+ BIP-39 words (verify codes, PAKE words) separated by
-///     spaces, tabs, newlines, hyphens, commas, periods, slashes, colons,
-///     semicolons, bars, plus signs, quotes, brackets, list numbers or a
-///     list-final "and", looked for across the whole text. Shorter runs
+///   - Runs of 4+ words of any shipped list (verify codes, PAKE words)
+///     separated by anything but Latin letters and decimal digits: spaces,
+///     punctuation and symbols in any script (CJK and fullwidth included),
+///     text in other scripts, plus at most one list number of 1-2 digits in
+///     any script or a list-final "and" or "et", looked for across the
+///     whole text. Shorter runs
 ///     pass through — "above", "abandon", "able" are common English.
 ///   - Values after a name-like key (`label`, `labelHint`, `title`,
 ///     `peer`, `displayName`, ...), quoted or not.
@@ -136,7 +138,10 @@ class LogScrubber {
   static final _hexRunPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');
 
   static final _lettersGluedToRedaction = RegExp(
-    r'([\p{L}\p{M}]*)\[redacted:(\d+)\]([\p{L}\p{M}]*)',
+    // The lookbehind starts a match only at the start of a letter run, so
+    // a long unspaced CJK line is not rescanned from every position
+    // (quadratic: 9.7 s for 8,000 characters before; v0.5.0 Task 0.1).
+    r'(?<![\p{L}\p{M}])([\p{L}\p{M}]*)\[redacted:(\d+)\]([\p{L}\p{M}]*)',
     unicode: true,
   );
 
@@ -234,38 +239,57 @@ class LogScrubber {
   // BIP-39 cluster detector (100% bar)
   // ===========================================================================
 
-  // Word: a run of letters and combining marks in any script, with any
-  // zero-width or soft-hyphen characters inside it (plan Task 8.4d), so
-  // "élève", its NFD form and "aban\u200Bdon" are each one candidate. A
+  // Word: a Latin letter, then Latin letters and combining marks with any
+  // zero-width or soft-hyphen characters inside (plan Task 8.4d), so
+  // "élève", its NFD form and "aban\u200Bdon" are each one candidate. Every
+  // shipped list is Latin, so other scripts are never part of a candidate,
+  // and Han or kana glued to a word ("验证码abandon", "abandon和ability",
+  // NFD kana ending in a combining mark) separates (v0.5.0 Task 0.1), as do
+  // variation selectors U+FE00-FE0F after a word ("abandon\uFE0F"). A
   // candidate counts when it is a word of any shipped list after the input
-  // fold ([WordList.fold]); a run may mix lists.
+  // fold ([WordList.fold]) with fullwidth Latin narrowed; a run may mix
+  // lists.
   static final RegExp _candidateWordPattern = RegExp(
-    '[\\p{L}\\p{M}\u200B-\u200F\u2060\uFEFF\u00AD\u061C]+',
+    '\\p{Script=Latin}(?:(?![\uFE00-\uFE0F])'
+    '[\\p{Script=Latin}\\p{M}\u200B-\u200F\u2060\uFEFF\u00AD\u061C])*',
     unicode: true,
   );
 
   static const Set<String> _joinWords = {'and', 'et'};
 
-  static bool _isListWord(String candidate) =>
-      WordList.shipped.any((l) => l.contains(candidate));
+  static bool _isListWord(String candidate) {
+    final narrow = candidate.replaceAllMapped(_fullwidthLatin,
+        (m) => String.fromCharCode(m[0]!.codeUnitAt(0) - 0xFEE0));
+    return WordList.shipped.any((l) => l.contains(narrow));
+  }
 
-  /// Between two words of a run: spaces, tabs, newlines, hyphens,
-  /// underscores, commas, periods, slashes, semicolons, colons, bars, plus
-  /// signs, quotes and brackets, and the typographic ones French text uses
-  /// (en and em dashes, middle dot, « », curly quotes, ellipsis; no-break
-  /// spaces count as whitespace), optionally with a list number
-  /// ("1. abandon\n2. ability") or the word "and" ("able, about and above").
+  // Fullwidth A-Z and a-z, as an IME in fullwidth mode types them.
+  static final RegExp _fullwidthLatin = RegExp('[\uFF21-\uFF3A\uFF41-\uFF5A]');
+
+  /// Between two words of a run: anything that is neither a Latin letter
+  /// nor a decimal digit, so whitespace, punctuation and symbols in any
+  /// script (ASCII, French typography, CJK and fullwidth, emoji), letters
+  /// of other scripts ("和"), numerals that are not decimal digits ("一、",
+  /// "①") and variation selectors, plus at most one list number of 1-2
+  /// decimal digits in any script ("1. abandon\n2. ability", "１．abandon",
+  /// "١ abandon") or the word "and" or "et" ("able, about and above").
+  /// Listing characters one by one kept missing neighbours (v0.5.0 Task
+  /// 0.1 review); over-redaction is accepted.
   static const String _bip39SeparatorChars =
-      r'[\s\-_,./;:|+' "'" r'"()\[\]{}–—·«»‘’“”…]';
+      r'(?:(?![\p{Script=Latin}\p{Nd}])[\s\S])';
 
   /// "and", or French "et": never a word of any list, they only join one.
   static final RegExp _andWord =
       RegExp(r'\b(?:and|et)\b', caseSensitive: false);
   static final RegExp _bip39SeparatorPattern = RegExp(
     '^$_bip39SeparatorChars*'
-    '(?:(?:\\d{1,2}[.)]?|and|et)$_bip39SeparatorChars*)?\$',
+    '(?:(?:\\p{Nd}{1,2}[.)．）]?|and|et)$_bip39SeparatorChars*)?\$',
     caseSensitive: false,
+    unicode: true,
   );
+
+  /// A list comma, ASCII or CJK, before a list-final "and".
+  static final RegExp _listComma = RegExp('[,，、﹐﹑､︐︑،]');
 
   /// Find runs of ≥ 4 consecutive BIP-39 words joined by
   /// [_bip39SeparatorPattern] separators; redact each word in any
@@ -290,8 +314,8 @@ class LogScrubber {
             !_insideAny(m.start, paths))
         .toList();
 
-    // Walk and find runs of BIP-39 words where adjacent words are separated
-    // only by whitespace/hyphens (no other punctuation).
+    // Walk and find runs of list words where adjacent words are separated
+    // only by [_bip39SeparatorPattern] text.
     final ranges = <List<int>>[]; // [startMatchIdx, endMatchIdxExclusive]
     var i = 0;
     while (i < matches.length) {
@@ -310,7 +334,7 @@ class LogScrubber {
         // "and" joins a run only in list grammar ("able, about and
         // above"), not in prose ("... doctor and Anchor again").
         if (_andWord.hasMatch(between) && !sawComma) break;
-        if (between.contains(',')) sawComma = true;
+        if (between.contains(_listComma)) sawComma = true;
         runEnd++;
       }
       if (runEnd - i >= 4) ranges.add(<int>[i, runEnd]);
