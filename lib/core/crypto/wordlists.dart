@@ -11,21 +11,52 @@
 
 import 'bip39_english_wordlist.dart';
 import 'bip39_french_wordlist.dart';
+import 'zh_input.dart';
+import 'zh_wordlist.dart';
 
 class WordList {
-  WordList._(this.id, this.languageTag, this.endonym, this.words, this._fold)
-      : assert(words.length == size),
-        _index = {
-          for (var i = 0; i < words.length; i++) _fold(words[i])!: i,
-        };
+  WordList._(
+    this.id,
+    this.languageTag,
+    this.endonym,
+    this.words,
+    this._fold, {
+    int? Function(String input)? lookup,
+  })  : assert(words.length == size),
+        _lookup = lookup,
+        _index = lookup != null
+            ? const <String, int>{}
+            : {for (var i = 0; i < words.length; i++) _fold(words[i])!: i};
 
   static final WordList english =
       WordList._('en', 'en', 'English', bip39EnglishWordlist, _latinFold);
   static final WordList french =
       WordList._('fr', 'fr', 'Français', bip39FrenchWordlist, _latinFold);
 
+  /// zh-1, Signet's Mandarin list (lib/core/crypto/zh_wordlist.dart),
+  /// shown in simplified characters. Input by any accepted written form,
+  /// by pinyin with the list's accent mergers, or by characters through
+  /// the reading table, accepted only when exactly one entry matches
+  /// ([ZhInput]).
+  static final WordList zh1 = WordList._(
+    'zh-1',
+    'zh-CN',
+    '中文（普通话）',
+    [for (final w in zhWordlist) w.simplified],
+    ZhInput.fold,
+    lookup: (input) => ZhInput.zh1.indexOf(input),
+  );
+
+  /// Chinese stays behind the build flag until it ships (v0.5.0 plan
+  /// Phase 3): `--dart-define=SIGNET_ZH=true`.
+  static const bool chineseEnabled = bool.fromEnvironment('SIGNET_ZH');
+
   /// Every list this version can read, English first.
-  static final List<WordList> shipped = [english, french];
+  static final List<WordList> shipped = [
+    english,
+    french,
+    if (chineseEnabled) zh1,
+  ];
 
   /// Words in every list: one per 11-bit index.
   static const int size = 2048;
@@ -35,8 +66,11 @@ class WordList {
   /// null when none has a list.
   static WordList? suggestFor(Iterable<String> languageCodes) {
     for (final code in languageCodes) {
-      final list = byId(code.toLowerCase());
-      if (list != null) return list;
+      for (final list in shipped) {
+        if (list.languageTag.split('-').first == code.toLowerCase()) {
+          return list;
+        }
+      }
     }
     return null;
   }
@@ -83,6 +117,10 @@ class WordList {
 
   final Map<String, int> _index;
 
+  /// A list with its own reading of input (zh-1); null for the Latin lists,
+  /// which look up their fold in [_index].
+  final int? Function(String input)? _lookup;
+
   final String? Function(String) _fold;
 
   String wordAt(int index) => words[index];
@@ -103,6 +141,8 @@ class WordList {
 
   /// The index of [input] in this list after [fold], or null.
   int? indexOf(String input) {
+    final lookup = _lookup;
+    if (lookup != null) return lookup(input);
     final folded = fold(input);
     return folded == null ? null : _index[folded];
   }

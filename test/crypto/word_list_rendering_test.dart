@@ -218,7 +218,8 @@ void main() {
       for (final l in WordList.shipped) {
         expect(WordList.byId(l.id), same(l));
       }
-      expect(WordList.byId('zh-1'), isNull);
+      expect(WordList.byId('zh-1'),
+          WordList.chineseEnabled ? same(WordList.zh1) : isNull);
       expect(WordList.byId(''), isNull);
       expect(WordList.byId('EN'), isNull);
     });
