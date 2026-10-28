@@ -3385,6 +3385,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.'**
   String get wordLanguageTheyChoseUnknown;
+
+  /// Note under a NOT VERIFIED result, shown only when the typed words pass for this contact's secret when read in another word list. Needs the secret, so a caller without it can never trigger it, but it must still never read as a pass. {other} and {current} are languages' own names (Français, English).
+  ///
+  /// In en, this message translates to:
+  /// **'These words match {label}\'s pairing only when read in {other}, but {label}\'s words on this phone are in {current}. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold {label} on Home), then check again.'**
+  String verifyOtherLanguageNote(String other, String label, String current);
+
+  /// First line of the pairing mismatch dialog: a word-language difference shows different words for the same pairing. Never offers to accept a mismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.'**
+  String get pairConfirmMismatchLanguageHint;
+
+  /// Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.
+  ///
+  /// In en, this message translates to:
+  /// **'A {other} word. This contact\'s words are in {own}.'**
+  String wordInputOtherLanguageHelper(String other, String own);
 }
 
 class _AppLocalizationsDelegate

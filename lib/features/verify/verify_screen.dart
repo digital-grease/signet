@@ -78,6 +78,7 @@ class _VerifyResult {
     this.judgedAction,
     this.shownAction,
     this.matchedOldPairing = false,
+    this.otherLanguage,
   });
 
   final _VerifyStatus wordsStatus;
@@ -99,6 +100,12 @@ class _VerifyResult {
   /// rekey (plan Task 3.10). Still a failure: a thief holding the old phone
   /// would produce exactly these words. Only adds a note.
   final bool matchedOldPairing;
+
+  /// The words failed, but pass for this pair's secret read in this other
+  /// word list (plan Task 1.6). Still a failure; only adds a note saying
+  /// the two phones' word languages differ. Needs the secret, so a caller
+  /// without it can trigger it only by chance (about 2^-44 per window).
+  final WordList? otherLanguage;
 
   /// True when the verifier has confirmed both sub-checks (or the only
   /// required check, in plain mode) came back verified.
@@ -320,6 +327,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
     final ok = matchedCounter != null;
     final store = ref.read(secureStoreProvider);
     var matchedOldPairing = false;
+    WordList? otherLanguage;
     if (ok) {
       // The new secret works on both sides: the old one is no longer
       // needed (plan Task 3.10). Best effort.
@@ -332,21 +340,51 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
       try {
         final previous = await store.getPreviousPairing(relationship.id);
         // The other phone did not finish the rekey: its words are in the
-        // language the old pairing had.
+        // language the old pairing had, or (if it changed language since)
+        // any other shipped list.
         final previousList = previous == null
             ? null
             : WordList.byId(previous.wordLanguage);
-        if (previous != null && previousList != null) {
-          matchedOldPairing = await TotpWords.verify(
-            secret: previous.secret,
-            candidate: candidate,
-            unixTimeSeconds: nowUnix,
-            senderRole: previous.role.other,
-            list: previousList,
-          );
+        if (previous != null) {
+          for (final list in <WordList>{
+            ?previousList,
+            ...WordList.shipped,
+          }) {
+            if (!candidate.every(list.contains)) continue;
+            if (await TotpWords.verify(
+              secret: previous.secret,
+              candidate: candidate,
+              unixTimeSeconds: nowUnix,
+              senderRole: previous.role.other,
+              list: list,
+            )) {
+              matchedOldPairing = true;
+              break;
+            }
+          }
         }
       } catch (_) {
         matchedOldPairing = false;
+      }
+      // The words, read in another shipped list, under this secret: the
+      // other phone uses another word language. All 4 words must be in
+      // that one list; the result stays NOT VERIFIED.
+      for (final other in WordList.shipped) {
+        if (other == relationship.wordList ||
+            !candidate.every(other.contains)) {
+          continue;
+        }
+        final counter = await TotpWords.verifyWindow(
+          secret: secret,
+          candidate: candidate,
+          unixTimeSeconds: nowUnix,
+          senderRole: relationship.role.other,
+          list: other,
+        );
+        if (counter != null) {
+          otherLanguage = other;
+          break;
+        }
       }
     }
     // Video mode judges the gesture of the window the words matched: with
@@ -375,6 +413,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
         judgedAction: judgedAction,
         shownAction: _watchForFrozen ?? _expectedAction,
         matchedOldPairing: matchedOldPairing,
+        otherLanguage: otherLanguage,
       );
       // A failed attempt is over; the next one freezes afresh. A pass in
       // video mode keeps the row frozen until the gesture is judged.
@@ -464,6 +503,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           _ResultBanner._sublineFor(result, ok, l10n),
           if (result.matchedOldPairing)
             l10n.verifyOldPairingNote(relationship.label),
+          if (result.otherLanguage case final other?)
+            l10n.verifyOtherLanguageNote(other.endonym, relationship.label,
+                relationship.wordList.endonym),
         ].join('. ');
       }
       unawaited(SemanticsService.sendAnnouncement(
@@ -642,6 +684,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
                 result: result,
                 relationshipLabel: relationship.label,
                 relationshipId: relationship.id,
+                currentLanguage: relationship.wordList.endonym,
               ),
             ),
             const SizedBox(height: 20),
@@ -652,6 +695,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
           const SizedBox(height: 8),
           WordInput(
             lists: [relationship.wordList],
+            // Other languages' words are accepted too, never as a pass:
+            // they only let the result say the languages differ.
+            alsoAccept: [
+              for (final l in WordList.shipped)
+                if (l != relationship.wordList) l,
+            ],
             onSubmit: _handleSubmit,
             submitLabel: AppLocalizations.of(context).verifyCheckWordsButton,
             resetKey: _resetKey,
@@ -706,12 +755,17 @@ class _ResultBanner extends StatelessWidget {
     required this.result,
     required this.relationshipLabel,
     required this.relationshipId,
+    required this.currentLanguage,
   });
 
   final String relationshipId;
 
   final _VerifyResult result;
   final String relationshipLabel;
+
+  /// The contact's word language, by its own name, for the
+  /// other-language note.
+  final String currentLanguage;
 
   @override
   Widget build(BuildContext context) {
@@ -735,16 +789,24 @@ class _ResultBanner extends StatelessWidget {
     final headline =
         isOk ? l10n.verifyBannerVerified : l10n.verifyBannerNotVerified;
     final subline = _sublineFor(result, isOk, l10n);
+    // Notes only ever sit under a NOT VERIFIED; they explain, never pass.
+    final notes = <String>[
+      if (result.matchedOldPairing) l10n.verifyOldPairingNote(relationshipLabel),
+      if (result.otherLanguage case final other?)
+        l10n.verifyOtherLanguageNote(
+            other.endonym, relationshipLabel, currentLanguage),
+    ];
 
     return Semantics(
       // A live region only where the screen does not announce results
       // itself (see _announceResult), so nothing is read twice.
       liveRegion: !MediaQuery.supportsAnnounceOf(context),
       container: true,
-      label: result.matchedOldPairing
-          ? '$headline. $subline. '
-              '${l10n.verifyOldPairingNote(relationshipLabel)}'
-          : '$headline. $subline',
+      label: <String>[
+        headline,
+        subline,
+        ...notes,
+      ].join('. '),
       child: Container(
         decoration: BoxDecoration(
           color: bg,
@@ -783,10 +845,10 @@ class _ResultBanner extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
-              if (result.matchedOldPairing) ...<Widget>[
+              for (final note in notes) ...<Widget>[
                 const SizedBox(height: 8),
                 Text(
-                  l10n.verifyOldPairingNote(relationshipLabel),
+                  note,
                   style: TextStyle(
                     fontSize: 13,
                     color: fg,

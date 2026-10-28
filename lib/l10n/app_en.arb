@@ -1606,5 +1606,14 @@
   "@backupWordsAnyLanguage": {"description": "Under the 'Words: <language>' label above the 8 backup words: they restore on a phone whose default language differs."},
 
   "wordLanguageTheyChoseUnknown": "The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.",
-  "@wordLanguageTheyChoseUnknown": {"description": "Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged)."}
+  "@wordLanguageTheyChoseUnknown": {"description": "Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged)."},
+
+  "verifyOtherLanguageNote": "These words match {label}'s pairing only when read in {other}, but {label}'s words on this phone are in {current}. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold {label} on Home), then check again.",
+  "@verifyOtherLanguageNote": {"description": "Note under a NOT VERIFIED result, shown only when the typed words pass for this contact's secret when read in another word list. Needs the secret, so a caller without it can never trigger it, but it must still never read as a pass. {other} and {current} are languages' own names (Français, English).", "placeholders": {"other": {"type": "String"}, "label": {"type": "String"}, "current": {"type": "String"}}},
+
+  "pairConfirmMismatchLanguageHint": "First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.",
+  "@pairConfirmMismatchLanguageHint": {"description": "First line of the pairing mismatch dialog: a word-language difference shows different words for the same pairing. Never offers to accept a mismatch."},
+
+  "wordInputOtherLanguageHelper": "A {other} word. This contact's words are in {own}.",
+  "@wordInputOtherLanguageHelper": {"description": "Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.", "placeholders": {"other": {"type": "String"}, "own": {"type": "String"}}}
 }

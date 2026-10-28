@@ -165,7 +165,19 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.pairConfirmMismatchDialogTitle),
-        content: Text(l10n.pairConfirmMismatchDialogBody),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // A different word language shows different words for the
+              // same pairing; never a reason to accept a mismatch.
+              Text(l10n.pairConfirmMismatchLanguageHint),
+              const SizedBox(height: 12),
+              Text(l10n.pairConfirmMismatchDialogBody),
+            ],
+          ),
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

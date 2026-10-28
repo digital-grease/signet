@@ -85,13 +85,13 @@ void main() {
   });
 
   testWidgets(
-      'old words are read in the old pairing\'s language: one this '
-      'version lacks gets no note (v0.5.0 Task 1.3)', (tester) async {
+      'an old pairing whose language this version lacks is still checked '
+      'in every list (v0.5.0 Tasks 1.3, 1.6)', (tester) async {
     seedOld(wordLanguage: 'zh-9');
     await open(tester);
     await type(tester, await oldPairingWords());
     expect(find.text('NOT VERIFIED — BE SUSPICIOUS'), findsOneWidget);
-    expect(find.textContaining('before a rekey'), findsNothing);
+    expect(find.textContaining('before a rekey'), findsOneWidget);
   });
 
   testWidgets('with no old pairing kept, the same words get no note',

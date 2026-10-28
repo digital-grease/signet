@@ -55,12 +55,20 @@ class WordInput extends StatefulWidget {
     this.onTypingChanged,
     this.focusOnReset = true,
     this.lists = const <WordList>[],
+    this.alsoAccept = const <WordList>[],
   });
 
   final int wordCount;
 
   /// The word lists a slot accepts; empty means English only.
   final List<WordList> lists;
+
+  /// Lists whose words also fill a slot, but never as chips and never by
+  /// auto-advance: the verify screen accepts another language's words so
+  /// the parent can say "right words, other language" under a NOT VERIFIED
+  /// (plan Task 1.6). They confirm with a space, the keyboard's next or
+  /// done key, or a paste.
+  final List<WordList> alsoAccept;
   final Future<void> Function(List<String> words)? onSubmit;
 
   /// Called after every edit with the words when every slot holds a valid
@@ -181,7 +189,7 @@ class _WordInputState extends State<WordInput> {
   /// [text] as the matched list spells it, or null if it is not a word of
   /// any accepted list.
   String? _canonical(String text) {
-    for (final l in [..._activeLists, ..._lists]) {
+    for (final l in [..._activeLists, ..._lists, ...widget.alsoAccept]) {
       final i = l.indexOf(text);
       if (i != null) return l.wordAt(i);
     }
@@ -190,11 +198,39 @@ class _WordInputState extends State<WordInput> {
 
   bool _isWord(String text) => _canonical(text) != null;
 
+  /// A word of [WordInput.lists] itself, not only of [WordInput.alsoAccept].
+  bool _isOwnWord(String text) => _lists.any((l) => l.contains(text));
+
+  /// The [WordInput.alsoAccept] list [text] is a word of, when it is not a
+  /// word of [WordInput.lists].
+  WordList? _otherListOf(String text) {
+    if (_isOwnWord(text)) return null;
+    for (final l in widget.alsoAccept) {
+      if (l.contains(text)) return l;
+    }
+    return null;
+  }
+
+  /// Some slot already holds another language's word: the caller is
+  /// reading that language, so its prefixes count too (an English word
+  /// that starts a French one waits instead of cutting it in half).
+  bool get _otherLanguageInUse => _controllers
+      .any((c) => _otherListOf(c.text.trim().toLowerCase()) != null);
+
+  /// [words] may go to [WordInput.onSubmit]: all of the contact's lists,
+  /// or all of one [WordInput.alsoAccept] list (the other-language note).
+  /// A mix is a typo ("baron" for "bacon"), which must stay an inline
+  /// hint, never a NOT VERIFIED for a genuine caller.
+  bool _submittable(List<String> words) {
+    if (words.every(_isOwnWord)) return true;
+    return widget.alsoAccept.any((l) => words.every(l.contains));
+  }
+
   /// The language a slot's text is read in by screen readers: the list
   /// the word belongs to, or the only accepted list while it is being
   /// typed; null (the UI's voice) when it could be either.
   Locale? _localeFor(String text) {
-    for (final l in [..._activeLists, ..._lists]) {
+    for (final l in [..._activeLists, ..._lists, ...widget.alsoAccept]) {
       if (l.contains(text)) return wordLocale(l);
     }
     final lists = _activeLists;
@@ -205,7 +241,10 @@ class _WordInputState extends State<WordInput> {
   /// (not just the active ones: the next letter may switch languages).
   bool _isPrefixWord(String text) {
     if (!_isWord(text)) return false;
-    return _lists.any((l) {
+    final lists = _otherLanguageInUse
+        ? <WordList>[..._lists, ...widget.alsoAccept]
+        : _lists;
+    return lists.any((l) {
       final folded = l.fold(text);
       return folded != null && _properPrefixesOf(l).contains(folded);
     });
@@ -291,7 +330,7 @@ class _WordInputState extends State<WordInput> {
   }
 
   bool _isPrefixOfAnyWord(String text) {
-    return _activeLists.any((l) {
+    return [..._activeLists, ...widget.alsoAccept].any((l) {
       final folded = l.fold(text);
       return folded != null && _foldedOf(l).any((w) => w.startsWith(folded));
     });
@@ -345,7 +384,9 @@ class _WordInputState extends State<WordInput> {
     }
     // A complete word that cannot be the start of a longer one is
     // unambiguous: confirm it and move on.
-    final unambiguous = _isWord(trimmed) && !_isPrefixWord(trimmed);
+    // Another language's word (alsoAccept) waits for an explicit confirm:
+    // the contact's own words must advance exactly as before.
+    final unambiguous = _isOwnWord(trimmed) && !_isPrefixWord(trimmed);
     if (unambiguous) _showCanonical(index);
     setState(() => _confirmed[index] = unambiguous);
     if (unambiguous) _advanceFrom(index);
@@ -399,6 +440,7 @@ class _WordInputState extends State<WordInput> {
     if (widget.onSubmit == null) return false;
     final words = _collectValidWords();
     return words != null &&
+        _submittable(words) &&
         _confirmed.every((c) => c) &&
         !listEquals(words, _lastSubmitted);
   }
@@ -424,6 +466,7 @@ class _WordInputState extends State<WordInput> {
     final words = _collectValidWords();
     widget.onWordsChanged?.call(words);
     if (words != null &&
+        _submittable(words) &&
         _confirmed.every((c) => c) &&
         !listEquals(words, _lastSubmitted)) {
       unawaited(_submit(words));
@@ -473,7 +516,10 @@ class _WordInputState extends State<WordInput> {
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(56),
             ),
-            onPressed: words == null || _submitting || !widget.enabled
+            onPressed: words == null ||
+                    !_submittable(words) ||
+                    _submitting ||
+                    !widget.enabled
                 ? null
                 : () => unawaited(_submit(words)),
             child: Text(submitLabel),
@@ -512,6 +558,9 @@ class _WordInputState extends State<WordInput> {
     final isKnown = _isWord(value);
     final looksInvalid =
         value.length >= 2 && !isKnown && !_isPrefixOfAnyWord(value);
+    // Another language's word: say so, so a typo that happens to be a
+    // French word ("baron" for "bacon") is seen before it is checked.
+    final otherList = _otherListOf(value);
     return Semantics(
       label: AppLocalizations.of(context)
           .wordInputSlotSemantics(index + 1, widget.wordCount),
@@ -543,6 +592,11 @@ class _WordInputState extends State<WordInput> {
           errorText: looksInvalid
               ? AppLocalizations.of(context).wordInputInvalidWordError
               : null,
+          helperText: otherList == null
+              ? null
+              : AppLocalizations.of(context).wordInputOtherLanguageHelper(
+                  otherList.endonym, _lists.first.endonym),
+          helperMaxLines: 3,
           suffixIcon: controller.text.isEmpty
               ? null
               : IconButton(

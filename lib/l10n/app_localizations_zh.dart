@@ -1956,4 +1956,18 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get wordLanguageTheyChoseUnknown =>
       '对方手机选择的单词语言是此版本 Signet 没有的。请更新 Signet，或双方都选择你们共有的语言。';
+
+  @override
+  String verifyOtherLanguageNote(String other, String label, String current) {
+    return '这些单词只有按$other来读才与 $label 的配对相符，但这部手机上 $label 的单词是$current。结果仍然是“验证未通过”。通话结束后，请在两部手机上选择相同的单词语言（在主屏幕上长按 $label），然后再验证一次。';
+  }
+
+  @override
+  String get pairConfirmMismatchLanguageHint =>
+      '先确认两边屏幕上短语上方显示的单词语言相同。如果不同，请点“取消”，在两部手机上选择相同的语言，然后再比对一次。';
+
+  @override
+  String wordInputOtherLanguageHelper(String other, String own) {
+    return '这是$other单词。此联系人的单词是$own。';
+  }
 }

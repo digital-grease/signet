@@ -2063,4 +2063,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wordLanguageTheyChoseUnknown =>
       'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.';
+
+  @override
+  String verifyOtherLanguageNote(String other, String label, String current) {
+    return 'These words match $label\'s pairing only when read in $other, but $label\'s words on this phone are in $current. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold $label on Home), then check again.';
+  }
+
+  @override
+  String get pairConfirmMismatchLanguageHint =>
+      'First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.';
+
+  @override
+  String wordInputOtherLanguageHelper(String other, String own) {
+    return 'A $other word. This contact\'s words are in $own.';
+  }
 }
