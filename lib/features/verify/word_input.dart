@@ -336,18 +336,14 @@ class _WordInputState extends State<WordInput> {
     });
   }
 
-  bool _looksLikePaste(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return false;
-    return RegExp(r'[\s\-]').hasMatch(trimmed);
-  }
+  /// More than one word's worth of text: several Latin runs, whatever
+  /// separates them (spaces, hyphens, commas, CJK punctuation such as
+  /// "abandon、ability", list numbers; v0.5.0 plan Task 0.5).
+  bool _looksLikePaste(String text) =>
+      WordList.splitWords(text.trim()).length > 1;
 
   bool _tryDistributePaste(String pasted) {
-    final parts = pasted
-        .toLowerCase()
-        .split(RegExp(r'[\s\-]+'))
-        .where((s) => s.isNotEmpty)
-        .toList();
+    final parts = WordList.splitWords(pasted.toLowerCase());
     if (parts.length != widget.wordCount) return false;
     if (!parts.every(_isWord)) return false;
     for (var i = 0; i < widget.wordCount; i++) {

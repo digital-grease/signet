@@ -157,15 +157,6 @@ class BackupText {
   static final RegExp _fingerprintLine =
       RegExp(r'^#\s*Fingerprint:\s*(\d{3})\s?(\d{3})\s*$');
 
-  /// Separators between words: anything but letters and combining marks
-  /// (Unicode-aware, so accented French words stay whole).
-  static final RegExp _nonLetters = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
-
-  /// Zero-width and soft-hyphen characters, removed before splitting so a
-  /// pasted word they sit inside stays one token.
-  static final RegExp _formatChars =
-      RegExp('[\u200B-\u200F\u2060\uFEFF\u00AD\u061C]');
-
   /// [tokens] as words of the first shipped list that holds all of them
   /// (the list's own spelling), or null. All words must be from one list
   /// (plan Task 8.4c); the decoder then reads them in every such list.
@@ -231,15 +222,12 @@ class BackupText {
         i = j - 1;
         continue;
       }
-      final clean = line.replaceAll(_formatChars, '');
-      looseTokens.addAll(clean.split(_nonLetters).where((t) => t.isNotEmpty));
-      if (pake == null) {
-        final tokens = clean
-            .split(RegExp(r'\s+'))
-            .where((t) => t.isNotEmpty)
-            .toList();
-        if (tokens.length == 8) pake = _asWords(tokens);
-      }
+      // Latin runs only: CJK punctuation, list numbers in any script and
+      // Han labels ("密码词：", "一、") separate words and never count as
+      // one (v0.5.0 plan Task 0.5).
+      final tokens = WordList.splitWords(line);
+      looseTokens.addAll(tokens);
+      if (pake == null && tokens.length == 8) pake = _asWords(tokens);
     }
     // No single line held the words: accept them spread over several lines
     // ("1. abandon", one per line, comma-separated) when exactly 8 words

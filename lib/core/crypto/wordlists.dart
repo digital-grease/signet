@@ -41,6 +41,20 @@ class WordList {
     return null;
   }
 
+  /// The candidate words in pasted or typed [text]: its runs of Latin
+  /// letters (and their combining marks), after removing invisible format
+  /// characters. Every shipped list is Latin, so anything else separates:
+  /// spaces, any punctuation including CJK and fullwidth (、，。), digits
+  /// and list numbers, and Han or kana around the words ("密码词：abandon",
+  /// "一、abandon"). v0.5.0 plan Task 0.5.
+  static List<String> splitWords(String text) => [
+        for (final m in _latinRun.allMatches(text.replaceAll(_formatChars, '')))
+          m[0]!,
+      ];
+
+  static final RegExp _latinRun =
+      RegExp(r'\p{Script=Latin}[\p{Script=Latin}\p{M}]*', unicode: true);
+
   /// The shipped list registered as [id], or null for an id this version
   /// does not have.
   static WordList? byId(String id) {
