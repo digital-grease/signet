@@ -394,6 +394,42 @@ stays, because it also protects the shared secret itself.
 - Each window's 4 words are different per role; a reflection attempt
   fails by construction.
 
+### 3.2a Word languages (0.5.0)
+
+Each contact has a word list (`Relationship.wordLanguage`: `en`, `fr`).
+A list only spells the 11-bit indices; no derivation, key, wire byte or
+stored secret depends on it (`docs/TEST_VECTORS.md`, per-language
+rendering).
+
+- **Verify stays 44 bits.** Only the contact's list can produce
+  VERIFIED. Another list's words are accepted as input only so that,
+  under a NOT VERIFIED, a note can say the words match the pairing read
+  in that other list. The note needs the secret and the counterparty's
+  role, so a caller without the secret triggers it with probability
+  about (lists - 1) · 3 · 2^-44 per attempt, and the result is still NOT
+  VERIFIED. Four words mixing lists are never checked, so a typo that is
+  another list's word (bacon/baron) stays an inline hint.
+- **Pairing.** The language row and the confirm-screen switch re-render
+  the same indices. A man-in-the-middle's phrase differs in every
+  rendering; English and French share 100 spellings, none at the same
+  index, so a genuine pair seen in two languages differs in every
+  position. There is no "match anyway"; the mismatch dialog only asks to
+  check the language first.
+- **Wire.** Non-critical extension `0x01` carries the list id in each
+  LPR and BLK record and, as a display-only hint, in LDP requests and
+  responses. Stripped: the contact restores as English, or the other
+  phone's row is not preselected. Forged: at worst a preselected row or
+  a note the users then compare against. A malformed value restores as
+  a short "damaged" marker; an id this version lacks is kept and
+  re-exported, and the contact's words are not shown ("update Signet")
+  rather than shown in a wrong list.
+- **Social engineering** ("set my words to English"): changing a
+  contact's language is dated and shown in its Word language dialog,
+  the dialog says to change it together and never because a caller
+  asks, and it never makes wrong words pass.
+- **Logs.** The scrubber redacts runs of 4 or more words of any shipped
+  list or mix of lists (§2.10).
+
 ### 3.3 Transport package (long-distance pairing + lost-phone recovery)
 
 - Wire format: `signet:tp1:<base64url(body)>`.
@@ -777,6 +813,11 @@ or changes a cryptographic primitive, a platform-trust assumption, or
 a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
+
+- 2026-10-27 · 0.5.0: §3.2a word languages: per-contact list, verify
+  stays 44 bits with an other-language note that needs the secret,
+  pairing language row and switch, extension `0x01` (registered in
+  `docs/WIRE_FORMAT.md`), dated per-contact language changes.
 
 - 2026-10-11 · 0.4.0: §3.1 in-person pairing and rekey are
   commit-then-reveal (`signet:p2:`), bound 2^-44 per attempt with

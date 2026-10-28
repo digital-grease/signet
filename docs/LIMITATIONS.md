@@ -348,6 +348,24 @@ Each limitation carries four fields:
 - **Status:** release-gate item, not a security or functional
   limitation.
 
+### L-FEAT-3 · Word-language edges (0.5.0)
+
+- **Scope:**
+  - The first word of a code in another language than the contact's,
+    when it begins with a whole word of the contact's list ("absurd"
+    starting French "absurde" for an English contact), still
+    auto-advances, so it is split across two slots. Later words wait.
+    The case only arises when the two phones' languages differ, and
+    it ends at worst as a plain NOT VERIFIED.
+  - The printed card does not normalise contact names; a name typed
+    in decomposed form prints its accent beside the letter. Names in
+    Chinese and emoji print as boxes until the Chinese font lands.
+  - Language names in notices, the menu and snackbars are read in the
+    interface's voice; the words themselves are read in their own.
+- **Why:** no runtime Unicode normaliser by design; the CJK font is
+  planned work (v0.5.0 plan D5).
+- **Status:** accepted for 0.5.0.
+
 ---
 
 ## Changelog

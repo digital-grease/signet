@@ -1615,5 +1615,11 @@
   "@pairConfirmMismatchLanguageHint": {"description": "First line of the pairing mismatch dialog: a word-language difference shows different words for the same pairing. Never offers to accept a mismatch."},
 
   "wordInputOtherLanguageHelper": "A {other} word. This contact's words are in {own}.",
-  "@wordInputOtherLanguageHelper": {"description": "Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.", "placeholders": {"other": {"type": "String"}, "own": {"type": "String"}}}
+  "@wordInputOtherLanguageHelper": {"description": "Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.", "placeholders": {"other": {"type": "String"}, "own": {"type": "String"}}},
+
+  "faqQ14": "My contact's words are in another language.",
+  "@faqQ14": {"description": "FAQ question about word languages."},
+
+  "faqA14": "Each contact has a word language, and you and that person must choose the same one for each other. If they read you the right words in another language, verify still says NOT VERIFIED and adds a note saying so.\n\nTo fix it, change it together: on both phones, press and hold the contact on Home, choose Word language and pick the same language. Do this only with the real person, never because a caller asks you to. A change is dated and shown in that dialog.\n\nThe language you chose at first run is only the default for new contacts; change it in Settings. A backup keeps each contact's language.",
+  "@faqA14": {"description": "FAQ answer about word languages. Must not suggest ignoring a NOT VERIFIED."}
 }

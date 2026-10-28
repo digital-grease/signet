@@ -86,6 +86,10 @@ The original design called for an 8-digit TOTP code, but 8 digits don't survive 
 
 A naïve rotating-code design would give both paired devices the same 4 words each window — but then an attacker can say *"grandma, before we talk, read me your words so I know it's really you,"* parrot them back, and pass the verify. Signet binds each rotating code to a direction: at pair time each device independently derives a role (`a` or `b`) from the byte-lexicographic ordering of the two X25519 public keys. The HKDF info string is role-suffixed, so the A→B words and the B→A words for any given window are different. "Show my 4 words" renders your role; the verify input checks against the *other* role. Reflecting the verifier's own displayed words back fails immediately. See `lib/core/crypto/pair_role.dart` and the reflection-attack test in `test/crypto/totp_words_test.dart`.
 
+### Word languages
+
+The words can be English or French (Chinese is planned). Each word is an 11-bit index, and a language only spells it, so the security is the same in every language. Each contact has its own word language: you choose it when you pair (preselected to your phone's default, chosen at first run), and you and the other person must choose the same one for each other. A backup carries each contact's language. If someone reads you the right words in the wrong language, verify still says NOT VERIFIED and adds a note that the two phones' languages differ. Screen readers read each word in its own language. See `docs/THREAT_MODEL.md` §3.2a.
+
 ### Properties
 
 - **No server, no cloud, no account.** The app literally has no `INTERNET` permission in its manifest. There is no backend to subpoena, compromise, or shut down.
@@ -293,6 +297,11 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 - ✅ **Zero in-process network.** No `INTERNET` permission added to the Android manifest; the "File issue" button hands off to the OS browser. Full four-layer defense documented at `docs/THREAT_MODEL.md` §3.6.
 - ✅ **Fixed: in-person pairing deadlock** ([#1](https://github.com/digital-grease/signet/issues/1)). Derivation gated on both `didShowQr` AND a recorded counterparty key; both devices now reach verification independently after completing both scan + show steps.
 
+### v0.5.0 — word languages
+
+- ✅ **French words** for any contact, chosen at first run and when pairing, carried in backups (transport-package extension `0x01`), switchable on the pairing confirm screens, read by screen readers in French, printed on the challenge-grid card with an embedded font.
+- ⏳ **Chinese (Mandarin) words** from a Signet-curated list (`zh-1`), and the Traditional Chinese interface.
+
 ### v1.0
 
 - Duress codes (pending an abuse-analysis pass)
@@ -330,5 +339,7 @@ Signet is solo-maintained beta software. Issues and PRs are welcome, but please 
 ## License
 
 AGPL-3.0. See [LICENSE](LICENSE).
+
+The printed challenge-grid card embeds a subset of Noto Sans (SIL Open Font License 1.1, `assets/fonts/OFL.txt`), built by `tool/fonts/subset_noto.sh`.
 
 This is user-sovereign software. The license reflects that.

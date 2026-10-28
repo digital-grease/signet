@@ -26,4 +26,25 @@ void main() {
     expect(text, isNot(contains('http')));
     expect(text, contains('\n\n'), reason: 'short paragraphs');
   });
+
+  testWidgets('the word-language entry says how to fix it, and never to '
+      'change it for a caller (v0.5.0 Task 1.8)', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: FaqScreen(),
+    ));
+    await tester.pumpAndSettle();
+    final question = find.text("My contact's words are in another language.");
+    await tester.scrollUntilVisible(question, 200);
+    await tester.ensureVisible(question);
+    await tester.pumpAndSettle();
+    await tester.tap(question);
+    await tester.pumpAndSettle();
+    final answer = find.textContaining('still says NOT VERIFIED',
+        skipOffstage: false);
+    expect(answer, findsOneWidget);
+    final text = tester.widget<Text>(answer).data!;
+    expect(text, contains('press and hold the contact'));
+    expect(text, contains('never because a caller asks you to'));
+  });
 }
