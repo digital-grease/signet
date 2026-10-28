@@ -19,6 +19,7 @@ import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
 import '../support/test_prefs.dart';
+import '../support/word_locale.dart';
 import '../support/secure_clipboard_recorder.dart';
 
 const goodPake = <String>[
@@ -602,6 +603,7 @@ void main() {
     testWidgets(
         'the sender\'s hint preselects; changing re-encodes the response '
         'and is what the contact is saved with', (tester) async {
+      final semantics = tester.ensureSemantics();
       final senderKp = await PairingHandshake.generateEphemeralKeyPair();
       final wire = await TransportPackage.encodeLdpRequest(
         publicKey: senderKp.publicKey,
@@ -640,6 +642,7 @@ void main() {
             list: list,
           );
       expect(_shownPhrase(tester), await phrase(WordList.french));
+      expectMarked(tester, await phrase(WordList.french), 'fr');
 
       await tester.ensureVisible(find.text('CHANGE'));
       await tester.pumpAndSettle();
@@ -648,6 +651,8 @@ void main() {
       await tester.tap(find.text('English'));
       await tester.pumpAndSettle();
       expect(_shownPhrase(tester), await phrase(WordList.english));
+      expectMarked(tester, await phrase(WordList.english), 'en');
+      semantics.dispose();
       final second = await response();
       expect(TransportPackage.wordListIdOf(second.extensions), 'en');
       expect(second.publicKey, first.publicKey);

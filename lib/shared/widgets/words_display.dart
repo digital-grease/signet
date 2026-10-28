@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../core/crypto/wordlists.dart';
+import '../word_semantics.dart';
 
 /// Massive, high-contrast display of the current 4-word rotating TOTP code,
 /// with a linear countdown bar for the remaining seconds in the window.
@@ -17,7 +19,12 @@ class WordsDisplay extends StatelessWidget {
     required this.secondsRemaining,
     required this.windowSeconds,
     this.onTap,
+    this.list,
   });
+
+  /// The list [words] are in, for the screen reader's voice (English when
+  /// null).
+  final WordList? list;
 
   final List<String> words;
   final int secondsRemaining;
@@ -36,7 +43,12 @@ class WordsDisplay extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Semantics(
-      label: l10n.wordsDisplaySemantics(semanticsWords, secondsRemaining),
+      attributedLabel: attributedWords(
+        l10n.wordsDisplaySemantics(semanticsWords, secondsRemaining),
+        list ?? WordList.english,
+        words: words,
+        within: semanticsWords,
+      ),
       button: onTap != null,
       excludeSemantics: true,
       child: InkWell(

@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 
 import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
+import '../word_semantics.dart';
 import 'word_language_options.dart';
 
 /// "Words: Français" with a CHANGE button, on the pairing and confirm
@@ -74,6 +75,18 @@ class WordLanguageRow extends StatelessWidget {
     ));
   }
 
+  /// "Words: Français", with the language's name read in its own voice.
+  Widget _label(BuildContext context, TextStyle? style) {
+    final text =
+        AppLocalizations.of(context).wordLanguageRowLabel(selected.endonym);
+    return Semantics(
+      attributedLabel:
+          attributedWords(text, selected, words: <String>[selected.endonym]),
+      excludeSemantics: true,
+      child: Text(text, style: style?.copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -81,13 +94,7 @@ class WordLanguageRow extends StatelessWidget {
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          l10n.wordLanguageRowLabel(selected.endonym),
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
+        _label(context, Theme.of(context).textTheme.titleMedium),
         if (hint != null) ...<Widget>[
           const SizedBox(height: 2),
           Text(
@@ -125,13 +132,7 @@ class WordLanguageRow extends StatelessWidget {
     // side by side left the label a few letters wide.
     final stacked = MediaQuery.textScalerOf(context).scale(10) > 13;
     if (compact) {
-      final label = Text(
-        l10n.wordLanguageRowLabel(selected.endonym),
-        style: Theme.of(context)
-            .textTheme
-            .titleSmall
-            ?.copyWith(fontWeight: FontWeight.w700),
-      );
+      final label = _label(context, Theme.of(context).textTheme.titleSmall);
       return stacked
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

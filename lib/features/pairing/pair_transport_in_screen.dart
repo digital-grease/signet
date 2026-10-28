@@ -19,6 +19,7 @@ import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 import '../verify/word_input.dart';
 
 /// Receiver side of the Phase-10 long-distance pairing flow. Two phases:
@@ -447,8 +448,9 @@ class _PairTransportInScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
+                        child: WordText(
                           word,
+                          list: _wordList,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,

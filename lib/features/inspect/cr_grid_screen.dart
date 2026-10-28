@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/crypto/challenge_response_grid.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/word_language_notice.dart';
+import '../../shared/word_semantics.dart';
 import 'cr_grid_pdf.dart';
 
 /// Digital viewer for the challenge-response grid. Renders the full 8×8
@@ -152,12 +154,14 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          _MixedText(
             l10n.crGridFallbackExplanation(
               relationship.label,
               grid.rowLabels.first,
               grid.colLabels.first,
             ),
+            words: <String>[grid.rowLabels.first, grid.colLabels.first],
+            list: relationship.wordList,
             style: TextStyle(
               fontSize: 13,
               color: scheme.onSurfaceVariant,
@@ -184,7 +188,7 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
           const SizedBox(height: 20),
           _SectionHeader(l10n.crGridSectionHeader),
           const SizedBox(height: 10),
-          _GridTable(grid: grid),
+          _GridTable(grid: grid, list: relationship.wordList),
           const SizedBox(height: 20),
           Divider(color: scheme.outlineVariant),
           const SizedBox(height: 12),
@@ -202,9 +206,10 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
 }
 
 class _GridTable extends StatelessWidget {
-  const _GridTable({required this.grid});
+  const _GridTable({required this.grid, required this.list});
 
   final ChallengeResponseGrid grid;
+  final WordList list;
 
   @override
   Widget build(BuildContext context) {
@@ -224,8 +229,9 @@ class _GridTable extends StatelessWidget {
                   width: 80,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
-                  child: Text(
+                  child: WordText(
                     col,
+                    list: list,
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10,
@@ -255,8 +261,9 @@ class _GridTable extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
+                        child: WordText(
                           grid.rowLabels[row],
+                          list: list,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
@@ -276,6 +283,7 @@ class _GridTable extends StatelessWidget {
                       rowLabel: grid.rowLabels[row],
                       colLabel: grid.colLabels[col],
                       words: grid.cells[row][col],
+                      list: list,
                     ),
                 ],
               ),
@@ -291,11 +299,13 @@ class _CellTile extends StatelessWidget {
     required this.rowLabel,
     required this.colLabel,
     required this.words,
+    required this.list,
   });
 
   final String rowLabel;
   final String colLabel;
   final List<String> words;
+  final WordList list;
 
   @override
   Widget build(BuildContext context) {
@@ -319,8 +329,9 @@ class _CellTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               for (final word in words)
-                Text(
+                WordText(
                   word,
+                  list: list,
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10,
@@ -342,8 +353,10 @@ class _CellTile extends StatelessWidget {
       context: context,
       builder: (dialogCtx) {
         return AlertDialog(
-          title: Text(
+          title: _MixedText(
             l10n.crGridCellDialogTitle(rowLabel, colLabel),
+            words: <String>[rowLabel, colLabel],
+            list: list,
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 14,
@@ -359,8 +372,9 @@ class _CellTile extends StatelessWidget {
               for (final word in words)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Text(
+                  child: WordText(
                     word,
+                    list: list,
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 28,
@@ -382,6 +396,29 @@ class _CellTile extends StatelessWidget {
       },
     );
   }
+}
+
+/// A sentence that names grid words, read with those words in the list's
+/// language.
+class _MixedText extends StatelessWidget {
+  const _MixedText(
+    this.text, {
+    required this.words,
+    required this.list,
+    this.style,
+  });
+
+  final String text;
+  final List<String> words;
+  final WordList list;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        attributedLabel: attributedWords(text, list, words: words),
+        excludeSemantics: true,
+        child: Text(text, style: style),
+      );
 }
 
 class _SectionHeader extends StatelessWidget {

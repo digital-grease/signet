@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/word_semantics.dart';
 
 /// Multi-slot BIP-39 word input: 4 slots on the Verify screen, 8 for the
 /// PAKE words on the restore and long-distance pairing screens.
@@ -132,7 +133,7 @@ class _WordInputState extends State<WordInput> {
     super.initState();
     _controllers = List<TextEditingController>.generate(
       widget.wordCount,
-      (_) => TextEditingController(),
+      (_) => _WordController(localeFor: _localeFor),
     );
     _focusNodes = List<FocusNode>.generate(
       widget.wordCount,
@@ -188,6 +189,17 @@ class _WordInputState extends State<WordInput> {
   }
 
   bool _isWord(String text) => _canonical(text) != null;
+
+  /// The language a slot's text is read in by screen readers: the list
+  /// the word belongs to, or the only accepted list while it is being
+  /// typed; null (the UI's voice) when it could be either.
+  Locale? _localeFor(String text) {
+    for (final l in [..._activeLists, ..._lists]) {
+      if (l.contains(text)) return wordLocale(l);
+    }
+    final lists = _activeLists;
+    return lists.length == 1 ? wordLocale(lists.single) : null;
+  }
 
   /// A word that is also the start of a longer word of any accepted list
   /// (not just the active ones: the next letter may switch languages).
@@ -259,16 +271,18 @@ class _WordInputState extends State<WordInput> {
     return true;
   }
 
-  List<String> _matchesFor(String prefix) {
-    if (prefix.trim().length < 2) return const <String>[];
-    final hits = <String>[];
+  /// Up to 6 words starting with [prefix], each with the list it is from
+  /// (the chip reads it in that list's language).
+  List<(String, WordList)> _matchesFor(String prefix) {
+    if (prefix.trim().length < 2) return const <(String, WordList)>[];
+    final hits = <(String, WordList)>[];
     for (final l in _activeLists) {
       final folded = l.fold(prefix.trim());
       if (folded == null) continue;
       final foldedWords = _foldedOf(l);
       for (var i = 0; i < foldedWords.length; i++) {
         if (foldedWords[i].startsWith(folded)) {
-          hits.add(l.wordAt(i));
+          hits.add((l.wordAt(i), l));
           if (hits.length >= 6) return hits;
         }
       }
@@ -550,7 +564,7 @@ class _WordInputState extends State<WordInput> {
     );
   }
 
-  Widget _suggestionRow(int slot, List<String> matches) {
+  Widget _suggestionRow(int slot, List<(String, WordList)> matches) {
     if (matches.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 6),
@@ -558,11 +572,11 @@ class _WordInputState extends State<WordInput> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: <Widget>[
-            for (final w in matches)
+            for (final (w, list) in matches)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ActionChip(
-                  label: Text(w),
+                  label: WordText(w, list: list),
                   onPressed: () => _confirmSlot(slot, w),
                 ),
               ),
@@ -570,5 +584,32 @@ class _WordInputState extends State<WordInput> {
         ),
       ),
     );
+  }
+}
+
+/// A word slot's controller whose text carries the word's language, so
+/// TalkBack reads a typed or chosen French word with a French voice
+/// (v0.5.0 plan Task 1.5b). The locale is inherited by the composing
+/// spans the default [buildTextSpan] makes.
+class _WordController extends TextEditingController {
+  _WordController({required this.localeFor});
+
+  final Locale? Function(String text) localeFor;
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final span = super.buildTextSpan(
+      context: context,
+      style: style,
+      withComposing: withComposing,
+    );
+    final locale = localeFor(text);
+    return locale == null
+        ? span
+        : TextSpan(style: style, locale: locale, children: <InlineSpan>[span]);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
+import '../word_semantics.dart';
 
 /// One radio option per shipped word list: the language's own name and
 /// three sample words, so a person recognises their language by sight
@@ -58,8 +59,16 @@ class _Option extends StatelessWidget {
       checked: selected,
       inMutuallyExclusiveGroup: true,
       button: true,
-      label: AppLocalizations.of(context)
-          .wordLanguageSampleSemantics(list.endonym, sample),
+      // The name and the samples in their own language's voice.
+      attributedLabel: attributedWords(
+        AppLocalizations.of(context)
+            .wordLanguageSampleSemantics(list.endonym, sample),
+        list,
+        words: <String>[
+          list.endonym,
+          ...list.render(WordLanguageOptions._sampleIndices),
+        ],
+      ),
       // excludeSemantics drops the InkWell's own tap, so give it back here
       // for TalkBack, Switch Access and Voice Access.
       onTap: onTap,

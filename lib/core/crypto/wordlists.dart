@@ -13,16 +13,16 @@ import 'bip39_english_wordlist.dart';
 import 'bip39_french_wordlist.dart';
 
 class WordList {
-  WordList._(this.id, this.endonym, this.words, this._fold)
+  WordList._(this.id, this.languageTag, this.endonym, this.words, this._fold)
       : assert(words.length == size),
         _index = {
           for (var i = 0; i < words.length; i++) _fold(words[i])!: i,
         };
 
   static final WordList english =
-      WordList._('en', 'English', bip39EnglishWordlist, _latinFold);
+      WordList._('en', 'en', 'English', bip39EnglishWordlist, _latinFold);
   static final WordList french =
-      WordList._('fr', 'Français', bip39FrenchWordlist, _latinFold);
+      WordList._('fr', 'fr', 'Français', bip39FrenchWordlist, _latinFold);
 
   /// Every list this version can read, English first.
   static final List<WordList> shipped = [english, french];
@@ -53,6 +53,12 @@ class WordList {
   /// Registered wordlist id: the `0x01` extension value in backups
   /// (docs/WIRE_FORMAT.md).
   final String id;
+
+  /// The BCP-47 tag screen readers should read the words in, so TalkBack
+  /// uses a French voice for French words on an English UI and the
+  /// reverse. Not the same as [id]: a later list such as `zh-1` reads as
+  /// `zh-CN`.
+  final String languageTag;
 
   /// The language's own name for itself ("Français"), shown on pickers
   /// whatever the UI language, so a person finds their language by sight.

@@ -21,6 +21,7 @@ import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 
 /// Sender side of Phase-10 long-distance pairing. Three linear phases:
 ///
@@ -127,6 +128,7 @@ class _PairTransportOutScreenState
           label: label,
           ourKeyPair: keyPair,
           pakeWords: pakeWords,
+          pakeWordList: _wordList,
           outgoingWire: outgoing,
         );
         _phase = _Phase.shareAndWait;
@@ -472,8 +474,9 @@ class _PairTransportOutScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
+                        child: WordText(
                           gen.pakeWords[i],
+                          list: gen.pakeWordList,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 16,
@@ -641,8 +644,9 @@ class _PairTransportOutScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
+                        child: WordText(
                           word,
+                          list: _wordList,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,
@@ -682,12 +686,17 @@ class _GeneratedState {
     required this.label,
     required this.ourKeyPair,
     required this.pakeWords,
+    required this.pakeWordList,
     required this.outgoingWire,
   });
 
   final String label;
   final PairingKeyPair ourKeyPair;
   final List<String> pakeWords;
+
+  /// The list [pakeWords] were minted in (the confirm pane may switch the
+  /// phrase's language later; these stay as sent).
+  final WordList pakeWordList;
   final String outgoingWire;
 }
 

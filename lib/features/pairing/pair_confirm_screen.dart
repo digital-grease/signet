@@ -12,6 +12,7 @@ import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 import 'in_person_pairing_controller.dart';
 
 /// Step 3 of the pair flow: show the 4-word verification phrase derived from
@@ -303,8 +304,9 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
                         // It matches off screen.
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(
+                          child: WordText(
                             word,
+                            list: wordList ?? WordList.english,
                             style: textTheme.displaySmall?.copyWith(
                               color: colors.onPrimaryContainer,
                               fontWeight: FontWeight.w600,

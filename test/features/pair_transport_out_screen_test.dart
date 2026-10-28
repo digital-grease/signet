@@ -18,6 +18,7 @@ import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
 import '../support/test_prefs.dart';
+import '../support/word_locale.dart';
 import '../support/secure_clipboard_recorder.dart';
 
 Widget _wrap({required FakeSecureStore store}) {
@@ -631,6 +632,7 @@ void main() {
         'words follow the default, the request carries it, the confirm '
         'pane names the other phone\'s choice and saves the switch',
         (tester) async {
+      final semantics = tester.ensureSemantics();
       _prefs = await testPrefs({'signet.word_language': 'fr'});
       final store = FakeSecureStore();
       await tester.pumpWidget(_wrap(store: store));
@@ -644,6 +646,8 @@ void main() {
       final extracted = await _extractOutgoing(tester);
       expect(extracted.pake.every(WordList.french.contains), isTrue,
           reason: '${extracted.pake}');
+      // Read in French by TalkBack (plan Task 1.5b).
+      expectMarked(tester, extracted.pake, 'fr');
       final request = await TransportPackage.decodeLdpStrict(
           extracted.outgoing,
           pakeWords: extracted.pake);
@@ -673,6 +677,7 @@ void main() {
       expect(find.textContaining('The other phone chose English.'),
           findsOneWidget);
       expect(_shownPhrase(tester), await phrase(WordList.french));
+      expectMarked(tester, await phrase(WordList.french), 'fr');
 
       await tester.ensureVisible(find.text('CHANGE'));
       await tester.pumpAndSettle();
@@ -683,6 +688,8 @@ void main() {
       expect(find.text('Words: English'), findsOneWidget);
       expect(find.textContaining('The other phone chose'), findsNothing);
       expect(_shownPhrase(tester), await phrase(WordList.english));
+      expectMarked(tester, await phrase(WordList.english), 'en');
+      semantics.dispose();
 
       await tester.ensureVisible(find.text('COMMIT PAIR'));
       await tester.tap(find.text('COMMIT PAIR'));

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/core/crypto/wordlists.dart';
 import 'package:signet/features/verify/word_input.dart';
+import 'package:signet/shared/word_semantics.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 void main() {
@@ -39,7 +40,7 @@ void main() {
   Finder slot(int i) => find.byType(TextField).at(i);
   List<String> chips(WidgetTester tester) => [
         for (final c in tester.widgetList<ActionChip>(find.byType(ActionChip)))
-          (c.label as Text).data!,
+          (c.label as WordText).word,
       ];
 
   testWidgets('French words typed without accents report the French spelling',

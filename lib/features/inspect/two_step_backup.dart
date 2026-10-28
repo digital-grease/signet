@@ -6,6 +6,7 @@ import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/share_text_file.dart';
+import '../../shared/word_semantics.dart';
 
 /// The two-step backup save used by the single and bulk export screens
 /// (plan Phase 2, bug S1): the encrypted package and its 8 words are saved
@@ -227,13 +228,21 @@ class _TwoStepBackupSaverState extends State<TwoStepBackupSaver> {
         else ...<Widget>[
           Text(l10n.backupStep2Body, style: muted),
           const SizedBox(height: 10),
-          Text(
-            l10n.wordLanguageRowLabel(widget._wordList.endonym),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          Semantics(
+            attributedLabel: attributedWords(
+              l10n.wordLanguageRowLabel(widget._wordList.endonym),
+              widget._wordList,
+              words: <String>[widget._wordList.endonym],
+            ),
+            excludeSemantics: true,
+            child: Text(
+              l10n.wordLanguageRowLabel(widget._wordList.endonym),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           Text(l10n.backupWordsAnyLanguage, style: muted),
           const SizedBox(height: 6),
-          _WordsList(words: widget.pakeWords),
+          _WordsList(words: widget.pakeWords, list: widget._wordList),
           const SizedBox(height: 6),
           Text(l10n.backupFingerprintLine(widget.fingerprint), style: muted),
           const SizedBox(height: 10),
@@ -308,8 +317,9 @@ class _StepHeader extends StatelessWidget {
 }
 
 class _WordsList extends StatelessWidget {
-  const _WordsList({required this.words});
+  const _WordsList({required this.words, required this.list});
   final List<String> words;
+  final WordList list;
 
   @override
   Widget build(BuildContext context) {
@@ -337,8 +347,9 @@ class _WordsList extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: Text(
+                    child: WordText(
                       words[i],
+                      list: list,
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 16,

@@ -680,6 +680,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen>
             expanded: _showOwnWords,
             onToggle: () => setState(() => _showOwnWords = !_showOwnWords),
             words: _ownWords,
+            list: relationship.wordList,
             secondsRemaining: _secondsRemaining,
             videoModeAction: _videoMode ? _ownAction : null,
           ),
@@ -1232,6 +1233,7 @@ class _OwnWordsSection extends StatelessWidget {
     required this.expanded,
     required this.onToggle,
     required this.words,
+    required this.list,
     required this.secondsRemaining,
     this.videoModeAction,
   });
@@ -1240,6 +1242,7 @@ class _OwnWordsSection extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggle;
   final List<String> words;
+  final WordList list;
   final int secondsRemaining;
 
   /// When non-null (i.e. video mode is on), the own-role action the
@@ -1317,6 +1320,7 @@ class _OwnWordsSection extends StatelessWidget {
                       children: <Widget>[
                         WordsDisplay(
                           words: words,
+                          list: list,
                           secondsRemaining: secondsRemaining,
                           windowSeconds: _VerifyScreenState._windowSeconds,
                         ),
