@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/crypto/wordlists.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../word_semantics.dart';
 
 /// One radio option per shipped word list: the language's own name and
 /// three sample words, so a person recognises their language by sight
 /// whatever the UI language. Used by the first-run picker and Settings.
+///
+/// zh-1 is offered twice, 中文（普通话） in simplified and 中文（國語） in
+/// traditional characters: the same list, so choosing one also sets the
+/// phone's script (plan Tasks 3.3 and 3.5).
 class WordLanguageOptions extends StatelessWidget {
   const WordLanguageOptions({
     super.key,
@@ -27,11 +33,24 @@ class WordLanguageOptions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         for (final list in WordList.shipped)
-          _Option(
-            list: list,
-            selected: list == selected,
-            onTap: () => onChanged(list),
-          ),
+          for (final traditional in list.hasScripts
+              ? const <bool?>[false, true]
+              : const <bool?>[null])
+            _Option(
+              list: list,
+              traditional: traditional,
+              selected: list == selected &&
+                  (traditional == null ||
+                      traditional == WordList.showTraditionalChinese),
+              onTap: () {
+                if (traditional != null) {
+                  ProviderScope.containerOf(context, listen: false)
+                      .read(zhTraditionalProvider.notifier)
+                      .set(traditional);
+                }
+                onChanged(list);
+              },
+            ),
       ],
     );
   }
@@ -42,17 +61,24 @@ class _Option extends StatelessWidget {
     required this.list,
     required this.selected,
     required this.onTap,
+    this.traditional,
   });
 
   final WordList list;
+
+  /// The script this option shows, for a list with two; null otherwise.
+  final bool? traditional;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final sample =
-        list.render(WordLanguageOptions._sampleIndices).join(' · ');
+    final script = traditional ?? WordList.showTraditionalChinese;
+    final endonym = list.endonymIn(traditional: script);
+    final samples = list.renderIn(WordLanguageOptions._sampleIndices,
+        traditional: script);
+    final sample = samples.join(' · ');
     // Drawn with radio icons, so tell TalkBack it is a radio group and
     // which option is selected.
     return Semantics(
@@ -62,11 +88,11 @@ class _Option extends StatelessWidget {
       // The name and the samples in their own language's voice.
       attributedLabel: attributedWords(
         AppLocalizations.of(context)
-            .wordLanguageSampleSemantics(list.endonym, sample),
+            .wordLanguageSampleSemantics(endonym, sample),
         list,
         words: <String>[
-          list.endonym,
-          ...list.render(WordLanguageOptions._sampleIndices),
+          endonym,
+          ...samples,
         ],
       ),
       // excludeSemantics drops the InkWell's own tap, so give it back here
@@ -91,7 +117,7 @@ class _Option extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      list.endonym,
+                      endonym,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 2),

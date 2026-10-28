@@ -77,6 +77,12 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage --reporter expanded
 
+      # Chinese words (zh-1) ship behind a build flag until v0.5.0 is
+      # ready (plan Phase 3); run the suite with it on too, so the flagged
+      # code and its tests (some skip without the flag) stay green.
+      - name: Run tests with Chinese words built in
+        run: flutter test --dart-define=SIGNET_ZH=true --reporter expanded
+
       - name: Upload coverage artifact
         # Coverage report is consumed locally / by downstream tooling;
         # we don't push it to codecov because that would add a network

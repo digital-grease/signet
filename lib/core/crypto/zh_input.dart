@@ -257,6 +257,9 @@ class ZhInput {
       (r >= 0xFE00 && r <= 0xFE0F) ||
       (r >= 0xE0100 && r <= 0xE01EF);
 
+  /// A Han character (CJK unified, extensions, compatibility ideographs).
+  static bool isHanRune(int r) => _isHan(r);
+
   static bool _isHan(int r) =>
       (r >= 0x3400 && r <= 0x4DBF) ||
       (r >= 0x4E00 && r <= 0x9FFF) ||

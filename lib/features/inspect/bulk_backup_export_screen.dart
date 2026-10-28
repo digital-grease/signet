@@ -92,7 +92,8 @@ class _BulkBackupExportScreenState
       // The contacts may each use a different language: the words follow
       // the phone's default (word-language spike §2). Any Signet that
       // reads the list can type them back.
-      final wordList = ref.read(defaultWordListProvider);
+      // English when the default is zh-1, in v0.5.0 (plan decision D4).
+      final wordList = ref.read(defaultWordListProvider).pakeWordList;
       final pakeWords = TransportPackage.mintPakeWords(list: wordList);
       final wire = await TransportPackage.encodeBlk(
         records: records,

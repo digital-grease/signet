@@ -115,7 +115,10 @@ class _PairTransportOutScreenState
     });
     try {
       final keyPair = await PairingHandshake.generateEphemeralKeyPair();
-      final pakeWords = TransportPackage.mintPakeWords(list: _wordList);
+      // English for zh-1 in v0.5.0 (plan decision D4); the phrase and the
+      // contact still use the chosen list.
+      final pakeWordList = _wordList.pakeWordList;
+      final pakeWords = TransportPackage.mintPakeWords(list: pakeWordList);
       final outgoing = await TransportPackage.encodeLdpRequest(
         publicKey: keyPair.publicKey,
         labelHint: ownName,
@@ -128,7 +131,7 @@ class _PairTransportOutScreenState
           label: label,
           ourKeyPair: keyPair,
           pakeWords: pakeWords,
-          pakeWordList: _wordList,
+          pakeWordList: pakeWordList,
           outgoingWire: outgoing,
         );
         _phase = _Phase.shareAndWait;

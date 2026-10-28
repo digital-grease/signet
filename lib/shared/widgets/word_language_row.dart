@@ -65,7 +65,9 @@ class WordLanguageRow extends StatelessWidget {
         ),
       ),
     );
-    if (picked == null || picked == selected || !context.mounted) return;
+    if (picked == null || !context.mounted) return;
+    // Also for the same list: picking the other zh-1 script changes how
+    // the words are written, so the screen must redraw.
     onChanged?.call(picked);
     // The words on screen just changed language: say so.
     unawaited(SemanticsService.sendAnnouncement(

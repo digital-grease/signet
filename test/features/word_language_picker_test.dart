@@ -79,7 +79,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
       expect(find.text('Word language'), findsOneWidget);
+      await tester.ensureVisible(find.text('Français'));
       await tester.tap(find.text('Français'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('CONTINUE'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('CONTINUE'));
       await tester.pumpAndSettle();
@@ -123,7 +126,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(_checked(tester), [expected]);
         // One tap keeps it.
-        await tester.tap(find.text('CONTINUE'));
+        await tester.ensureVisible(find.text('CONTINUE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CONTINUE'));
         await tester.pumpAndSettle();
         expect(WordList.byId(prefs.wordLanguage!)!.endonym, expected);
         expect(find.text('INTRO'), findsOneWidget);
@@ -297,6 +302,7 @@ void main() {
           const SettingsScreen(), path: '/s'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Français'));
+      await tester.ensureVisible(find.text('Français'));
       await tester.tap(find.text('Français'));
       await tester.pumpAndSettle();
       expect(prefs.wordLanguageNotice, isNull);
@@ -328,6 +334,7 @@ void main() {
           _app(prefs, store, const SettingsScreen(), path: '/s'));
       await tester.pumpAndSettle();
       expect(find.text('WORD LANGUAGE'), findsOneWidget);
+      await tester.ensureVisible(find.text('Français'));
       await tester.ensureVisible(find.text('Français'));
       await tester.tap(find.text('Français'));
       await tester.pumpAndSettle();

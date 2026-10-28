@@ -5,6 +5,7 @@ import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'transport_package.dart';
 import 'wordlists.dart';
+import 'zh_input.dart';
 
 /// Decode the bytes of a backup file as UTF-8 text. Dart's UTF-8 decoder
 /// drops a leading byte order mark (some editors add one), and invalid
@@ -170,6 +171,12 @@ class BackupText {
     return null;
   }
 
+  /// A line without a leading label such as "密码词：" or a list number
+  /// such as "一、" or "1.", for zh-1 segmentation.
+  static String _withoutHanLabel(String line) => line
+      .replaceFirst(RegExp(r'^[^：:]{1,8}[：:]\s*'), '')
+      .replaceFirst(RegExp(r'^[\d一二三四五六七八①-⑧]+[、.．)）]\s*'), '');
+
   static BackupText read(String text) {
     final lines =
         text.split(RegExp(r'\r\n|\r|\n')).map((l) => l.trim()).toList();
@@ -181,6 +188,7 @@ class BackupText {
     // Letter-only tokens from every line that is neither a comment nor
     // part of the package, for words kept one per line or numbered.
     final looseTokens = <String>[];
+    final hanLines = <String>[];
 
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -228,6 +236,20 @@ class BackupText {
       final tokens = WordList.splitWords(line);
       looseTokens.addAll(tokens);
       if (pake == null && tokens.length == 8) pake = _asWords(tokens);
+      if (line.runes.any(ZhInput.isHanRune)) hanLines.add(line);
+    }
+    // zh-1 words (read half, plan Task 3.5; v0.5.0 shows zh-1 contacts'
+    // PAKE words in English): Han text, glued or punctuated, on one line
+    // or spread over several, read as exactly 8 entries.
+    if (pake == null && WordList.shipped.contains(WordList.zh1)) {
+      final stripped = hanLines.map(_withoutHanLabel).toList();
+      for (final text in [...stripped, stripped.join('、')]) {
+        final entries = ZhInput.zh1.segment(text);
+        if (entries != null && entries.length == 8) {
+          pake = WordList.zh1.render(entries);
+          break;
+        }
+      }
     }
     // No single line held the words: accept them spread over several lines
     // ("1. abandon", one per line, comma-separated) when exactly 8 words

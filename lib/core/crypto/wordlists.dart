@@ -141,6 +141,24 @@ class WordList {
   bool get _traditional =>
       showTraditionalChinese && _traditionalScript != null;
 
+  /// Whether this list has a second script (zh-1).
+  bool get hasScripts => _traditionalScript != null;
+
+  /// [endonym] and the words of [indices] in a given script, whatever
+  /// [showTraditionalChinese] says (the picker offers both scripts).
+  String endonymIn({required bool traditional}) =>
+      traditional && hasScripts ? _traditionalScript!.endonym : _endonym;
+
+  List<String> renderIn(Iterable<int> indices, {required bool traditional}) {
+    final w = traditional && hasScripts ? _traditionalScript!.words : _words;
+    return [for (final i in indices) w[i]];
+  }
+
+  /// The list a contact's PAKE words (backups, long-distance packages) are
+  /// shown in: its own, except zh-1, whose PAKE words stay English in
+  /// v0.5.0 (plan decision D4: read before write, as for French in v0.4.0).
+  WordList get pakeWordList => _lookup != null ? english : this;
+
   /// The written forms in the other script, for the confirm screens that
   /// show both (zh-1 only; null for lists with one script).
   List<String>? get otherScriptWords {
