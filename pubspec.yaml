@@ -135,6 +135,8 @@ flutter:
     - assets/fonts/NotoSans-Regular-Latin.ttf
     - assets/fonts/NotoSans-Bold-Latin.ttf
     - assets/fonts/OFL.txt
+    # Licences of bundled data, shown on the licences page (lib/core/licenses.dart).
+    - assets/licenses/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

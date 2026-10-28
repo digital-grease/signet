@@ -12,6 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/licenses.dart';
 import 'core/logging/breadcrumb.dart';
 import 'core/logging/crash_detector.dart';
 import 'core/logging/crash_recorder.dart';
@@ -109,6 +110,7 @@ Future<void> main() async {
     final pendingReport = await detector.readPendingReport();
 
     // ---- Pre-runApp app setup ----
+    registerThirdPartyLicenses();
     final prefs = await AppPrefs.load();
     if (mockContactsEnabled) {
       await seedMockContactsIfEnabled(SecureStore());

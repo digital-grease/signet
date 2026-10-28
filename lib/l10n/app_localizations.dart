@@ -3415,6 +3415,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Each contact has a word language, and you and that person must choose the same one for each other. If they read you the right words in another language, verify still says NOT VERIFIED and adds a note saying so.\n\nTo fix it, change it together: on both phones, press and hold the contact on Home, choose Word language and pick the same language. Do this only with the real person, never because a caller asks you to. A change is dated and shown in that dialog.\n\nThe language you chose at first run is only the default for new contacts; change it in Settings. A backup keeps each contact\'s language.'**
   String get faqA14;
+
+  /// About screen button: opens the list of licences of the libraries, fonts and data Signet includes.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN-SOURCE LICENCES'**
+  String get aboutLicensesButton;
 }
 
 class _AppLocalizationsDelegate
