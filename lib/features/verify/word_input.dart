@@ -556,6 +556,10 @@ class _WordInputState extends State<WordInput> {
   /// shows "élève").
   void _showCanonical(int index) {
     final controller = _controllers[index];
+    // A word that is pinyin for a zh-1 entry and also a word of another
+    // accepted list ("dance") keeps its letters: which one it is depends
+    // on the other words ([_collectValidWords]).
+    if (_twoWay(controller.text.trim())) return;
     final shown = _canonical(controller.text.trim());
     if (shown == null || shown == controller.text) return;
     controller.value = TextEditingValue(
@@ -593,7 +597,34 @@ class _WordInputState extends State<WordInput> {
         !listEquals(words, _lastSubmitted);
   }
 
+  /// Latin letters that name a zh-1 entry and are also a word of another
+  /// accepted list: English "dance" is pinyin for one entry.
+  bool _twoWay(String text) =>
+      _latinZhAllowed &&
+      _hanCount(text) == 0 &&
+      WordList.zh1.contains(text) &&
+      [..._lists, ...widget.alsoAccept]
+          .any((l) => l != WordList.zh1 && l.contains(text));
+
   List<String>? _collectValidWords() {
+    // One list that reads every slot, the contact's first: a word in two
+    // lists takes the one the other words share, so English words read to
+    // a Chinese contact still come out English, for the other-language
+    // note, even with "dance" among them.
+    final texts = [for (final c in _controllers) c.text.trim()];
+    final latinZh = _latinZhAllowed;
+    for (final l in <WordList>{
+      ..._activeLists,
+      ..._lists,
+      ...widget.alsoAccept,
+    }) {
+      final indices = [
+        for (final t in texts) _indexIn(l, t, latinZh: latinZh),
+      ];
+      if (!indices.contains(null)) {
+        return [for (final i in indices) l.wordAt(i!)];
+      }
+    }
     final words = <String>[];
     for (final c in _controllers) {
       final w = _canonical(c.text.trim());

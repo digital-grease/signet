@@ -294,6 +294,48 @@ void main() {
     });
   });
 
+  group('a word that is English and pinyin ("dance")', () {
+    Future<List<String>?> submitted(
+        WidgetTester tester, List<String> typed) async {
+      List<String>? got;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: WordInput(
+              lists: [zh],
+              alsoAccept: [WordList.english, WordList.french],
+              onSubmit: (w) async => got = w,
+            ),
+          ),
+        ),
+      ));
+      for (var i = 0; i < 4; i++) {
+        await tester.enterText(find.byType(TextField).at(i), '${typed[i]} ');
+        await tester.pumpAndSettle();
+      }
+      return got;
+    }
+
+    test('dance is both', () {
+      expect(WordList.english.contains('dance'), isTrue);
+      expect(zh.contains('dance'), isTrue);
+    });
+
+    testWidgets('among English words, read to a Chinese contact, it is '
+        'English, so verify can say the languages differ', (tester) async {
+      expect(await submitted(tester, ['dance', 'abandon', 'ability', 'able']),
+          ['dance', 'abandon', 'ability', 'able']);
+    });
+
+    testWidgets('among Chinese words it is Chinese', (tester) async {
+      final got = await submitted(tester, ['dance', '苹果', '火车', '电脑']);
+      expect(got, isNotNull);
+      expect(got![0], zh.wordAt(zh.indexOf('dance')!));
+      expect(got.skip(1), ['苹果', '火车', '电脑']);
+    });
+  });
+
   group('input methods', () {
     testWidgets('a composed word confirmed by tapping another slot keeps '
         'focus where the user tapped', (tester) async {
