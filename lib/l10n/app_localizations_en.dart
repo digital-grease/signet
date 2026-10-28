@@ -2095,7 +2095,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqA15 =>
-      'Signet\'s Chinese words were chosen with dictionaries, word-frequency data, listening tests run by computer and reviews by AI models, so that no two of them sound alike to a Mandarin speaker. No native speaker has checked the list yet.\n\nThe words are exactly as secure as English or French ones. If a word is hard to say, hard to hear, or easy to mix up with another, tell us with CONTACT US below. The list itself never changes, so your pairings keep working, but a later list can fix it.';
+      'Signet\'s Chinese words were chosen with dictionaries, word-frequency data, listening tests run by computer and reviews by AI models, so that no two of them sound alike to a Mandarin speaker. No native speaker has checked the list yet, nor the Chinese interface, which was translated the same way.\n\nThe words are exactly as secure as English or French ones. If a word is hard to say, hard to hear, or easy to mix up with another, tell us with CONTACT US below. The list itself never changes, so your pairings keep working, but a later list can fix it.';
 
   @override
   String get aboutLicensesButton => 'OPEN-SOURCE LICENCES';
