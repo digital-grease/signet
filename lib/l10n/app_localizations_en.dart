@@ -2087,4 +2087,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLicensesButton => 'OPEN-SOURCE LICENCES';
+
+  @override
+  String get settingsChineseScriptSection => 'CHINESE CHARACTERS';
+
+  @override
+  String get settingsChineseScriptBody =>
+      'How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.';
 }

@@ -553,5 +553,7 @@
   "pairTransportInPhraseInstruction": "逐一、按順序核對全部 8 個字詞，並確認兩部手機都剛好顯示 8 個。請與傳送者當面核對，或撥打你原本就有的對方號碼核對。不要透過訊息核對，也絕不要使用別人給你的電話或號碼。如果全部一致，這個傳輸包就是真的。",
   "pairTransportOutPhraseInstruction": "逐一、按順序核對全部 8 個字詞，並確認兩部手機都剛好顯示 8 個。請與 {label} 當面核對，或撥打你原本就有的對方號碼核對。不要透過訊息核對，也絕不要使用別人給你的電話或號碼。如果全部一致，配對就是真的。",
   "packageFromOlderSignetError": "這是由舊版本的 Signet 產生的。遠端配對需要兩部手機都使用 Signet 0.4.0 或更新版本。請對方透過他當初安裝 Signet 的應用程式商店更新，然後重新產生傳輸包。",
-  "bindingPhraseExplanation": "這 4 個字詞來自你和 {label} 共享的金鑰，可能與你們最初配對時核對的字詞不同，這是正常的。請 {label} 開啟 Signet，點開同一個畫面。當面比對，或打電話到你原本就有的號碼比對。如果兩部手機現在顯示相同的 4 個字詞，就表示配對完好。"
+  "bindingPhraseExplanation": "這 4 個字詞來自你和 {label} 共享的金鑰，可能與你們最初配對時核對的字詞不同，這是正常的。請 {label} 開啟 Signet，點開同一個畫面。當面比對，或打電話到你原本就有的號碼比對。如果兩部手機現在顯示相同的 4 個字詞，就表示配對完好。",
+  "settingsChineseScriptSection": "漢字字形",
+  "settingsChineseScriptBody": "這支手機上中文字詞的寫法。兩種寫法是同一組字詞，所以聯絡人可以使用另一種寫法。"
 }

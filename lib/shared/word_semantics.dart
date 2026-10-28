@@ -2,6 +2,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/crypto/wordlists.dart';
+import '../core/crypto/zh_wordlist.dart';
 
 // Word language for screen readers (v0.5.0 plan Task 1.5b, word-language
 // spike §9): every word Signet shows carries its list's language, so
@@ -78,6 +79,13 @@ AttributedString attributedWords(
 }
 
 /// A word of [list], shown as [Text] and read in [list]'s language.
+///
+/// zh-1 words (plan Task 3.3) also get their glyph locale on the style, so
+/// Han unification picks simplified or traditional shapes; a reading line
+/// under the word (pinyin with simplified characters, Zhuyin with the
+/// Taiwan reading with traditional), which screen readers skip; and, with
+/// [bothScripts], the other script next to it, so a simplified phone and a
+/// traditional phone on a confirm screen show the same text.
 class WordText extends StatelessWidget {
   const WordText(
     this.word, {
@@ -88,6 +96,8 @@ class WordText extends StatelessWidget {
     this.overflow,
     this.maxLines,
     this.softWrap,
+    this.showReading = true,
+    this.bothScripts = false,
   });
 
   final String word;
@@ -98,17 +108,62 @@ class WordText extends StatelessWidget {
   final int? maxLines;
   final bool? softWrap;
 
+  /// Show a zh-1 word's reading line (off where there is no room, such
+  /// as the grid's cells).
+  final bool showReading;
+
+  /// Show a zh-1 word in both scripts (the pair-time confirm screens).
+  final bool bothScripts;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-        attributedLabel: attributedWords(word, list),
-        excludeSemantics: true,
-        child: Text(
-          word,
-          style: style,
-          textAlign: textAlign,
-          overflow: overflow,
-          maxLines: maxLines,
-          softWrap: softWrap,
+  Widget build(BuildContext context) {
+    final zh = list.otherScriptWords != null;
+    final index = zh ? list.indexOf(word) : null;
+    final locale = wordLocale(list);
+    final shown = zh && bothScripts && index != null
+        ? _bothScripts(word, list.otherScriptWords![index])
+        : word;
+    final text = Semantics(
+      attributedLabel: attributedWords(word, list),
+      excludeSemantics: true,
+      child: Text(
+        shown,
+        style: zh ? (style ?? const TextStyle()).copyWith(locale: locale) : style,
+        textAlign: textAlign,
+        overflow: overflow,
+        maxLines: maxLines,
+        softWrap: softWrap,
+      ),
+    );
+    if (!zh || !showReading || index == null) return text;
+    final entry = zhWordlist[index];
+    final reading = WordList.showTraditionalChinese && !bothScripts
+        ? entry.zhuyin
+        : entry.pinyin;
+    final size = style?.fontSize ?? DefaultTextStyle.of(context).style.fontSize;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: switch (textAlign) {
+        TextAlign.center => CrossAxisAlignment.center,
+        TextAlign.right || TextAlign.end => CrossAxisAlignment.end,
+        _ => CrossAxisAlignment.start,
+      },
+      children: <Widget>[
+        text,
+        ExcludeSemantics(
+          child: Text(
+            reading,
+            textAlign: textAlign,
+            style: TextStyle(
+              fontSize: size == null ? null : size * 0.45,
+              color: style?.color?.withValues(alpha: 0.75),
+              locale: locale,
+            ),
+          ),
         ),
-      );
+      ],
+    );
+  }
+
+  static String _bothScripts(String a, String b) => a == b ? a : '$a · $b';
 }

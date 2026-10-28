@@ -234,6 +234,7 @@ class _GridTable extends StatelessWidget {
                   child: WordText(
                     col,
                     list: list,
+                    showReading: false,
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10,
@@ -266,6 +267,7 @@ class _GridTable extends StatelessWidget {
                         child: WordText(
                           grid.rowLabels[row],
                           list: list,
+                          showReading: false,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
@@ -334,6 +336,7 @@ class _CellTile extends StatelessWidget {
                 WordText(
                   word,
                   list: list,
+                  showReading: false,
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10,

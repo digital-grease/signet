@@ -17,16 +17,18 @@ import 'zh_wordlist.dart';
 class WordList {
   WordList._(
     this.id,
-    this.languageTag,
-    this.endonym,
-    this.words,
+    this._languageTag,
+    this._endonym,
+    this._words,
     this._fold, {
     int? Function(String input)? lookup,
-  })  : assert(words.length == size),
+    _Script? traditional,
+  })  : assert(_words.length == size),
         _lookup = lookup,
+        _traditionalScript = traditional,
         _index = lookup != null
             ? const <String, int>{}
-            : {for (var i = 0; i < words.length; i++) _fold(words[i])!: i};
+            : {for (var i = 0; i < _words.length; i++) _fold(_words[i])!: i};
 
   static final WordList english =
       WordList._('en', 'en', 'English', bip39EnglishWordlist, _latinFold);
@@ -38,14 +40,29 @@ class WordList {
   /// by pinyin with the list's accent mergers, or by characters through
   /// the reading table, accepted only when exactly one entry matches
   /// ([ZhInput]).
+  ///
+  /// The script is a local display preference ([showTraditionalChinese]),
+  /// never compared between phones: both scripts are the same entries,
+  /// and input accepts either.
   static final WordList zh1 = WordList._(
     'zh-1',
-    'zh-CN',
+    'zh-Hans-CN',
     '中文（普通话）',
     [for (final w in zhWordlist) w.simplified],
     ZhInput.fold,
     lookup: (input) => ZhInput.zh1.indexOf(input),
+    traditional: (
+      tag: 'zh-Hant-TW',
+      endonym: '中文（國語）',
+      words: [for (final w in zhWordlist) w.traditional],
+    ),
   );
+
+  /// Show zh-1 in traditional characters (Taiwan forms) instead of
+  /// simplified: the phone's script setting (plan Task 3.3), set at start
+  /// and when the setting changes. Display only: indices, lookup and
+  /// everything on the wire are the same in both scripts.
+  static bool showTraditionalChinese = false;
 
   /// Chinese stays behind the build flag until it ships (v0.5.0 plan
   /// Phase 3): `--dart-define=SIGNET_ZH=true`.
@@ -104,16 +121,33 @@ class WordList {
 
   /// The BCP-47 tag screen readers should read the words in, so TalkBack
   /// uses a French voice for French words on an English UI and the
-  /// reverse. Not the same as [id]: a later list such as `zh-1` reads as
-  /// `zh-CN`.
-  final String languageTag;
+  /// reverse. Not the same as [id]: zh-1 reads as `zh-Hans-CN`, or
+  /// `zh-Hant-TW` in traditional characters.
+  String get languageTag =>
+      _traditional ? _traditionalScript!.tag : _languageTag;
 
   /// The language's own name for itself ("Français"), shown on pickers
   /// whatever the UI language, so a person finds their language by sight.
-  final String endonym;
+  String get endonym => _traditional ? _traditionalScript!.endonym : _endonym;
 
   /// The 2048 words, precomposed (NFC), as shown to users.
-  final List<String> words;
+  List<String> get words => _traditional ? _traditionalScript!.words : _words;
+
+  final String _languageTag;
+  final String _endonym;
+  final List<String> _words;
+  final _Script? _traditionalScript;
+
+  bool get _traditional =>
+      showTraditionalChinese && _traditionalScript != null;
+
+  /// The written forms in the other script, for the confirm screens that
+  /// show both (zh-1 only; null for lists with one script).
+  List<String>? get otherScriptWords {
+    final t = _traditionalScript;
+    if (t == null) return null;
+    return _traditional ? _words : t.words;
+  }
 
   final Map<String, int> _index;
 
@@ -201,3 +235,6 @@ class WordList {
     return _plainWord.hasMatch(folded) ? folded : null;
   }
 }
+
+/// A list's second script: its locale tag, endonym and words.
+typedef _Script = ({String tag, String endonym, List<String> words});

@@ -1967,6 +1967,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutLicensesButton => '开源许可';
+
+  @override
+  String get settingsChineseScriptSection => '汉字字形';
+
+  @override
+  String get settingsChineseScriptBody =>
+      '这部手机上中文单词的写法。两种写法是同一组单词，所以联系人可以使用另一种写法。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3933,4 +3940,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aboutLicensesButton => '開放原始碼授權';
+
+  @override
+  String get settingsChineseScriptSection => '漢字字形';
+
+  @override
+  String get settingsChineseScriptBody =>
+      '這支手機上中文字詞的寫法。兩種寫法是同一組字詞，所以聯絡人可以使用另一種寫法。';
 }

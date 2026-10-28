@@ -1070,5 +1070,9 @@
 
   "packageFromOlderSignetError": "这是由旧版本的 Signet 生成的。远程配对需要两部手机都使用 Signet 0.4.0 或更高版本。请对方通过当初安装 Signet 的应用商店更新，然后重新生成传输包。",
 
-  "bindingPhraseExplanation": "这 4 个单词来自你和 {label} 共享的密钥，可能与你们最初配对时核对的单词不同，这是正常的。请 {label} 打开 Signet，进入同一个界面。当面比对，或拨打你原本就有的号码比对。如果两部手机现在显示相同的 4 个单词，说明配对完好。"
+  "bindingPhraseExplanation": "这 4 个单词来自你和 {label} 共享的密钥，可能与你们最初配对时核对的单词不同，这是正常的。请 {label} 打开 Signet，进入同一个界面。当面比对，或拨打你原本就有的号码比对。如果两部手机现在显示相同的 4 个单词，说明配对完好。",
+
+  "settingsChineseScriptSection": "汉字字形",
+
+  "settingsChineseScriptBody": "这部手机上中文单词的写法。两种写法是同一组单词，所以联系人可以使用另一种写法。"
 }

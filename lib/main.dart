@@ -12,6 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/crypto/wordlists.dart';
 import 'core/licenses.dart';
 import 'core/logging/breadcrumb.dart';
 import 'core/logging/crash_detector.dart';
@@ -121,6 +122,8 @@ Future<void> main() async {
     await prefs.settleWordLanguageForUpgrade(<String>[
       for (final l in PlatformDispatcher.instance.locales) l.languageCode,
     ]);
+    WordList.showTraditionalChinese =
+        prefs.zhTraditional(PlatformDispatcher.instance.locales);
 
     runApp(
       ProviderScope(

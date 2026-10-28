@@ -3422,6 +3422,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OPEN-SOURCE LICENCES'**
   String get aboutLicensesButton;
+
+  /// Settings section: show Chinese (zh-1) words in simplified or traditional characters. The options are written in Chinese and not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'CHINESE CHARACTERS'**
+  String get settingsChineseScriptSection;
+
+  /// Settings body for the Chinese script choice: display only, never compared between phones.
+  ///
+  /// In en, this message translates to:
+  /// **'How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.'**
+  String get settingsChineseScriptBody;
 }
 
 class _AppLocalizationsDelegate

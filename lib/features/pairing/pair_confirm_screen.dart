@@ -319,6 +319,9 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
                           child: WordText(
                             word,
                             list: wordList ?? WordList.english,
+                            // Both scripts: a simplified phone next to a
+                            // traditional one shows the same text.
+                            bothScripts: true,
                             style: textTheme.displaySmall?.copyWith(
                               color: colors.onPrimaryContainer,
                               fontWeight: FontWeight.w600,

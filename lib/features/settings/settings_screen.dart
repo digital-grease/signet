@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/crypto/wordlists.dart';
 import '../../core/logging/debug_log_export_scrubber.dart';
 import '../../core/logging/report_context.dart';
 import '../../core/prefs/settings_controller.dart';
@@ -38,6 +39,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final wordList = ref.watch(defaultWordListProvider);
+    final zhTraditional = ref.watch(zhTraditionalProvider);
     final relationshipsAsync = ref.watch(relationshipsProvider);
     final relationshipCount = relationshipsAsync.maybeWhen(
       data: (rels) => rels.length,
@@ -77,6 +79,30 @@ class SettingsScreen extends ConsumerWidget {
                       ref.read(defaultWordListProvider.notifier).set(list),
                 ),
               ),
+              // zh-1's script: shown once Chinese words ship (build flag).
+              if (WordList.chineseEnabled) ...<Widget>[
+                const SizedBox(height: 12),
+                _Section(
+                  title: l10n.settingsChineseScriptSection,
+                  body: l10n.settingsChineseScriptBody,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      for (final (traditional, label) in const [
+                        (false, '简体字'),
+                        (true, '繁體字'),
+                      ])
+                        _ChoiceTile(
+                          label: label,
+                          selected: zhTraditional == traditional,
+                          onTap: () => ref
+                              .read(zhTraditionalProvider.notifier)
+                              .set(traditional),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               _Section(
                 title: l10n.settingsBulkBackupSection,
@@ -396,6 +422,55 @@ class _ThemeModeTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A radio row for a two-way setting, as the theme tiles are drawn.
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      checked: selected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

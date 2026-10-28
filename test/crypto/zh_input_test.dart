@@ -53,7 +53,7 @@ void main() {
 
   test('zh-1 is a full list with its own id and locale', () {
     expect(zh.id, 'zh-1');
-    expect(zh.languageTag, 'zh-CN');
+    expect(zh.languageTag, 'zh-Hans-CN');
     expect(zh.words, hasLength(WordList.size));
     expect(zh.wordAt(0), zhWordlist[0].simplified);
   });

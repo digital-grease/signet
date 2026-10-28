@@ -647,6 +647,7 @@ class _PairTransportOutScreenState
                         child: WordText(
                           word,
                           list: _wordList,
+                          bothScripts: true,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,

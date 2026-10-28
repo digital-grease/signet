@@ -1624,5 +1624,11 @@
   "@faqA14": {"description": "FAQ answer about word languages. Must not suggest ignoring a NOT VERIFIED."},
 
   "aboutLicensesButton": "OPEN-SOURCE LICENCES",
-  "@aboutLicensesButton": {"description": "About screen button: opens the list of licences of the libraries, fonts and data Signet includes."}
+  "@aboutLicensesButton": {"description": "About screen button: opens the list of licences of the libraries, fonts and data Signet includes."},
+
+  "settingsChineseScriptSection": "CHINESE CHARACTERS",
+  "@settingsChineseScriptSection": {"description": "Settings section: show Chinese (zh-1) words in simplified or traditional characters. The options are written in Chinese and not translated."},
+
+  "settingsChineseScriptBody": "How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.",
+  "@settingsChineseScriptBody": {"description": "Settings body for the Chinese script choice: display only, never compared between phones."}
 }

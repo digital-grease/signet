@@ -54,6 +54,22 @@ final NotifierProvider<DefaultWordListNotifier, WordList>
     NotifierProvider<DefaultWordListNotifier, WordList>(
         DefaultWordListNotifier.new);
 
+/// zh-1's script ([AppPrefs.zhTraditional]): mirrored into
+/// [WordList.showTraditionalChinese], which every word surface reads.
+class ZhTraditionalNotifier extends Notifier<bool> {
+  @override
+  bool build() => WordList.showTraditionalChinese;
+
+  Future<void> set(bool traditional) async {
+    WordList.showTraditionalChinese = traditional;
+    state = traditional;
+    await ref.read(appPrefsProvider).setZhTraditional(traditional);
+  }
+}
+
+final NotifierProvider<ZhTraditionalNotifier, bool> zhTraditionalProvider =
+    NotifierProvider<ZhTraditionalNotifier, bool>(ZhTraditionalNotifier.new);
+
 /// The one-time Home notice after an upgrade ([AppPrefs.wordLanguageNotice]):
 /// the list the device language suggests, until dismissed.
 class WordLanguageNoticeNotifier extends Notifier<WordList?> {
