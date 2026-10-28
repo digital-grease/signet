@@ -6,7 +6,8 @@ import 'dart:ui' show Locale;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdf/pdf.dart' show TtfParser;
+import 'package:pdf/pdf.dart' show PdfPageFormat, TtfParser;
+import 'package:pdf/widgets.dart' as pw;
 import 'package:signet/core/crypto/wordlists.dart';
 import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/core/crypto/challenge_response_grid.dart';
@@ -168,6 +169,8 @@ void main() {
 
     test('prints as an image when they do not', () async {
       expect(await imaged('👵 Grandma'), <String>['👵 Grandma']);
+      // A decomposed accent: the pdf package would print it beside the e.
+      expect(await imaged('Rene\u0301e'), <String>['Rene\u0301e']);
       expect(await imaged('김민지'), <String>['김민지']);
       expect(await imaged('محمد'), <String>['محمد']);
     });
@@ -186,10 +189,14 @@ void main() {
       expect(await card(null), isNot(contains('/Subtype/Image')));
     });
 
-    test('renderLabelImage draws a PNG', () async {
+    test('renderLabelImage draws a PNG at 4 pixels per point', () async {
       final png = await CrGridPdf.renderLabelImage('김민지');
       expect(png, isNotNull);
       expect(png!.take(4).toList(), <int>[0x89, 0x50, 0x4E, 0x47]);
+      final image = pw.MemoryImage(png);
+      // One 22-point line with a little room around it.
+      expect(image.height! / 4, inInclusiveRange(22, 36));
+      expect(image.width! / 4, lessThanOrEqualTo(CrGridPdf.labelMaxWidth + 14));
       expect(await CrGridPdf.renderLabelImage(''), isNull);
     });
   });
@@ -215,6 +222,21 @@ void main() {
       expect(lines('一二三「四」', 4), <String>['一二三', '「四」']);
     });
 
+    test('curly quotes and fullwidth brackets follow the same rules', () {
+      expect(lines('一二三“四五”六', 4), <String>['一二三', '“四五”', '六']);
+      expect(lines('一二三四”五', 4), <String>['一二三', '四”五']);
+      expect(lines('一二三［四］', 4), <String>['一二三', '［四］']);
+    });
+
+    test('closing punctuation stays put even after a space', () {
+      expect(lines('一二三 。四', 4), <String>['一二', '三 。四']);
+    });
+
+    test('a hyphen never starts or ends a line', () {
+      expect(lines('一二挑战-应答', 4), <String>['一二挑', '战-应答']);
+      expect(lines('一二三-应答', 4), <String>['一二', '三-应答']);
+    });
+
     test('keeps —— together and Latin words whole', () {
       expect(lines('一二三——四', 4), <String>['一二三', '——四']);
       expect(lines('使用 Signet 应用', 9), <String>['使用 Signet', '应用']);
@@ -233,7 +255,9 @@ void main() {
         // Line lengths near the card's (about 57 characters at 9 points).
         for (var n = 30; n <= 60; n++) {
           for (final line in lines(body, n).skip(1)) {
-            expect('，。、；：？！）」』'.contains(line[0]), isFalse,
+            expect('，。、；：？！）」』”’］｝〗-'.contains(line[0]), isFalse,
+                reason: '$locale at $n: "$line"');
+            expect('（「『“‘［｛〖-'.contains(line[line.length - 1]), isFalse,
                 reason: '$locale at $n: "$line"');
           }
         }
@@ -273,10 +297,31 @@ void main() {
         ),
       );
       expect(missing, isEmpty);
-      expect(String.fromCharCodes(bytes),
-          contains(traditional ? 'NotoSansCJKtc' : 'NotoSansCJKsc'));
+      // Only the script's own faces, bold ones included: shared
+      // characters take its shapes, and bold Han is really bold.
+      final pdf = _inflated(bytes);
+      final own = traditional ? 'NotoSansCJKtc' : 'NotoSansCJKsc';
+      final other = traditional ? 'NotoSansCJKsc' : 'NotoSansCJKtc';
+      expect(pdf, contains('$own-Regular'));
+      expect(pdf, contains('$own-Bold'));
+      expect(pdf, isNot(contains(other)));
     });
   }
+
+  test('prints on A4 too', () async {
+    final grid = await ChallengeResponseGrid.derive(
+      List<int>.generate(32, (i) => i + 1),
+      list: WordList.zh1,
+    );
+    final bytes = await CrGridPdf.build(
+      peerLabel: '妈妈',
+      grid: grid,
+      generatedAt: DateTime.utc(2026, 4, 19),
+      uiLocale: const Locale('zh'),
+      pageFormat: PdfPageFormat.a4,
+    );
+    expect(_inflated(bytes), contains(RegExp(r'/MediaBox\s*\[\s*0\s+0\s+595')));
+  });
 
   test('CrGridPdf.build produces a non-empty PDF with a %PDF- header',
       () async {

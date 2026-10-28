@@ -81,12 +81,21 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     final relationship = _relationship;
     if (grid == null || relationship == null) return;
     final locale = Localizations.localeOf(context);
+    // Drawn now, while the app is in front: on Android the print dialog's
+    // layout callback runs with the app stopped, once per paper size. Used
+    // only when the card's fonts cannot draw the name.
+    final labelImage = await CrGridPdf.renderLabelImage(
+      relationship.label,
+      locale: locale,
+    );
     await Printing.layoutPdf(
       onLayout: (format) => CrGridPdf.build(
         peerLabel: relationship.label,
         grid: grid,
         generatedAt: DateTime.now(),
         uiLocale: locale,
+        pageFormat: format,
+        labelImage: (_) async => labelImage,
       ),
       name: 'signet-cr-${relationship.label}.pdf',
     );

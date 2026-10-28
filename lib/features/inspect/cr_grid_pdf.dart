@@ -68,9 +68,6 @@ class CrGridPdf {
   static const String boldTcFontAsset =
       'assets/fonts/NotoSansCJKtc-Bold-Card.ttf';
 
-  static Future<pw.ThemeData> printTheme() async =>
-      (await _CardFonts.load(traditionalFirst: false)).theme;
-
   /// Build the PDF bytes. Caller hands the result to
   /// `Printing.layoutPdf(onLayout: (_) => bytes)` to open the platform
   /// print dialog, or writes to a file. The card is printed in the UI's
@@ -86,31 +83,40 @@ class CrGridPdf {
     required ChallengeResponseGrid grid,
     required DateTime generatedAt,
     Locale uiLocale = const Locale('en'),
+    PdfPageFormat pageFormat = PdfPageFormat.letter,
     Future<Uint8List?> Function(String label)? labelImage,
   }) async {
     final l10n = printCatalogFor(uiLocale);
     // Characters both scripts share take the shape of the first font: the
-    // card's script when it is Chinese, else the script the words are
-    // shown in.
-    final traditionalFirst = l10n.localeName.startsWith('zh')
+    // card's script for its own text, and the script the words are shown
+    // in for the words, so no word mixes Mainland and Taiwan shapes.
+    final cardTraditional = l10n.localeName.startsWith('zh')
         ? l10n.localeName == 'zh_Hant'
         : WordList.showTraditionalChinese;
-    final fonts = await _CardFonts.load(traditionalFirst: traditionalFirst);
+    final wordsTraditional = WordList.showTraditionalChinese;
+    final fonts = await _CardFonts.load();
     final image = fonts.canDrawBold(peerLabel)
         ? null
         : await (labelImage ?? renderLabelImage)(peerLabel);
     final card = _Card(
       l10n: l10n,
       grid: grid,
-      boldFallback: fonts.boldFallback,
+      boldFallback: fonts.fallback(traditional: cardTraditional, bold: true),
+      wordFallback: fonts.fallback(traditional: wordsTraditional, bold: false),
+      wordBoldFallback:
+          fonts.fallback(traditional: wordsTraditional, bold: true),
     );
     final doc = pw.Document(
       title: l10n.crPdfDocTitle(peerLabel),
-      theme: fonts.theme,
+      theme: pw.ThemeData.withFont(
+        base: fonts.regular,
+        bold: fonts.bold,
+        fontFallback: fonts.fallback(traditional: cardTraditional, bold: false),
+      ),
     );
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.letter,
+        pageFormat: pageFormat,
         margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 36),
         build: (context) {
           return pw.Column(
@@ -139,14 +145,16 @@ class CrGridPdf {
 
   /// Punctuation that must not start a line, and that must not end one,
   /// in Chinese typesetting.
-  static const String _noLineStart = '，。、；：？！）」』〉》】〕～·,.;:?!)]}%';
-  static const String _noLineEnd = '（「『〈《【〔([{';
+  static const String _noLineStart =
+      '，。、；：？！）」』〉》】〕〗］｝”’～·,.;:?!)]}%';
+  static const String _noLineEnd = '（「『〈《【〔〖［｛“‘([{';
 
   /// [text] split into lines no wider than [width], given each
   /// character's [advance] in points: breaks fall at spaces or between two
   /// characters either of which is Han or CJK punctuation, never before
-  /// [_noLineStart], after [_noLineEnd], or inside —— and ……. A run of
-  /// other letters (a Latin word) stays whole unless it alone is too wide.
+  /// [_noLineStart] (even after a space), after [_noLineEnd], or inside
+  /// —— and ……, or either side of a hyphen (挑战-应答). A run of other
+  /// letters (a Latin word) stays whole unless it alone is too wide.
   @visibleForTesting
   static List<String> chineseLines(
     String text,
@@ -163,13 +171,22 @@ class CrGridPdf {
         space = true;
         continue;
       }
-      if (units.isNotEmpty && !space) {
+      if (units.isNotEmpty) {
         final (last, lastSpace) = units.last;
         final prev = last.runes.last;
-        final glue = _noLineStart.contains(ch) ||
-            _noLineEnd.contains(String.fromCharCode(prev)) ||
-            (rune == prev && (rune == 0x2014 || rune == 0x2026)) ||
-            (!wide(rune) && !wide(prev));
+        // Closing punctuation stays with what it closes, space or not.
+        if (space && _noLineStart.contains(ch)) {
+          units[units.length - 1] = ('$last $ch', lastSpace);
+          space = false;
+          continue;
+        }
+        final glue = !space &&
+            (_noLineStart.contains(ch) ||
+                _noLineEnd.contains(String.fromCharCode(prev)) ||
+                (rune == prev && (rune == 0x2014 || rune == 0x2026)) ||
+                rune == 0x2D ||
+                prev == 0x2D ||
+                (!wide(rune) && !wide(prev)));
         if (glue) {
           units[units.length - 1] = (last + ch, lastSpace);
           continue;
@@ -214,26 +231,40 @@ class CrGridPdf {
   static const double _labelScale = 4;
 
   /// [label] drawn in black bold by the phone's own fonts, as PNG bytes at
-  /// [_labelScale] pixels per point, at most two lines of [labelMaxWidth];
-  /// null if it draws nothing.
-  static Future<Uint8List?> renderLabelImage(String label) async {
+  /// [_labelScale] pixels per point, at most two lines of [labelMaxWidth]
+  /// with a little room around them for marks and overhangs; null if it
+  /// draws nothing. [locale] picks the regional glyph shapes for Han the
+  /// phone draws (Chinese rather than Japanese ones). The print screen
+  /// draws it before opening the print dialog, while the app is in front.
+  static Future<Uint8List?> renderLabelImage(String label,
+      {Locale? locale}) async {
     final builder = ui.ParagraphBuilder(ui.ParagraphStyle(
       fontSize: labelFontSize * _labelScale,
       fontWeight: ui.FontWeight.bold,
       maxLines: 2,
       ellipsis: '\u2026',
+      locale: locale,
     ))
-      ..pushStyle(ui.TextStyle(color: const ui.Color(0xFF000000)))
+      ..pushStyle(ui.TextStyle(
+        color: const ui.Color(0xFF000000),
+        locale: locale,
+      ))
       ..addText(label);
     final paragraph = builder.build()
       ..layout(const ui.ParagraphConstraints(width: labelMaxWidth * _labelScale));
+    final pad = (labelFontSize * _labelScale * 0.15).ceil();
     final width = paragraph.longestLine.ceil();
     final height = paragraph.height.ceil();
-    if (width <= 0 || height <= 0) return null;
+    if (width <= 0 || height <= 0) {
+      paragraph.dispose();
+      return null;
+    }
     final recorder = ui.PictureRecorder();
-    ui.Canvas(recorder).drawParagraph(paragraph, ui.Offset.zero);
+    ui.Canvas(recorder)
+        .drawParagraph(paragraph, ui.Offset(pad.toDouble(), pad.toDouble()));
+    paragraph.dispose();
     final picture = recorder.endRecording();
-    final image = await picture.toImage(width, height);
+    final image = await picture.toImage(width + 2 * pad, height + 2 * pad);
     picture.dispose();
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
@@ -244,20 +275,39 @@ class CrGridPdf {
 /// The card's embedded fonts: the Latin subset, with the Chinese subsets
 /// as its fallback.
 class _CardFonts {
-  _CardFonts._(this.theme, this.boldFallback, this._boldChars);
+  _CardFonts._(this._fonts, this._boldChars);
 
-  final pw.ThemeData theme;
-
-  /// The fallback for bold text: the pdf package does not pick a bold face
-  /// from a fallback list, so bold styles name the bold subsets.
-  final List<pw.Font> boldFallback;
+  /// Latin regular and bold, then SC and TC, each regular and bold.
+  final List<pw.Font> _fonts;
 
   final Set<int> _boldChars;
 
-  /// Whether the bold fonts have every character of [text].
-  bool canDrawBold(String text) => text.runes.every(_boldChars.contains);
+  pw.Font get regular => _fonts[0];
+  pw.Font get bold => _fonts[1];
 
-  static Future<_CardFonts> load({required bool traditionalFirst}) async {
+  /// The CJK fallback, [traditional] shapes first. Bold styles name the
+  /// bold subsets themselves: the pdf package does not pick a bold face
+  /// from a fallback list.
+  List<pw.Font> fallback({required bool traditional, required bool bold}) {
+    final sc = _fonts[bold ? 3 : 2];
+    final tc = _fonts[bold ? 5 : 4];
+    return traditional ? <pw.Font>[tc, sc] : <pw.Font>[sc, tc];
+  }
+
+  /// Whether the bold fonts have every character of [text], and it has no
+  /// combining mark (the pdf package does not position marks, so "é"
+  /// typed as e and U+0301 would print its accent beside the letter).
+  bool canDrawBold(String text) => text.runes
+      .every((r) => _boldChars.contains(r) && !_isCombiningMark(r));
+
+  static bool _isCombiningMark(int r) =>
+      (r >= 0x0300 && r <= 0x036F) ||
+      (r >= 0x1AB0 && r <= 0x1AFF) ||
+      (r >= 0x1DC0 && r <= 0x1DFF) ||
+      (r >= 0x20D0 && r <= 0x20FF) ||
+      (r >= 0xFE20 && r <= 0xFE2F);
+
+  static Future<_CardFonts> load() async {
     final assets = <String>[
       CrGridPdf.regularFontAsset,
       CrGridPdf.boldFontAsset,
@@ -267,20 +317,12 @@ class _CardFonts {
       CrGridPdf.boldTcFontAsset,
     ];
     final data = <ByteData>[for (final a in assets) await rootBundle.load(a)];
-    final fonts = <pw.Font>[for (final d in data) pw.Font.ttf(d)];
-    List<pw.Font> order(pw.Font sc, pw.Font tc) =>
-        traditionalFirst ? <pw.Font>[tc, sc] : <pw.Font>[sc, tc];
     final boldChars = <int>{
       for (final i in const <int>[1, 3, 5])
         ...TtfParser(data[i]).charToGlyphIndexMap.keys,
     };
     return _CardFonts._(
-      pw.ThemeData.withFont(
-        base: fonts[0],
-        bold: fonts[1],
-        fontFallback: order(fonts[2], fonts[4]),
-      ),
-      order(fonts[3], fonts[5]),
+      <pw.Font>[for (final d in data) pw.Font.ttf(d)],
       boldChars,
     );
   }
@@ -292,11 +334,18 @@ class _Card {
     required this.l10n,
     required this.grid,
     required this.boldFallback,
+    required this.wordFallback,
+    required this.wordBoldFallback,
   });
 
   final AppLocalizations l10n;
   final ChallengeResponseGrid grid;
+
+  /// CJK fallbacks: the card's own bold text, and the grid's words, which
+  /// can be in the other script.
   final List<pw.Font> boldFallback;
+  final List<pw.Font> wordFallback;
+  final List<pw.Font> wordBoldFallback;
 
   /// Whether the card is in Chinese: no letter spacing (it pulls Han
   /// apart), and paragraphs broken by Chinese rules
@@ -309,6 +358,17 @@ class _Card {
         fontWeight: pw.FontWeight.bold,
         letterSpacing: _chinese ? null : letterSpacing,
         fontFallback: boldFallback,
+      );
+
+  pw.TextStyle _word({required double fontSize}) =>
+      pw.TextStyle(fontSize: fontSize, fontFallback: wordFallback);
+
+  pw.TextStyle _wordBold({required double fontSize, double? letterSpacing}) =>
+      pw.TextStyle(
+        fontSize: fontSize,
+        fontWeight: pw.FontWeight.bold,
+        letterSpacing: _chinese ? null : letterSpacing,
+        fontFallback: wordBoldFallback,
       );
 
   /// [text] as a wrapped paragraph. The pdf package breaks lines anywhere
@@ -454,7 +514,7 @@ class _Card {
             runSpacing: 4,
             children: <pw.Widget>[
               for (final word in words)
-                pw.Text(word, style: const pw.TextStyle(fontSize: 10)),
+                pw.Text(word, style: _word(fontSize: 10)),
             ],
           ),
         ],
@@ -503,7 +563,7 @@ class _Card {
       alignment: pw.Alignment.center,
       child: pw.Text(
         text,
-        style: _bold(fontSize: 9, letterSpacing: 0.5),
+        style: _wordBold(fontSize: 9, letterSpacing: 0.5),
       ),
     );
   }
@@ -517,7 +577,7 @@ class _Card {
           decoration: const pw.BoxDecoration(color: PdfColors.grey200),
           child: pw.Text(
             grid.rowLabels[row],
-            style: _bold(fontSize: 9),
+            style: _wordBold(fontSize: 9),
           ),
         ),
         for (var col = 0; col < ChallengeResponseGrid.colCount; col++)
@@ -535,7 +595,7 @@ class _Card {
           for (final word in words)
             pw.Text(
               word,
-              style: const pw.TextStyle(fontSize: 8),
+              style: _word(fontSize: 8),
               textAlign: pw.TextAlign.center,
             ),
         ],

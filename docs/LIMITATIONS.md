@@ -357,12 +357,13 @@ Each limitation carries four fields:
     auto-advances, so it is split across two slots. Later words wait.
     The case only arises when the two phones' languages differ, and
     it ends at worst as a plain NOT VERIFIED.
-  - The printed card does not normalise contact names; a name typed
-    in decomposed form prints its accent beside the letter. A name the
-    card's embedded fonts cannot draw (Chinese characters outside the
-    zh-1 words and common family names, other scripts, emoji) is
+  - A contact name the printed card's embedded fonts cannot draw
+    (Chinese characters outside the zh-1 words and common family
+    names, other scripts, emoji, accents typed as separate marks) is
     printed as a picture drawn by the phone's own fonts: sharp on
     paper, but not text in the PDF.
+  - In Chinese card text, dashes, ellipses and curly quotes come from
+    the Latin font, so they have Latin widths.
   - Language names in notices, the menu and snackbars are read in the
     interface's voice; the words themselves are read in their own.
   - Chinese words are tagged zh-Hans-CN or zh-Hant-TW for screen
