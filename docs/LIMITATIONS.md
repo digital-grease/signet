@@ -364,8 +364,10 @@ Each limitation carries four fields:
     paper, but not text in the PDF.
   - In Chinese card text, dashes, ellipses and curly quotes come from
     the Latin font, so they have Latin widths.
-  - Language names in notices, the menu and snackbars are read in the
-    interface's voice; the words themselves are read in their own.
+  - The spoken announcement of a verify result (Android's announce
+    call takes plain text) reads a language name in its note in the
+    interface's voice. Elsewhere language names, like the words, are
+    read in their own language.
   - Chinese words are tagged zh-Hans-CN or zh-Hant-TW for screen
     readers. On a phone with no Mandarin text-to-speech voice (some
     OEM builds), Android reads them with its default voice, which may

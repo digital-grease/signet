@@ -16,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/word_language_notice.dart';
 import '../../shared/widgets/words_display.dart';
+import '../../shared/word_semantics.dart';
 import 'word_input.dart';
 
 /// Verify — "operator" layout.
@@ -802,11 +803,12 @@ class _ResultBanner extends StatelessWidget {
       // itself (see _announceResult), so nothing is read twice.
       liveRegion: !MediaQuery.supportsAnnounceOf(context),
       container: true,
-      label: <String>[
+      // Language names in the notes in their own voice.
+      attributedLabel: attributedLanguageNames(<String>[
         headline,
         subline,
         ...notes,
-      ].join('. '),
+      ].join('. ')),
       child: Container(
         decoration: BoxDecoration(
           color: bg,

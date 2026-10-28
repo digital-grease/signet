@@ -15,6 +15,7 @@ import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/word_language_options.dart';
 import '../../core/models/label_policy.dart';
 import '../../shared/label_input.dart';
+import '../../shared/word_semantics.dart';
 import '../pairing/in_person_pairing_controller.dart';
 import '../settings/debug_logging_controller.dart';
 
@@ -105,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(relationshipsProvider);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(AppLocalizations.of(context)
+      content: LanguageNameText(AppLocalizations.of(context)
           .wordLanguageChangedSnackbar(relationship.label, picked.endonym)),
     ));
   }
@@ -360,7 +361,7 @@ class HomeScreen extends ConsumerWidget {
                   title: Text(
                     AppLocalizations.of(sheetCtx).homeRowMenuWordLanguage,
                   ),
-                  subtitle: Text(
+                  subtitle: LanguageNameText(
                     relationship.knownWordList?.endonym ??
                         AppLocalizations.of(sheetCtx)
                             .homeRowMenuWordLanguageUnknown,
@@ -630,7 +631,7 @@ class _WordLanguageNotice extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
+            LanguageNameText(
               l10n.homeWordLanguageNotice(list.endonym),
               style: TextStyle(color: scheme.onSecondaryContainer),
             ),

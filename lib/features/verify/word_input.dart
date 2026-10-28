@@ -777,11 +777,14 @@ class _WordInputState extends State<WordInput> {
           errorText: looksInvalid
               ? AppLocalizations.of(context).wordInputInvalidWordError
               : null,
-          helperText: otherList == null
+          helper: otherList == null
               ? null
-              : AppLocalizations.of(context).wordInputOtherLanguageHelper(
-                  otherList.endonym, _lists.first.endonym),
-          helperMaxLines: 3,
+              : LanguageNameText(
+                  AppLocalizations.of(context).wordInputOtherLanguageHelper(
+                      otherList.endonym, _lists.first.endonym),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant),
+                ),
           suffixIcon: controller.text.isEmpty
               ? null
               : IconButton(

@@ -78,6 +78,55 @@ AttributedString attributedWords(
   ]);
 }
 
+/// [text] with every shipped list's own name (its endonym, in either
+/// script for zh-1) marked in that list's language wherever it appears,
+/// so "Français" in an English sentence, or 中文（普通话） inside Chinese
+/// text, is read in its own voice (word-language spike §9). No
+/// whole-word check: in Chinese the name sits between other characters.
+AttributedString attributedLanguageNames(String text) {
+  final attributes = <StringAttribute>[];
+  final taken = <TextRange>[];
+  for (final list in WordList.shipped) {
+    final names = <String, Locale>{
+      list.endonymIn(traditional: false): list.hasScripts
+          ? const Locale.fromSubtags(
+              languageCode: 'zh', scriptCode: 'Hans', countryCode: 'CN')
+          : wordLocale(list),
+      if (list.hasScripts)
+        list.endonymIn(traditional: true): const Locale.fromSubtags(
+            languageCode: 'zh', scriptCode: 'Hant', countryCode: 'TW'),
+    };
+    for (final MapEntry(key: name, value: locale) in names.entries) {
+      for (var i = text.indexOf(name);
+          i >= 0;
+          i = text.indexOf(name, i + name.length)) {
+        final r = TextRange(start: i, end: i + name.length);
+        if (taken.any((t) => t.start < r.end && r.start < t.end)) continue;
+        taken.add(r);
+        attributes.add(LocaleStringAttribute(range: r, locale: locale));
+      }
+    }
+  }
+  attributes.sort((a, b) => a.range.start.compareTo(b.range.start));
+  return AttributedString(text, attributes: attributes);
+}
+
+/// [text] that names word languages, shown as [Text] with each name read
+/// in its own language ([attributedLanguageNames]).
+class LanguageNameText extends StatelessWidget {
+  const LanguageNameText(this.text, {super.key, this.style});
+
+  final String text;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        attributedLabel: attributedLanguageNames(text),
+        excludeSemantics: true,
+        child: Text(text, style: style),
+      );
+}
+
 /// A word of [list], shown as [Text] and read in [list]'s language.
 ///
 /// zh-1 words (plan Task 3.3) also get their glyph locale on the style, so

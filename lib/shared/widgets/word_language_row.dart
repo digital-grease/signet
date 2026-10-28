@@ -106,7 +106,7 @@ class WordLanguageRow extends StatelessWidget {
         ],
         if (note != null) ...<Widget>[
           const SizedBox(height: 4),
-          Text(
+          LanguageNameText(
             note!,
             style: TextStyle(
               fontSize: 13,

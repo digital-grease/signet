@@ -72,6 +72,47 @@ Future<void> _pump(WidgetTester tester, Widget screen,
 }
 
 void main() {
+  group('attributedLanguageNames', () {
+    List<(String, String)> marked(String text) => [
+          for (final a in attributedLanguageNames(text).attributes)
+            (
+              text.substring(a.range.start, a.range.end),
+              (a as LocaleStringAttribute).locale.toLanguageTag(),
+            ),
+        ];
+
+    test('names in an English sentence, each in its own voice', () {
+      expect(marked("Mom's words are in Français. Words in English differ."),
+          [('Français', 'fr'), ('English', 'en')]);
+    });
+
+    test('Chinese names inside Chinese text, by script', () {
+      expect(marked('Signet 现在可以用中文（普通话）显示你的单词。'),
+          [('中文（普通话）', 'zh-Hans-CN')]);
+      expect(marked('改用中文（國語）'), [('中文（國語）', 'zh-Hant-TW')]);
+    });
+
+    test('nothing to mark', () {
+      expect(marked('No language here.'), isEmpty);
+    });
+  });
+
+  testWidgets('the Home notice reads the language name in its own voice',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: LanguageNameText('Signet can now show your words in Français.'),
+      ),
+    ));
+    final node = tester.getSemantics(find.byType(LanguageNameText));
+    final attributes = node.attributedLabel.attributes;
+    expect(attributes, hasLength(1));
+    expect((attributes.single as LocaleStringAttribute).locale,
+        const Locale('fr'));
+    handle.dispose();
+  });
+
   group('attributedWords', () {
     test('marks every occurrence, skipping words inside marked ones', () {
       final a = attributedWords('table able cat able', WordList.french,
