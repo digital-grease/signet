@@ -20,7 +20,11 @@ Locale _parseTag(String tag) {
 
 void main() {
   const supported = AppLocalizations.supportedLocales;
-  final catalogs = supported.map((l) => l.languageCode).toSet();
+  // A catalog by language and script; the Simplified catalog is plain zh,
+  // listed as zh-Hans.
+  String key(Locale l) =>
+      l.scriptCode == 'Hans' ? l.languageCode : l.toLanguageTag();
+  final catalogs = supported.map(key).toSet();
 
   final android = RegExp(r'<locale android:name="([^"]+)"')
       .allMatches(File('android/app/src/main/res/xml/locales_config.xml')
@@ -40,16 +44,16 @@ void main() {
 
   for (final (name, listed) in [('Android', android), ('iOS', ios)]) {
     test('$name lists exactly the translated languages', () {
-      expect(listed.map((l) => l.languageCode).toSet(), catalogs);
+      expect(listed.map(key).toSet(), catalogs);
       expect(listed.length, catalogs.length, reason: 'duplicate entry');
     });
 
     test('every $name entry resolves to its own catalog', () {
       for (final locale in listed) {
         expect(
-          resolveSignetLocale([locale], supported).languageCode,
-          locale.languageCode,
-          reason: '$locale would fall back to English',
+          key(resolveSignetLocale([locale], supported)),
+          key(locale),
+          reason: '$locale would fall back to another catalog',
         );
       }
     });

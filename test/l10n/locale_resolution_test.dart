@@ -25,7 +25,10 @@ void main() {
     );
   });
 
-  test('Traditional Chinese devices never get the Simplified catalog', () {
+  const hant = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+
+  test('Traditional Chinese devices get the Traditional catalog, never the '
+      'Simplified one', () {
     for (final locale in const [
       Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       Locale.fromSubtags(
@@ -37,7 +40,7 @@ void main() {
       Locale('zh', 'HK'),
       Locale('zh', 'MO'),
     ]) {
-      expect(resolve([locale]), const Locale('en'), reason: '$locale');
+      expect(resolve([locale]), hant, reason: '$locale');
     }
   });
 
@@ -54,11 +57,20 @@ void main() {
     );
   });
 
-  test('skipped Traditional locale falls through to the next preference', () {
+  test('a Traditional locale first wins over a later Simplified one', () {
+    expect(resolve(const [Locale('zh', 'TW'), Locale('zh', 'CN')]), hant);
+  });
+
+  test('without a Traditional catalog, a Traditional locale is skipped, '
+      'never served Simplified', () {
+    const noHant = [Locale('en'), Locale('zh')];
     expect(
-      resolve(const [Locale('zh', 'TW'), Locale('zh', 'CN')]),
+      resolveSignetLocale(const [Locale('zh', 'TW'), Locale('zh', 'CN')],
+          noHant),
       const Locale('zh'),
     );
+    expect(resolveSignetLocale(const [Locale('zh', 'HK')], noHant),
+        const Locale('en'));
   });
 
   test('unsupported or empty preferences fall back to English', () {
