@@ -1,11 +1,11 @@
-v0.4.0: safer pairing and two-part backups.
+v0.5.0: word languages.
 
-• Both phones need Signet 0.4.0 or later to pair. Backups made with
-  0.4.0 need 0.4.0 or later to restore.
-• In-person pairing: one phone taps Start, the other Join.
-• Long-distance pairing checks 8 words.
-• Backups are two parts you keep apart: a PACKAGE file and 8 words.
-• Set Signet's language on its own (Android 13+).
-• Fixes to verify, restore, the clipboard and large text.
+• Verify words and the challenge grid can be English, French or
+  Chinese (Mandarin, beta), chosen per contact. Both phones must
+  choose the same language for each other.
+• French and Traditional Chinese interfaces.
+• Printed challenge cards in French and Chinese.
+• Verify says when the right words are in the wrong language.
+• Crash logs hide more kinds of words; light theme contrast fix.
 
 Issues: https://github.com/digital-grease/signet/issues.

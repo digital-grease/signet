@@ -39,8 +39,9 @@ compliance:
 
 i18n:
   default_locale: en-US
-  # Add locales when translations exist. Signet's in-app copy is
-  # English-only at v0.2 alpha.
+  # Listings exist for en-US, fr-FR, zh-CN and zh-TW
+  # (fastlane/metadata/android/); from 0.5.0 the app's interface has
+  # the same languages.
 
 graphics:
   feature_graphic: feature-graphic.png  # 1024x500 PNG
