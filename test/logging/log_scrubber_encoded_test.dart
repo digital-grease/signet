@@ -131,7 +131,9 @@ void main() {
     final sw = Stopwatch()..start();
     LogScrubber.scrub('\\' * 100000);
     LogScrubber.scrub('${'\\' * 50000}n abandon');
-    expect(sw.elapsedMilliseconds, lessThan(3000));
+    // Generous for CI (coverage runs are several times slower); the
+    // quadratic versions this guards against took minutes.
+    expect(sw.elapsedMilliseconds, lessThan(20000));
   });
 
   test('ligatures from a PDF copy', () {

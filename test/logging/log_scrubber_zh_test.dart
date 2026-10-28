@@ -213,7 +213,9 @@ void main() {
     LogScrubber.scrub('${r'\u{1' * 100000}}');
     LogScrubber.scrub('&#' * 200000);
     LogScrubber.scrub('%E5' * 200000);
-    expect(sw.elapsedMilliseconds, lessThan(5000));
+    // Generous for CI (coverage runs are several times slower); the
+    // quadratic versions this guards against took minutes.
+    expect(sw.elapsedMilliseconds, lessThan(20000));
   });
 
   test('at either parity: text glued before the words stays', () {
@@ -292,6 +294,8 @@ void main() {
     final sw = Stopwatch()..start();
     LogScrubber.scrub(text);
     LogScrubber.scrub(unspaced);
-    expect(sw.elapsedMilliseconds, lessThan(5000));
+    // Generous for CI (coverage runs are several times slower); the
+    // quadratic versions this guards against took minutes.
+    expect(sw.elapsedMilliseconds, lessThan(20000));
   });
 }
