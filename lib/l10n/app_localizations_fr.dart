@@ -945,6 +945,20 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get pairCompleteRemoteHeading =>
+      'Associés à distance.\nEntraînez-vous lors de votre prochain appel.';
+
+  @override
+  String pairCompleteRemoteBody(String label) {
+    return 'La prochaine fois que vous parlerez avec $label, demandez-lui d’ouvrir Signet, de toucher votre nom et de lire les 4 mots de son écran « Afficher mes 4 mots ». Tapez ce que vous entendez dans votre champ de vérification. Quand le bandeau vert apparaît, vous savez que ça marche pour de vrai.';
+  }
+
+  @override
+  String pairCompleteRemoteWaitNote(String label) {
+    return 'La vérification fonctionnera une fois que $label aura collé votre paquet de réponse.';
+  }
+
+  @override
   String get pairCompleteFallbackPeer => 'votre contact';
 
   @override
@@ -1996,6 +2010,150 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les 8 mots doivent être dans la même langue. Vérifiez que vous les avez tous recopiés depuis le même papier ou le même fichier.';
 
   @override
+  String pakeOtherLanguageWordError(int slot) {
+    return 'Le mot $slot n’est pas dans la même langue que les sept autres. Vérifiez que vous l’avez recopié depuis le même papier ou le même fichier que les autres.';
+  }
+
+  @override
   String get verifyWatchForChangedAnnouncement =>
       'Nouveau geste à observer. Touchez la ligne À OBSERVER pour l’entendre.';
+
+  @override
+  String wordLanguageUnknownMessage(String label) {
+    return 'Les mots de $label utilisent une langue que cette version de Signet ne connaît pas. Mettez Signet à jour pour les voir.';
+  }
+
+  @override
+  String wordLanguageUnknownWarning(String label) {
+    return 'Tant que ce problème n’est pas résolu, vous ne pouvez pas vérifier $label. Ne donnez suite à aucune demande urgente : raccrochez et rappelez $label à un numéro que vous connaissez déjà.';
+  }
+
+  @override
+  String wordLanguageDamagedMessage(String label) {
+    return 'La langue des mots enregistrée pour $label vient d’une sauvegarde abîmée : ses mots ne peuvent donc pas s’afficher. Sur l’accueil, appuyez longuement sur $label, choisissez « Langue des mots » et sélectionnez la langue que vous utilisez tous les deux.';
+  }
+
+  @override
+  String get wordLanguageTitle => 'Langue des mots';
+
+  @override
+  String get wordLanguagePickerBody =>
+      'Signet affiche de courts mots que vous vous lisez l’un à l’autre pour prouver qui vous êtes. Choisissez leur langue. Pour chaque personne avec qui vous vous associez, vous devez choisir tous les deux la même langue. Vous pourrez en choisir une autre pour un contact au moment de l’association.';
+
+  @override
+  String get settingsWordLanguageSection => 'LANGUE DES MOTS';
+
+  @override
+  String get settingsWordLanguageBody =>
+      'La langue des mots pour les nouveaux contacts. Les contacts existants gardent la leur.';
+
+  @override
+  String wordLanguageSampleSemantics(String language, String sample) {
+    return '$language. Exemples de mots : $sample';
+  }
+
+  @override
+  String homeWordLanguageNotice(String language) {
+    return 'Signet peut désormais afficher vos mots en $language. Pour utiliser cette langue avec vos nouveaux contacts, choisissez-la dans les Paramètres. Un contact existant reste en anglais tant que vous n’avez pas changé sa langue tous les deux : appuyez longuement sur ce contact sur l’accueil.';
+  }
+
+  @override
+  String get homeWordLanguageNoticeSettings => 'PARAMÈTRES';
+
+  @override
+  String wordLanguageRowLabel(String language) {
+    return 'Mots : $language';
+  }
+
+  @override
+  String get wordLanguageRowChange => 'CHANGER';
+
+  @override
+  String get wordLanguageRowPairingHint =>
+      'Les mots que vous vous lirez. Choisissez la même langue sur les deux téléphones.';
+
+  @override
+  String get wordLanguageRowConfirmHint =>
+      'Les deux écrans doivent afficher la même langue avant que vous compariez les mots.';
+
+  @override
+  String wordLanguageTheyChose(String language) {
+    return 'L’autre téléphone a choisi $language. Touchez CHANGER et choisissez $language pour que vos mots correspondent.';
+  }
+
+  @override
+  String get homeRowMenuWordLanguage => 'Langue des mots';
+
+  @override
+  String wordLanguageDialogBody(String label) {
+    return '$label doit choisir la même langue sur son téléphone. Tant que les deux téléphones n’ont pas la même langue, la vérification indique NON VÉRIFIÉ. Changez-la ensemble avec $label, jamais parce qu’un appelant vous le demande.';
+  }
+
+  @override
+  String wordLanguageChangedOn(String date) {
+    return 'Dernière modification le $date.';
+  }
+
+  @override
+  String wordLanguageChangedSnackbar(String label, String language) {
+    return 'Les mots de $label sont désormais en $language. Changez aussi la langue sur le téléphone de $label.';
+  }
+
+  @override
+  String bulkImportOverwriteChangesLanguage(String language) {
+    return 'Change aussi la langue des mots en $language.';
+  }
+
+  @override
+  String get wordLanguageRowChangeSemantics => 'Changer la langue des mots';
+
+  @override
+  String get homeRowMenuWordLanguageUnknown =>
+      'Inconnue : mettez Signet à jour';
+
+  @override
+  String get backupWordsAnyLanguage =>
+      'Signet peut lire ces mots, quelle que soit la langue choisie dans l’application.';
+
+  @override
+  String get wordLanguageTheyChoseUnknown =>
+      'L’autre téléphone a choisi pour les mots une langue que cette version de Signet ne connaît pas. Mettez Signet à jour, ou choisissez tous les deux une langue que vos deux téléphones proposent.';
+
+  @override
+  String verifyOtherLanguageNote(String other, String label, String current) {
+    return 'Ces mots ne correspondent à l’association avec $label que s’ils sont lus en $other, mais sur ce téléphone, les mots de $label sont en $current. Le résultat reste NON VÉRIFIÉ. Après cet appel, choisissez la même langue des mots sur les deux téléphones (appuyez longuement sur $label sur l’accueil), puis vérifiez à nouveau.';
+  }
+
+  @override
+  String get pairConfirmMismatchLanguageHint =>
+      'Vérifiez d’abord que les deux écrans affichent la même langue des mots au-dessus de la phrase. Sinon, touchez Annuler, choisissez la même langue sur les deux téléphones et comparez à nouveau.';
+
+  @override
+  String wordInputOtherLanguageHelper(String other, String own) {
+    return 'Un mot en $other. Les mots de ce contact sont en $own.';
+  }
+
+  @override
+  String get faqQ14 => 'Les mots de mon contact sont dans une autre langue.';
+
+  @override
+  String get faqA14 =>
+      'Chaque contact a sa langue des mots, et vous devez tous les deux choisir la même. Si cette personne vous lit les bons mots dans une autre langue, la vérification indique quand même NON VÉRIFIÉ et ajoute une note pour le signaler.\n\nPour corriger, changez-la ensemble : sur les deux téléphones, appuyez longuement sur le contact sur l’accueil, choisissez « Langue des mots » et sélectionnez la même langue. Faites-le seulement avec la vraie personne, jamais parce qu’un appelant vous le demande. Chaque changement est daté, et sa date s’affiche dans la fenêtre « Langue des mots ».\n\nLa langue choisie au premier lancement n’est que la langue par défaut des nouveaux contacts ; changez-la dans les Paramètres. Une sauvegarde garde la langue de chaque contact.';
+
+  @override
+  String get faqQ15 => 'Pourquoi les mots chinois sont-ils marqués bêta ?';
+
+  @override
+  String get faqA15 =>
+      'Les mots chinois de Signet ont été choisis à l’aide de dictionnaires, de données de fréquence, de tests d’écoute réalisés par ordinateur et de relectures par des modèles d’IA, pour qu’aucun mot ne sonne comme un autre pour une personne qui parle mandarin. Aucune personne de langue maternelle chinoise n’a encore vérifié la liste, ni l’interface chinoise, traduite de la même façon.\n\nCes mots sont exactement aussi sûrs que les mots anglais ou français. Si un mot est difficile à dire, difficile à entendre ou facile à confondre avec un autre, dites-le-nous avec le bouton NOUS CONTACTER ci-dessous. La liste elle-même ne change jamais, donc vos associations continuent de fonctionner, mais une future liste pourra corriger le problème.';
+
+  @override
+  String get aboutLicensesButton => 'LICENCES OPEN SOURCE';
+
+  @override
+  String get settingsChineseScriptSection => 'CARACTÈRES CHINOIS';
+
+  @override
+  String get settingsChineseScriptBody =>
+      'La façon dont les mots chinois s’écrivent sur ce téléphone. Les deux écritures donnent les mêmes mots : un contact peut donc utiliser l’autre.';
 }
