@@ -5,9 +5,9 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 
-import 'bip39_english_wordlist.dart';
 import 'pair_role.dart';
 import 'wordlists.dart';
+import 'zh_input.dart';
 
 /// Wire format + crypto for Signet's Phase-10 transport package. One
 /// primitive, three payload types:
@@ -147,6 +147,44 @@ class TransportPackage {
     <int>[_ldpStrongPhraseScheme],
   );
 
+  /// Non-critical: the word-list id a contact's words use (`en`, `fr`;
+  /// [WordList.id]), as UTF-8, in each LPR and BLK record (older builds
+  /// ignore it and restore the contact as English) and as a display-only
+  /// hint in LDP requests and responses. Registered in
+  /// docs/WIRE_FORMAT.md.
+  static const int wordListTag = 0x01;
+
+  /// The [wordListTag] extension for word-list [id].
+  static TransportExtension wordListExtension(String id) =>
+      TransportExtension(wordListTag, utf8.encode(id));
+
+  /// The word-list id in [extensions], or null when there is none (a
+  /// package from v0.4.0 or earlier). A well-formed id this version does
+  /// not know is returned as it is, so a re-export carries it on. Anything
+  /// else (not UTF-8, wrong characters, too long) is a damaged tag and
+  /// comes back as [damagedWordListId]: short, so a hostile 64 KB value
+  /// cannot later make every backup too long, and never a real id, so the
+  /// contact's words are not shown in a wrong list. Never throws: a bad
+  /// tag must not cost the user the secret.
+  static String? wordListIdOf(Map<int, List<int>> extensions) {
+    final value = extensions[wordListTag];
+    if (value == null) return null;
+    final String text;
+    try {
+      text = utf8.decode(value);
+    } on FormatException {
+      return damagedWordListId;
+    }
+    return _wordListIdPattern.hasMatch(text) ? text : damagedWordListId;
+  }
+
+  /// What [wordListIdOf] returns for a damaged tag. It breaks the id
+  /// grammar on purpose, so no list can ever have it.
+  static const String damagedWordListId = '!';
+
+  /// A registered word-list id (docs/WIRE_FORMAT.md).
+  static final RegExp _wordListIdPattern = RegExp(r'^[a-z0-9-]{2,16}$');
+
   /// Critical tags this build understands, per payload type; any other
   /// critical tag is refused with an "update Signet" error. Per type so a
   /// tag understood in one payload is never silently ignored in another.
@@ -210,13 +248,19 @@ class TransportPackage {
   // PAKE words
   // ========================================================================
 
-  /// Mint a fresh 8-word PAKE secret from a cryptographically-secure RNG.
-  /// Each call returns a new list.
-  static List<String> mintPakeWords({Random? random, int wordCount = _pakeWordCount}) {
+  /// Mint a fresh 8-word PAKE secret from a cryptographically-secure RNG,
+  /// spelled in [list] (English when null). Each call returns a new list.
+  /// The encoders take the words in any shipped list and key on their
+  /// English rendering ([normalizePakeWords]), so the list changes only
+  /// what the user sees and types.
+  static List<String> mintPakeWords({
+    Random? random,
+    int wordCount = _pakeWordCount,
+    WordList? list,
+  }) {
     final rng = random ?? Random.secure();
-    return List<String>.generate(
-      wordCount,
-      (_) => bip39EnglishWordlist[rng.nextInt(bip39EnglishWordlist.length)],
+    return (list ?? WordList.english).render(
+      List<int>.generate(wordCount, (_) => rng.nextInt(WordList.size)),
     );
   }
 
@@ -245,6 +289,35 @@ class TransportPackage {
       readings.add([for (final i in indices) WordList.english.wordAt(i!)]);
     }
     if (readings.isNotEmpty) return readings;
+    // Seven words of one list and one that is not: point at that one
+    // rather than at "mixed languages", but only when a single slot is the
+    // odd one out (six shared words can leave a different slot out of
+    // each list).
+    final odd = <int>{};
+    for (final list in WordList.shipped) {
+      final outside = [
+        for (var i = 0; i < trimmed.length; i++)
+          if (!list.contains(trimmed[i])) i,
+      ];
+      if (outside.length == 1) odd.add(outside.single);
+    }
+    if (odd.length == 1) {
+      final slot = odd.single;
+      final word = trimmed[slot];
+      // A word another list spells that way ("élève" among English words)
+      // is in the wrong language; Latin that only reads as pinyin ("bage"
+      // for "badge") is a typo.
+      final otherLanguage = WordList.shipped.any((l) =>
+          l.contains(word) &&
+          (l != WordList.zh1 || word.runes.any(ZhInput.isHanRune)));
+      throw InvalidPakeException(
+        'Word ${slot + 1} is not in the same wordlist as the others.',
+        reason: otherLanguage
+            ? InvalidPakeReason.otherLanguageWord
+            : InvalidPakeReason.unknownWord,
+        slot: slot + 1,
+      );
+    }
     for (var i = 0; i < trimmed.length; i++) {
       if (!WordList.shipped.any((l) => l.contains(trimmed[i]))) {
         throw InvalidPakeException(
@@ -386,10 +459,15 @@ class TransportPackage {
   /// strong-phrase tag. A receiver on Signet 0.3.6 or older cannot read
   /// version 2 (its generic error); one that reads version 2 but not this
   /// tag refuses it as needing a newer Signet.
+  ///
+  /// [wordListId]: the sender's word language for this pair, carried as
+  /// [wordListTag] to preselect the receiver's language row. Display
+  /// only: a stripped or forged hint can only make the phrases differ.
   static Future<String> encodeLdpRequest({
     required List<int> publicKey,
     required String labelHint,
     required List<String> pakeWords,
+    String? wordListId,
     DateTime? now,
     Random? nonceRandom,
   }) => encodeLdp(
@@ -399,14 +477,20 @@ class TransportPackage {
     now: now,
     nonceRandom: nonceRandom,
     version: _versionV2,
-    extensions: const <TransportExtension>[_ldpStrongPhrase],
+    extensions: <TransportExtension>[
+      _ldpStrongPhrase,
+      if (wordListId != null) wordListExtension(wordListId),
+    ],
   );
 
   /// The response to a request accepted by [decodeLdpStrict]: same
   /// version and tag. The receiver's own label is never sent.
+  /// [wordListId] is the receiver's final word language, a display-only
+  /// hint as in [encodeLdpRequest].
   static Future<String> encodeLdpResponse({
     required List<int> publicKey,
     required List<String> pakeWords,
+    String? wordListId,
     DateTime? now,
     Random? nonceRandom,
   }) => encodeLdp(
@@ -416,7 +500,10 @@ class TransportPackage {
     now: now,
     nonceRandom: nonceRandom,
     version: _versionV2,
-    extensions: const <TransportExtension>[_ldpStrongPhrase],
+    extensions: <TransportExtension>[
+      _ldpStrongPhrase,
+      if (wordListId != null) wordListExtension(wordListId),
+    ],
   );
 
   /// [decodeLdp], then require the strong-phrase tag. Without it the
@@ -1330,6 +1417,10 @@ enum InvalidPakeReason {
 
   /// Every word is a list word, but not all 8 from the same list.
   mixedLanguages,
+
+  /// [InvalidPakeException.slot] (1-based) is a word of another list than
+  /// the other seven, which share one.
+  otherLanguageWord,
 }
 
 class InvalidPakeException implements Exception {
@@ -1337,7 +1428,8 @@ class InvalidPakeException implements Exception {
   final String message;
   final InvalidPakeReason? reason;
 
-  /// 1-based position of the word for [InvalidPakeReason.unknownWord].
+  /// 1-based position of the word for [InvalidPakeReason.unknownWord] and
+  /// [InvalidPakeReason.otherLanguageWord].
   final int? slot;
 
   @override

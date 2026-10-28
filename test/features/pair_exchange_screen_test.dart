@@ -279,7 +279,7 @@ void main() {
     await leave(tester);
   });
 
-  for (final locale in const [Locale('en'), Locale('zh')]) {
+  for (final locale in const [Locale('en'), Locale('fr'), Locale('zh')]) {
     testWidgets('a low-order key shows the localized stop warning '
         '(${locale.languageCode})', (tester) async {
       await tester.pumpWidget(app(locale: locale));

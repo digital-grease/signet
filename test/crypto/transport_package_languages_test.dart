@@ -21,7 +21,7 @@ void main() {
         for (final w in words)
           WordList.french.wordAt(WordList.english.indexOf(w)!),
       ];
-  String stripAccents(String w) => WordList.fold(w)!;
+  String stripAccents(String w) => WordList.english.fold(w)!;
   String toNfd(String w) =>
       w.replaceAll('é', 'e\u0301').replaceAll('è', 'e\u0300');
 

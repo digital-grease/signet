@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../crypto/wordlists.dart';
+
 /// Thin wrapper around SharedPreferences for non-secret app flags.
 ///
 /// Anything sensitive lives in [SecureStore]; this is only for
@@ -19,12 +21,70 @@ class AppPrefs {
 
   static const String _kOnboardingCompleted = 'signet.onboarding_completed';
   static const String _kThemeMode = 'signet.theme_mode';
+  static const String _kWordLanguage = 'signet.word_language';
+  static const String _kWordLanguageNotice = 'signet.word_language_notice';
+  static const String _kZhScript = 'signet.zh_script';
 
   bool get onboardingCompleted =>
       _prefs.getBool(_kOnboardingCompleted) ?? false;
 
   Future<void> setOnboardingCompleted(bool value) =>
       _prefs.setBool(_kOnboardingCompleted, value);
+
+  /// The default word-list id for new contacts ([WordList.id]), or null
+  /// before the first-run picker has run. Existing contacts never follow
+  /// it; each keeps its own `Relationship.wordLanguage`.
+  String? get wordLanguage => _prefs.getString(_kWordLanguage);
+
+  Future<void> setWordLanguage(String id) =>
+      _prefs.setString(_kWordLanguage, id);
+
+  /// The list [wordLanguage] names; English when unset or unknown.
+  WordList get defaultWordList =>
+      WordList.byId(wordLanguage ?? '') ?? WordList.english;
+
+  /// Upgrade from v0.4.0 or earlier: an install that finished onboarding
+  /// before word languages existed is set to English with no prompt. When
+  /// the device prefers a language that has a list ([deviceLanguageCodes],
+  /// most preferred first), it is remembered for a one-time Home notice
+  /// ([wordLanguageNotice]). Does nothing on a new install (the picker
+  /// asks) or once a default is stored.
+  Future<void> settleWordLanguageForUpgrade(
+      Iterable<String> deviceLanguageCodes) async {
+    if (wordLanguage != null || !onboardingCompleted) return;
+    await setWordLanguage(WordList.english.id);
+    final suggested = WordList.suggestFor(deviceLanguageCodes);
+    if (suggested != null && suggested != WordList.english) {
+      await _prefs.setString(_kWordLanguageNotice, suggested.id);
+    }
+  }
+
+  /// The list a one-time Home notice offers after an upgrade, or null.
+  WordList? get wordLanguageNotice {
+    final id = _prefs.getString(_kWordLanguageNotice);
+    return id == null ? null : WordList.byId(id);
+  }
+
+  Future<void> dismissWordLanguageNotice() =>
+      _prefs.remove(_kWordLanguageNotice);
+
+  /// Whether zh-1 words show in traditional characters (plan Task 3.3).
+  /// Until chosen in Settings: traditional when the device prefers
+  /// Traditional Chinese (zh-Hant, or zh-TW, zh-HK, zh-MO with no script),
+  /// [deviceLocales] most preferred first; simplified otherwise.
+  bool zhTraditional(Iterable<Locale> deviceLocales) {
+    final stored = _prefs.getString(_kZhScript);
+    if (stored != null) return stored == 'hant';
+    for (final l in deviceLocales) {
+      if (l.languageCode != 'zh') continue;
+      if (l.scriptCode != null) return l.scriptCode == 'Hant';
+      return const {'TW', 'HK', 'MO'}.contains(l.countryCode);
+    }
+    return false;
+  }
+
+  Future<void> setZhTraditional(bool traditional) =>
+      _prefs.setString(_kZhScript, traditional ? 'hant' : 'hans');
 
   /// Theme mode override. Defaults to [ThemeMode.system] so nothing changes
   /// for users who never touch the setting. Persisted as a wire-stable

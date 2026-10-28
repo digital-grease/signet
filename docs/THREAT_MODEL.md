@@ -124,7 +124,7 @@ who touches the line while on speaker still leaks it.
 - `lib/core/crypto/totp_words.dart` — `deriveLivenessAction` +
   `verifyLivenessAction` + role-asymmetric HKDF info string
 - `lib/core/crypto/liveness_challenge.dart` — `LivenessAction`
-  enum (accessibility-curated corpus); `mint()` deprecated
+  enum (accessibility-curated corpus)
 - `lib/features/verify/verify_screen.dart` — "VIDEO CALL //" toggle,
   "WATCH FOR //" expected-action row, "ACTION //" judgment panel,
   combined ✅/❌ banner logic in `_VerifyResult`
@@ -394,6 +394,49 @@ stays, because it also protects the shared secret itself.
 - Each window's 4 words are different per role; a reflection attempt
   fails by construction.
 
+### 3.2a Word languages (0.5.0)
+
+Each contact has a word list (`Relationship.wordLanguage`: `en`, `fr`).
+A list only spells the 11-bit indices; no derivation, key, wire byte or
+stored secret depends on it (`docs/TEST_VECTORS.md`, per-language
+rendering).
+
+- **Verify stays 44 bits.** Only the contact's list can produce
+  VERIFIED. Another list's words are accepted as input only so that,
+  under a NOT VERIFIED, a note can say the words match the pairing read
+  in that other list. The note needs the secret and the counterparty's
+  role, so a caller without the secret triggers it with probability
+  about (lists - 1) · 3 · 2^-44 per attempt, and the result is still NOT
+  VERIFIED. Four words mixing lists are never checked, so a typo that is
+  another list's word (bacon/baron) stays an inline hint.
+- **Pairing.** The language row and the confirm-screen switch re-render
+  the same indices. A man-in-the-middle's phrase differs in every
+  rendering; English and French share 100 spellings, none at the same
+  index, so a genuine pair seen in two languages differs in every
+  position. There is no "match anyway"; the mismatch dialog only asks to
+  check the language first.
+- **Wire.** Non-critical extension `0x01` carries the list id in each
+  LPR and BLK record and, as a display-only hint, in LDP requests and
+  responses. Stripped: the contact restores as English, or the other
+  phone's row is not preselected. Forged: at worst a preselected row or
+  a note the users then compare against. A malformed value restores as
+  a short "damaged" marker; an id this version lacks is kept and
+  re-exported, and the contact's words are not shown ("update Signet")
+  rather than shown in a wrong list.
+- **Social engineering** ("set my words to English"): changing a
+  contact's language is dated and shown in its Word language dialog,
+  the dialog says to change it together and never because a caller
+  asks, and it never makes wrong words pass.
+- **Logs.** The scrubber redacts runs of 4 or more words of any shipped
+  list or mix of lists (§2.10), and of 4 or more zh-1 words whether
+  they are written in characters (either script, glued or separated),
+  in pinyin with each word as one token or as spaced syllables, or in
+  Zhuyin, numbered or joined the Chinese way, also inside `\uXXXX`, `%XX`
+  and HTML escapes. Not recognised: several pinyin words glued into one
+  token, characters typed as homophones or read through the reading
+  table, and other encodings (double percent-encoding, `\x` bytes,
+  Kangxi radicals).
+
 ### 3.3 Transport package (long-distance pairing + lost-phone recovery)
 
 - Wire format: `signet:tp1:<base64url(body)>`.
@@ -490,8 +533,8 @@ guarantee.
 
 | Layer | Mechanism | What it catches | What it misses |
 |---|---|---|---|
-| 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `LivenessPrompt`, `PairingKeyPair`, `BackupText`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
-| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16; byte lists of 8+ bytes in decimal (signed too, wrapped across lines too), `0x`, colon/hyphen or hexdump form; base64url≥16; standard base64≥16 that looks random; `signet:tp1:` wire; the source a `FormatException` echoes; runs of 4+ BIP-39 words from any list Signet reads (English or French, or a mix; accented, accent-free, decomposed or with zero-width characters inside) joined by spaces, tabs, newlines, hyphens, underscores, commas, periods, slashes, colons, semicolons, bars, plus signs, quotes, brackets, list numbers or a list-final "and"/"et", matched across lines; values after name-like keys such as `label`, `title`, `peer`, `displayName`, quoted or not) have a 100% pass-or-fail-CI bar on the test corpus. `package:<pkg>/<path>.dart` and `dart:<lib>` code paths are exempt so traces stay readable, but only for a match wholly inside the path; a secret glued onto a path is still redacted. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
+| 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `PairingKeyPair`, `BackupText`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
+| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16; byte lists of 8+ bytes in decimal (signed too, wrapped across lines too), `0x`, colon/hyphen or hexdump form; base64url≥16; standard base64≥16 that looks random; `signet:tp1:` wire; the source a `FormatException` echoes; runs of 4+ BIP-39 words from any list Signet reads (English or French, or a mix; accented, accent-free, decomposed or with zero-width characters inside) joined by spaces, tabs, newlines, hyphens, underscores, commas, periods, slashes, colons, semicolons, bars, plus signs, quotes, brackets, list numbers or a list-final "and"/"et", matched across lines, also when the joiners are escaped or encoded (`\n`, `\u3001`, `%0A`, `&nbsp;`, `<br>`), the list markers are letters or Roman numerals, or the words carry ligatures or joiners; runs of 4+ zh-1 words in characters or pinyin, escaped or not; values after name-like keys such as `label`, `title`, `peer`, `displayName`, quoted or not) have a 100% pass-or-fail-CI bar on the test corpus. `package:<pkg>/<path>.dart` and `dart:<lib>` code paths are exempt so traces stay readable, but only for a match wholly inside the path; a secret glued onto a path is still redacted. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
 | 3. AES-GCM at rest | `lib/core/logging/crashlog_cipher.dart` — AES-256-GCM with 12-byte nonce + 16-byte tag. Key under `crashlog.aead_key.v1` in `flutter_secure_storage` (Android Keystore / iOS Keychain). Lazy-generated on first crash. | The ~5% the judgment scrubber misses, while the file sits on disk. | In-process attackers running with our keys; nothing post-decryption. |
 | 4. OS sandbox + FDE | Android app-private storage; iOS sandbox; full-disk encryption when the device is locked. | Other apps reading our private storage; lost-device-pre-unlock. | Forensic-level adversary with root + screen-lock bypass (§4 limit). |
 
@@ -777,6 +820,11 @@ or changes a cryptographic primitive, a platform-trust assumption, or
 a wire format must update this doc in the same commit range.
 
 Changelog summary (most recent first):
+
+- 2026-10-27 · 0.5.0: §3.2a word languages: per-contact list, verify
+  stays 44 bits with an other-language note that needs the secret,
+  pairing language row and switch, extension `0x01` (registered in
+  `docs/WIRE_FORMAT.md`), dated per-contact language changes.
 
 - 2026-10-11 · 0.4.0: §3.1 in-person pairing and rekey are
   commit-then-reveal (`signet:p2:`), bound 2^-44 per attempt with

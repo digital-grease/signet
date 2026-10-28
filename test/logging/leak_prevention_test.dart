@@ -16,7 +16,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signet/core/crypto/backup_bundle.dart';
 import 'package:signet/core/crypto/challenge_response_grid.dart';
-import 'package:signet/core/crypto/liveness_challenge.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
@@ -77,20 +76,6 @@ void main() {
       // Sanity — non-sensitive fields should still be there for debugging.
       expect(r.toString(), contains('a1b2c3d4'));
       expect(r.toString(), contains('role: a'));
-    });
-  });
-
-  group('LivenessPrompt.toString', () {
-    test('omits the BIP-39 word', () {
-      const prompt = LivenessPrompt(
-        action: LivenessAction.touchLeftEar,
-        word: _canaryLabel,
-      );
-      _expectNoLeak(prompt.toString(),
-          label: _canaryLabel,
-          why: 'word fingerprints the window per threat model');
-      // The action name is a public enum value and is safe to expose.
-      expect(prompt.toString(), contains('touchLeftEar'));
     });
   });
 

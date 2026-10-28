@@ -348,6 +348,42 @@ Each limitation carries four fields:
 - **Status:** release-gate item, not a security or functional
   limitation.
 
+### L-FEAT-3 · Word-language edges (0.5.0)
+
+- **Scope:**
+  - The first word of a code in another language than the contact's,
+    when it begins with a whole word of the contact's list ("absurd"
+    starting French "absurde" for an English contact), still
+    auto-advances, so it is split across two slots. Later words wait.
+    The case only arises when the two phones' languages differ, and
+    it ends at worst as a plain NOT VERIFIED.
+  - A contact name the printed card's embedded fonts cannot draw
+    (Chinese characters outside the zh-1 words and common family
+    names, other scripts, emoji, accents typed as separate marks) is
+    printed as a picture drawn by the phone's own fonts: sharp on
+    paper, but not text in the PDF.
+  - In Chinese card text, dashes, ellipses and curly quotes come from
+    the Latin font, so they have Latin widths.
+  - **Android's TalkBack reads words in the interface's language.**
+    Signet marks each word, and each language name, with its own
+    language for screen readers, and Flutter passes the marks to
+    Android. TalkBack 16 does not use them for Flutter text: checked on
+    an API 36.1 emulator, English and Chinese words were both spoken in
+    the app's language (a Mandarin voice on a Chinese interface, an
+    English voice on an English one), also with the language set on
+    the node itself. A Chinese contact's words on an English phone are
+    therefore read by the English voice. Set Signet's language to
+    Chinese (Android 13+ per-app language) to hear Chinese words in
+    Mandarin. iOS VoiceOver reads the marks; not tested on a device.
+  - Chinese words are tagged zh-Hans-CN or zh-Hant-TW for screen
+    readers; the reading line (pinyin or Zhuyin) is not read. A phone
+    with no Mandarin text-to-speech voice reads Chinese text with its
+    default voice, which may spell the characters or skip them; install
+    a Mandarin voice in the system's text-to-speech settings.
+- **Why:** no runtime Unicode normaliser by design; the CJK font is
+  planned work (v0.5.0 plan D5).
+- **Status:** accepted for 0.5.0.
+
 ---
 
 ## Changelog

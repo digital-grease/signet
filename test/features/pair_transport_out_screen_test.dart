@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
 import 'package:signet/core/crypto/verification.dart';
+import 'package:signet/core/crypto/wordlists.dart';
+import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_out_screen.dart';
@@ -14,6 +17,8 @@ import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
+import '../support/word_locale.dart';
 import '../support/secure_clipboard_recorder.dart';
 
 Widget _wrap({required FakeSecureStore store}) {
@@ -38,6 +43,7 @@ Widget _wrap({required FakeSecureStore store}) {
   return ProviderScope(
     overrides: [
       secureStoreProvider.overrideWithValue(store),
+      appPrefsProvider.overrideWithValue(_prefs),
     ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -104,7 +110,10 @@ List<String> _shownPhrase(WidgetTester tester) => tester
     .map((t) => t.data ?? '')
     .toList();
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
   testWidgets('setup pane renders and blocks empty label on GENERATE',
       (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
@@ -572,4 +581,120 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  group('word language (v0.5.0 Task 1.5)', () {
+    testWidgets('a receiver hint this version lacks says so', (tester) async {
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      final extracted = await _extractOutgoing(tester);
+      await tester.enterText(
+          find.byType(TextField).first,
+          await TransportPackage.encodeLdpResponse(
+            publicKey:
+                (await PairingHandshake.generateEphemeralKeyPair()).publicKey,
+            pakeWords: extracted.pake,
+            wordListId: 'zh-9',
+          ));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('this version of Signet does not have'),
+          findsOneWidget);
+    });
+
+    testWidgets('a v0.4.0 receiver (no hint) reads as English',
+        (tester) async {
+      _prefs = await testPrefs({'signet.word_language': 'fr'});
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+      final extracted = await _extractOutgoing(tester);
+      await tester.enterText(
+          find.byType(TextField).first,
+          await _craftReceiverResponse(pakeWords: extracted.pake));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('The other phone chose English.'),
+          findsOneWidget);
+    });
+
+    testWidgets(
+        'words follow the default, the request carries it, the confirm '
+        'pane names the other phone\'s choice and saves the switch',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      _prefs = await testPrefs({'signet.word_language': 'fr'});
+      final store = FakeSecureStore();
+      await tester.pumpWidget(_wrap(store: store));
+      await tester.pumpAndSettle();
+      expect(find.text('Words: Français'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, 'Alice');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GENERATE PACKAGE'));
+      await tester.pumpAndSettle();
+
+      final extracted = await _extractOutgoing(tester);
+      expect(extracted.pake.every(WordList.french.contains), isTrue,
+          reason: '${extracted.pake}');
+      // Read in French by TalkBack (plan Task 1.5b).
+      expectMarked(tester, extracted.pake, 'fr');
+      final request = await TransportPackage.decodeLdpStrict(
+          extracted.outgoing,
+          pakeWords: extracted.pake);
+      expect(TransportPackage.wordListIdOf(request.extensions), 'fr');
+
+      final receiverKp = await PairingHandshake.generateEphemeralKeyPair();
+      final responseWire = await TransportPackage.encodeLdpResponse(
+        publicKey: receiverKp.publicKey,
+        pakeWords: extracted.pake,
+        wordListId: 'en',
+      );
+      await tester.enterText(find.byType(TextField).first, responseWire);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('UNLOCK RESPONSE'));
+      await tester.tap(find.text('UNLOCK RESPONSE'));
+      await tester.pumpAndSettle();
+
+      final shared = await PairingHandshake.deriveSharedSecret(
+          ours: receiverKp, theirPublicKey: request.publicKey);
+      Future<List<String>> phrase(WordList list) =>
+          PairingVerification.deriveLongDistancePhrase(
+            sharedSecret: shared,
+            ownPublicKey: receiverKp.publicKey,
+            peerPublicKey: request.publicKey,
+            list: list,
+          );
+      expect(find.textContaining('The other phone chose English.'),
+          findsOneWidget);
+      expect(_shownPhrase(tester), await phrase(WordList.french));
+      expectMarked(tester, await phrase(WordList.french), 'fr');
+
+      await tester.ensureVisible(find.text('CHANGE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CHANGE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(find.text('Words: English'), findsOneWidget);
+      expect(find.textContaining('The other phone chose'), findsNothing);
+      expect(_shownPhrase(tester), await phrase(WordList.english));
+      expectMarked(tester, await phrase(WordList.english), 'en');
+      semantics.dispose();
+
+      await tester.ensureVisible(find.text('COMMIT PAIR'));
+      await tester.tap(find.text('COMMIT PAIR'));
+      await tester.pumpAndSettle();
+      expect((await store.listRelationships()).single.wordLanguage, 'en');
+    });
+  });
 }

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_fr.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -95,7 +96,9 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('fr'),
     Locale('zh'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// App name shown as the AppBar title on Home and Onboarding. Keep as-is in all locales.
@@ -719,7 +722,7 @@ abstract class AppLocalizations {
   /// Subtitle of the verify (video call) row menu item.
   ///
   /// In en, this message translates to:
-  /// **'Adds a physical-action check — deepfake-resistant'**
+  /// **'Also checks a gesture. Resists deepfakes.'**
   String get homeRowMenuVerifyVideoSubtitle;
 
   /// Row menu item opening the challenge-response grid viewer.
@@ -1687,6 +1690,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is the easiest moment to practice. Ask {label} to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.'**
   String pairCompletePracticeBody(String label);
+
+  /// Heading after a long-distance pairing: the two people are not together, so the practice verify waits for their next call.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired at a distance.\nPractice on your next call.'**
+  String get pairCompleteRemoteHeading;
+
+  /// Body after a long-distance pairing. label is the contact's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Next time you talk with {label}, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.'**
+  String pairCompleteRemoteBody(String label);
+
+  /// Shown to the person who received a long-distance package: the sender must still paste the response before their words match. label is the contact's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify works once {label} has pasted your response package.'**
+  String pairCompleteRemoteWaitNote(String label);
 
   /// Fallback for the peer label in pair-complete texts when the label can't be resolved yet.
   ///
@@ -2951,7 +2972,7 @@ abstract class AppLocalizations {
   /// Semantics hint of the video-mode toggle row.
   ///
   /// In en, this message translates to:
-  /// **'Turn on to also check a physical action on video.'**
+  /// **'Turn on to also check a gesture on video.'**
   String get verifyVideoModeSemanticsHint;
 
   /// Monospace header of the video-mode toggle row. Keep the ' //' structure.
@@ -2960,16 +2981,16 @@ abstract class AppLocalizations {
   /// **'VIDEO CALL //'**
   String get verifyVideoModeHeader;
 
-  /// Toggle row description while video mode is on.
+  /// Toggle row description while video mode is on. Must tell the verifier not to say the gesture aloud: the other person's phone already shows it, and a deepfake that hears it can perform it.
   ///
   /// In en, this message translates to:
-  /// **'Request a physical action too. Defeats deepfakes.'**
+  /// **'Also checks a gesture. Never say it aloud. Defeats deepfakes.'**
   String get verifyVideoModeOnText;
 
   /// Toggle row description while video mode is off.
   ///
   /// In en, this message translates to:
-  /// **'Turn on to also check a physical action.'**
+  /// **'Turn on to also check a gesture.'**
   String get verifyVideoModeOffText;
 
   /// Header of the expected-action row in video mode. Keep the ' //' structure.
@@ -3236,11 +3257,221 @@ abstract class AppLocalizations {
   /// **'All 8 words must be in the same language. Check that you copied them from the same place.'**
   String get pakeMixedLanguagesError;
 
+  /// Unlock error: seven of the 8 backup or pairing words are in one word list and word {slot} is a real word of another list (English and French, say). slot is its 1-based position.
+  ///
+  /// In en, this message translates to:
+  /// **'Word {slot} is in a different language from the other seven. Check that you copied it from the same place.'**
+  String pakeOtherLanguageWordError(int slot);
+
   /// Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line.
   ///
   /// In en, this message translates to:
   /// **'New gesture to watch for. Touch the WATCH FOR line to hear it.'**
   String get verifyWatchForChangedAnnouncement;
+
+  /// Shown instead of a contact's words (verify, challenge grid, binding phrase) when the contact was restored from a backup made by a newer Signet with a word language this version lacks. Showing English words instead would fail against the real contact.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}\'s words use a language this version of Signet does not have. Update Signet to see them.'**
+  String wordLanguageUnknownMessage(String label);
+
+  /// Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.
+  ///
+  /// In en, this message translates to:
+  /// **'Until this is fixed you cannot check {label}. Do not act on an urgent request: hang up and call {label} back on a number you already know.'**
+  String wordLanguageUnknownWarning(String label);
+
+  /// Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.
+  ///
+  /// In en, this message translates to:
+  /// **'The word language saved for {label} came from a damaged backup, so their words cannot be shown. On Home, press and hold {label}, choose Word language and pick the language you both use.'**
+  String wordLanguageDamagedMessage(String label);
+
+  /// Title of the first-run word-language picker. When the UI is not English the picker also shows the English title under it, so a person who cannot read the UI language still finds the screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Word language'**
+  String get wordLanguageTitle;
+
+  /// Body of the first-run word-language picker (feature plan Task 5.3). 'Words' are Signet's verification words, not the app's interface language.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.'**
+  String get wordLanguagePickerBody;
+
+  /// Settings section title for the default word language. Uppercase like the other section titles.
+  ///
+  /// In en, this message translates to:
+  /// **'WORD LANGUAGE'**
+  String get settingsWordLanguageSection;
+
+  /// Settings section body: the default only affects new pairings.
+  ///
+  /// In en, this message translates to:
+  /// **'The language of the words for new contacts. Contacts you already have keep theirs.'**
+  String get settingsWordLanguageBody;
+
+  /// Screen-reader label of one word-language option: the language name and three sample words in that language.
+  ///
+  /// In en, this message translates to:
+  /// **'{language}. Words look like: {sample}'**
+  String wordLanguageSampleSemantics(String language, String sample);
+
+  /// One-time notice on Home after upgrading to the first version with word languages, when the phone's language has a word list. {language} is the language's own name (e.g. Français).
+  ///
+  /// In en, this message translates to:
+  /// **'Signet can now show your words in {language}. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.'**
+  String homeWordLanguageNotice(String language);
+
+  /// Button on the one-time word-language notice: opens Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get homeWordLanguageNoticeSettings;
+
+  /// The word language of a pairing, a confirm screen or a set of backup words. {language} is the language's own name (English, Français).
+  ///
+  /// In en, this message translates to:
+  /// **'Words: {language}'**
+  String wordLanguageRowLabel(String language);
+
+  /// Button on the word-language row: opens the list of languages.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE'**
+  String get wordLanguageRowChange;
+
+  /// Under the word-language row when starting a pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'The words you will read to each other. Choose the same language on both phones.'**
+  String get wordLanguageRowPairingHint;
+
+  /// Under the word-language row on a pair-time phrase confirm screen. Switching re-shows the same phrase in another language.
+  ///
+  /// In en, this message translates to:
+  /// **'Both screens must show the same language before you compare the words.'**
+  String get wordLanguageRowConfirmHint;
+
+  /// Long-distance pairing confirm screen: the other phone's language choice (a hint carried in its package) differs from this phone's. {language} is its own name.
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone chose {language}. Tap CHANGE and choose {language} so your words match.'**
+  String wordLanguageTheyChose(String language);
+
+  /// Row menu item: change the word language of an existing contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Word language'**
+  String get homeRowMenuWordLanguage;
+
+  /// Body of the per-contact word-language dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with {label}, never because a caller asks you to.'**
+  String wordLanguageDialogBody(String label);
+
+  /// Per-contact word-language dialog: when the language was last changed, so a change a caller talked the user into leaves a visible trace. {date} is a local date.
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed {date}.'**
+  String wordLanguageChangedOn(String date);
+
+  /// Shown after changing a contact's word language.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}\'s words are now in {language}. Change it on {label}\'s phone too.'**
+  String wordLanguageChangedSnackbar(String label, String language);
+
+  /// Bulk restore, under the Overwrite option, when the backup's word language differs from the existing contact's. {language} is its own name.
+  ///
+  /// In en, this message translates to:
+  /// **'Also changes the word language to {language}.'**
+  String bulkImportOverwriteChangesLanguage(String language);
+
+  /// Screen-reader label of the CHANGE button on the word-language row.
+  ///
+  /// In en, this message translates to:
+  /// **'Change word language'**
+  String get wordLanguageRowChangeSemantics;
+
+  /// Subtitle of the Word language menu item when this version lacks the contact's language (or its backup tag was damaged).
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown: update Signet'**
+  String get homeRowMenuWordLanguageUnknown;
+
+  /// Under the 'Words: <language>' label above the 8 backup words: they restore on a phone whose default language differs.
+  ///
+  /// In en, this message translates to:
+  /// **'A Signet set to any language can read these words.'**
+  String get backupWordsAnyLanguage;
+
+  /// Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged).
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.'**
+  String get wordLanguageTheyChoseUnknown;
+
+  /// Note under a NOT VERIFIED result, shown only when the typed words pass for this contact's secret when read in another word list. Needs the secret, so a caller without it can never trigger it, but it must still never read as a pass. {other} and {current} are languages' own names (Français, English).
+  ///
+  /// In en, this message translates to:
+  /// **'These words match {label}\'s pairing only when read in {other}, but {label}\'s words on this phone are in {current}. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold {label} on Home), then check again.'**
+  String verifyOtherLanguageNote(String other, String label, String current);
+
+  /// First line of the pairing mismatch dialog: a word-language difference shows different words for the same pairing. Never offers to accept a mismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.'**
+  String get pairConfirmMismatchLanguageHint;
+
+  /// Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.
+  ///
+  /// In en, this message translates to:
+  /// **'A {other} word. This contact\'s words are in {own}.'**
+  String wordInputOtherLanguageHelper(String other, String own);
+
+  /// FAQ question about word languages.
+  ///
+  /// In en, this message translates to:
+  /// **'My contact\'s words are in another language.'**
+  String get faqQ14;
+
+  /// FAQ answer about word languages. Must not suggest ignoring a NOT VERIFIED.
+  ///
+  /// In en, this message translates to:
+  /// **'Each contact has a word language, and you and that person must choose the same one for each other. If they read you the right words in another language, verify still says NOT VERIFIED and adds a note saying so.\n\nTo fix it, change it together: on both phones, press and hold the contact on Home, choose Word language and pick the same language. Do this only with the real person, never because a caller asks you to. A change is dated and shown in that dialog.\n\nThe language you chose at first run is only the default for new contacts; change it in Settings. A backup keeps each contact\'s language.'**
+  String get faqA14;
+
+  /// FAQ question about the beta label on the Chinese word options.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are Chinese words marked beta?'**
+  String get faqQ15;
+
+  /// FAQ answer: why Chinese words are beta (no native speaker review yet). CONTACT US is faqContactUsButton, the button under the FAQ list.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet\'s Chinese words were chosen with dictionaries, word-frequency data, listening tests run by computer and reviews by AI models, so that no two of them sound alike to a Mandarin speaker. No native speaker has checked the list yet, nor the Chinese interface, which was translated the same way.\n\nThe words are exactly as secure as English or French ones. If a word is hard to say, hard to hear, or easy to mix up with another, tell us with CONTACT US below. The list itself never changes, so your pairings keep working, but a later list can fix it.'**
+  String get faqA15;
+
+  /// About screen button: opens the list of licences of the libraries, fonts and data Signet includes.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN-SOURCE LICENCES'**
+  String get aboutLicensesButton;
+
+  /// Settings section: show Chinese (zh-1) words in simplified or traditional characters. The options are written in Chinese and not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'CHINESE CHARACTERS'**
+  String get settingsChineseScriptSection;
+
+  /// Settings body for the Chinese script choice: display only, never compared between phones.
+  ///
+  /// In en, this message translates to:
+  /// **'How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.'**
+  String get settingsChineseScriptBody;
 }
 
 class _AppLocalizationsDelegate
@@ -3254,17 +3485,31 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'zh'].contains(locale.languageCode);
+      <String>['en', 'fr', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  switch (locale.languageCode) {
+    case 'zh':
+      {
+        switch (locale.scriptCode) {
+          case 'Hant':
+            return AppLocalizationsZhHant();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'fr':
+      return AppLocalizationsFr();
     case 'zh':
       return AppLocalizationsZh();
   }

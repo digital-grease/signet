@@ -71,6 +71,12 @@ class _AboutScreenState extends State<AboutScreen> {
               _Section(
                 title: l10n.aboutSectionLicense,
                 body: l10n.aboutLicenseBody,
+                actionLabel: l10n.aboutLicensesButton,
+                onAction: () => showLicensePage(
+                  context: context,
+                  applicationName: 'Signet',
+                  applicationVersion: _version,
+                ),
               ),
               const SizedBox(height: 12),
               _Section(

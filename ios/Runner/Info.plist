@@ -9,7 +9,9 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
+		<string>fr</string>
 		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Signet</string>

@@ -3,10 +3,13 @@
   Languages offered in Android 13+ per-app language settings (Settings →
   Apps → Signet → Language), so Signet can run in a language other than the
   phone's. One entry per catalog in lib/l10n (test/l10n/locales_config_test
-  keeps them in sync). Chinese is Simplified only: Traditional Chinese
-  devices fall back to English (lib/l10n/locale_resolution.dart).
+  keeps them in sync). Chinese has a Simplified and a Traditional catalog
+  (lib/l10n/locale_resolution.dart sends zh-TW, zh-HK and zh-MO to
+  Traditional).
 -->
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
     <locale android:name="en" />
+    <locale android:name="fr" />
     <locale android:name="zh-Hans" />
+    <locale android:name="zh-Hant" />
 </locale-config>

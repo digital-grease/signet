@@ -6,12 +6,15 @@ import 'package:signet/core/crypto/backup_bundle.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/crypto/transport_package.dart';
 import 'package:signet/core/models/relationship.dart';
+import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/inspect/bulk_backup_export_screen.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -64,7 +67,10 @@ Widget _wrap({required FakeSecureStore store}) {
     ],
   );
   return ProviderScope(
-    overrides: [secureStoreProvider.overrideWithValue(store)],
+    overrides: [
+      secureStoreProvider.overrideWithValue(store),
+      appPrefsProvider.overrideWithValue(_prefs),
+    ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: signetTheme(dark: false),
@@ -78,7 +84,43 @@ Widget _wrap({required FakeSecureStore store}) {
 // Tests
 // ---------------------------------------------------------------------------
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
+  testWidgets('each record carries its contact\'s word language '
+      '(v0.5.0 Task 1.3)', (tester) async {
+    final mom = _pair(id: 'id-mom', label: 'Mom', secretSeed: 1);
+    final dad = _pair(id: 'id-dad', label: 'Dad', secretSeed: 2);
+    final store = await _storeWith(<_Pair>[
+      _Pair(mom.relationship.copyWith(wordLanguage: 'fr'), mom.secret),
+      _Pair(dad.relationship, dad.secret),
+    ]);
+    await tester.pumpWidget(_wrap(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GENERATE BULK BACKUP'));
+    await tester.pumpAndSettle();
+    final wire = tester
+        .widgetList<SelectableText>(find.byType(SelectableText))
+        .firstWhere((s) => (s.data ?? '').startsWith('signet:tp1:'))
+        .data!;
+    await tester.ensureVisible(find.text('I saved it another way'));
+    await tester.tap(find.text('I saved it another way'));
+    await tester.pumpAndSettle();
+    final words = tester
+        .widgetList<Text>(find.byType(Text))
+        .where((t) =>
+            t.style?.fontFamily == 'monospace' && t.style?.fontSize == 16)
+        .take(8)
+        .map((t) => t.data!)
+        .toList();
+    final decoded = await TransportPackage.decodeBlk(wire, pakeWords: words);
+    expect({
+      for (final r in decoded.records)
+        r.label: TransportPackage.wordListIdOf(r.extensions),
+    }, {'Mom': 'fr', 'Dad': 'en'});
+  });
+
   testWidgets(
     'three relationships — preview shows counts + labels; Generate produces a valid BLK bundle',
     (tester) async {

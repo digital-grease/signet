@@ -62,7 +62,9 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
         );
         return;
       }
-      final pakeWords = TransportPackage.mintPakeWords();
+      final pakeWords =
+          // English for zh-1 contacts in v0.5.0 (plan decision D4).
+          TransportPackage.mintPakeWords(list: relationship.wordList.pakeWordList);
       final wire = await TransportPackage.encodeLpr(
         // A name saved before the 64-byte limit is cut to fit rather than
         // failing the backup.
@@ -73,6 +75,9 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
         silentHaptics: relationship.silentHaptics,
         sharedSecret: secret,
         pakeWords: pakeWords,
+        extensions: [
+          TransportPackage.wordListExtension(relationship.wordLanguage),
+        ],
       );
       final fingerprint = await BackupFiles.fingerprint(wire);
       if (!mounted) return;
@@ -180,6 +185,7 @@ class _BackupContent extends StatelessWidget {
         TwoStepBackupSaver(
           wire: generated.wire,
           pakeWords: generated.pakeWords,
+          wordList: generated.relationship.wordList.pakeWordList,
           fingerprint: generated.fingerprint,
           generatedAt: generated.generatedAt,
           onDone: () => context.go('/'),

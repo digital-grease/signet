@@ -11,12 +11,15 @@ import '../../core/crypto/wordlists.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/label_input.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 import '../verify/word_input.dart';
 
 /// Receiver side of the Phase-10 long-distance pairing flow. Two phases:
@@ -44,6 +47,18 @@ class PairTransportInScreen extends ConsumerStatefulWidget {
 
 class _PairTransportInScreenState
     extends ConsumerState<PairTransportInScreen> {
+  /// The list this pairing's words are shown in: the sender's hint when
+  /// this version has that list, else the phone's default; the user can
+  /// change it on the confirm pane (plan Task 1.5).
+  late WordList _wordList = ref.read(defaultWordListProvider);
+
+  /// The sender's hint named a list this version lacks (or was damaged).
+  bool _senderHintUnknown = false;
+
+  /// A language change is re-encoding the response: the one on screen
+  /// still carries the old hint, so it cannot be copied.
+  bool _reencoding = false;
+
   final TextEditingController _packageController = TextEditingController();
   final TextEditingController _labelController = TextEditingController();
   String? _labelError;
@@ -130,20 +145,30 @@ class _PairTransportInScreenState
         ownPublicKey: ourKeyPair.publicKey,
         peerPublicKey: ldp.publicKey,
       );
+      // The sender's language preselects ours (display-only hint). No hint
+      // is a v0.4.0 sender, whose words are English; an id this version
+      // lacks keeps our default.
+      final hintId = TransportPackage.wordListIdOf(ldp.extensions) ??
+          WordList.english.id;
+      final wordList = WordList.byId(hintId) ?? _wordList;
       // The reading of the words that opened the request, not the typed
       // words: they may be French, and in the rare case they read as words
       // of two lists, only this reading matches the sender's key.
       final responseWire = await TransportPackage.encodeLdpResponse(
         publicKey: ourKeyPair.publicKey,
         pakeWords: ldp.verifiedPakeWords,
+        wordListId: wordList.id,
       );
       if (!mounted) return;
       setState(() {
+        _wordList = wordList;
+        _senderHintUnknown = WordList.byId(hintId) == null;
         _unlocked = _UnlockedState(
           senderPublicKey: ldp.publicKey,
           ourKeyPair: ourKeyPair,
           totpSecret: totpSecret,
           phrase: phrase,
+          verifiedPakeWords: ldp.verifiedPakeWords,
           responseWire: responseWire,
         );
         // The sender's name for themselves (plan Task 3.6, P6), cleaned of
@@ -182,6 +207,28 @@ class _PairTransportInScreenState
     }
   }
 
+  /// The confirm pane's language row: re-shows the phrase and re-encodes
+  /// the response so it carries the final choice (word-language spike §5).
+  Future<void> _changeWordList(WordList list) async {
+    final unlocked = _unlocked;
+    if (unlocked == null) return;
+    setState(() {
+      _wordList = list;
+      _reencoding = true;
+    });
+    final responseWire = await TransportPackage.encodeLdpResponse(
+      publicKey: unlocked.ourKeyPair.publicKey,
+      pakeWords: unlocked.verifiedPakeWords,
+      wordListId: list.id,
+    );
+    // A later change may have finished first.
+    if (!mounted || _wordList != list || _unlocked != unlocked) return;
+    setState(() {
+      _unlocked = unlocked.withResponse(responseWire);
+      _reencoding = false;
+    });
+  }
+
   // ------------------------------------------------------------------
   // Commit phase
   // ------------------------------------------------------------------
@@ -207,7 +254,11 @@ class _PairTransportInScreenState
         ourPublicKey: unlocked.ourKeyPair.publicKey,
         theirPublicKey: unlocked.senderPublicKey,
       );
-      final relationship = Relationship.fresh(label: label, role: role);
+      final relationship = Relationship.fresh(
+        label: label,
+        role: role,
+        wordLanguage: _wordList.id,
+      );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             relationship,
             sharedSecret: unlocked.totpSecret,
@@ -217,7 +268,7 @@ class _PairTransportInScreenState
           .log(BreadcrumbEvent.pairingCommit, relationship: relationship);
       ref.invalidate(relationshipsProvider);
       if (!mounted) return;
-      context.go('/pair/complete/${relationship.id}');
+      context.go('/pair/complete/${relationship.id}?distance=received');
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -351,6 +402,15 @@ class _PairTransportInScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // Above the response, so a response copied after a change carries
+        // the final choice (copy waits for the re-encode).
+        WordLanguageRow(
+          selected: _wordList,
+          hint: l10n.wordLanguageRowConfirmHint,
+          note: _senderHintUnknown ? l10n.wordLanguageTheyChoseUnknown : null,
+          onChanged: _committing ? null : _changeWordList,
+        ),
+        const SizedBox(height: 16),
         _SectionHeader(l10n.commonPairTimePhraseHeader),
         const SizedBox(height: 8),
         Text(
@@ -369,7 +429,7 @@ class _PairTransportInScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (var i = 0; i < unlocked.phrase.length; i++)
+              for (final (i, word) in _wordList.respell(unlocked.phrase).indexed)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -388,8 +448,10 @@ class _PairTransportInScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
-                          unlocked.phrase[i],
+                        child: WordText(
+                          word,
+                          list: _wordList,
+                          bothScripts: true,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,
@@ -428,17 +490,21 @@ class _PairTransportInScreenState
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final result = await SecureClipboard.copy(unlocked.responseWire);
-              messenger.showSnackBar(SnackBar(
-                content: Text(switch (result) {
-                  SecureCopyResult.protected => l10n.commonCopiedProtected,
-                  SecureCopyResult.plain => l10n.commonCopiedPlain,
-                  SecureCopyResult.failed => l10n.commonCopyFailed,
-                }),
-              ));
-            },
+            onPressed: _reencoding
+                ? null
+                : () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final result =
+                        await SecureClipboard.copy(unlocked.responseWire);
+                    messenger.showSnackBar(SnackBar(
+                      content: Text(switch (result) {
+                        SecureCopyResult.protected =>
+                          l10n.commonCopiedProtected,
+                        SecureCopyResult.plain => l10n.commonCopiedPlain,
+                        SecureCopyResult.failed => l10n.commonCopyFailed,
+                      }),
+                    ));
+                  },
             icon: const Icon(Icons.copy),
             label: Text(l10n.pairTransportInCopyResponseButton),
           ),
@@ -489,12 +555,30 @@ class _UnlockedState {
     required this.ourKeyPair,
     required this.totpSecret,
     required this.phrase,
+    required this.verifiedPakeWords,
     required this.responseWire,
   });
+
+  /// This state with the response re-encoded (a language change).
+  _UnlockedState withResponse(String wire) => _UnlockedState(
+        senderPublicKey: senderPublicKey,
+        ourKeyPair: ourKeyPair,
+        totpSecret: totpSecret,
+        phrase: phrase,
+        verifiedPakeWords: verifiedPakeWords,
+        responseWire: wire,
+      );
+
+  /// The reading of the 8 words that opened the request, to re-encode the
+  /// response with.
+  final List<String> verifiedPakeWords;
 
   final List<int> senderPublicKey;
   final PairingKeyPair ourKeyPair;
   final List<int> totpSecret;
+
+  /// In English, the canonical rendering; shown through `_wordList`, so
+  /// the language switch (plan Task 1.5) re-renders the same indices.
   final List<String> phrase;
   final String responseWire;
 }

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/backup_bundle.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
@@ -78,12 +80,21 @@ class _BulkBackupExportScreenState
           label: LabelPolicy.truncateToBytes(r.label, LabelPolicy.maxBytes),
           pairedAt: r.pairedAt,
           silentHaptics: r.silentHaptics,
+          extensions: <int, List<int>>{
+            TransportPackage.wordListTag:
+                TransportPackage.wordListExtension(r.wordLanguage).value,
+          },
         ));
       }
       if (records.isEmpty) {
         throw StateError(l10n.bulkBackupExportNoSecretsError);
       }
-      final pakeWords = TransportPackage.mintPakeWords();
+      // The contacts may each use a different language: the words follow
+      // the phone's default (word-language spike §2). Any Signet that
+      // reads the list can type them back.
+      // English when the default is zh-1, in v0.5.0 (plan decision D4).
+      final wordList = ref.read(defaultWordListProvider).pakeWordList;
+      final pakeWords = TransportPackage.mintPakeWords(list: wordList);
       final wire = await TransportPackage.encodeBlk(
         records: records,
         pakeWords: pakeWords,
@@ -94,6 +105,7 @@ class _BulkBackupExportScreenState
         _generated = _Generated(
           recordCount: records.length,
           pakeWords: pakeWords,
+          wordList: wordList,
           wire: wire,
           fingerprint: fingerprint!,
           generatedAt: DateTime.now(),
@@ -346,6 +358,7 @@ class _BulkBackupContent extends StatelessWidget {
         TwoStepBackupSaver(
           wire: generated.wire,
           pakeWords: generated.pakeWords,
+          wordList: generated.wordList,
           fingerprint: generated.fingerprint,
           generatedAt: generated.generatedAt,
           showQr: false,
@@ -407,6 +420,7 @@ class _Generated {
   _Generated({
     required this.recordCount,
     required this.pakeWords,
+    required this.wordList,
     required this.wire,
     required this.fingerprint,
     required this.generatedAt,
@@ -414,6 +428,7 @@ class _Generated {
 
   final int recordCount;
   final List<String> pakeWords;
+  final WordList wordList;
   final String wire;
   final String fingerprint;
   final DateTime generatedAt;

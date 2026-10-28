@@ -10,7 +10,9 @@ import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/models/label_policy.dart';
@@ -18,6 +20,8 @@ import '../../shared/label_input.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 
 /// Sender side of Phase-10 long-distance pairing. Three linear phases:
 ///
@@ -44,6 +48,10 @@ enum _Phase { setup, shareAndWait, confirm }
 
 class _PairTransportOutScreenState
     extends ConsumerState<PairTransportOutScreen> {
+  /// The list this pairing's words are shown in: the phone's default until
+  /// the user changes it on the setup or confirm pane (plan Task 1.5).
+  late WordList _wordList = ref.read(defaultWordListProvider);
+
   final TextEditingController _labelController = TextEditingController();
   String? _labelError;
   // Optional: the sender's own name, sent as the hint the receiver's phone
@@ -107,11 +115,15 @@ class _PairTransportOutScreenState
     });
     try {
       final keyPair = await PairingHandshake.generateEphemeralKeyPair();
-      final pakeWords = TransportPackage.mintPakeWords();
+      // English for zh-1 in v0.5.0 (plan decision D4); the phrase and the
+      // contact still use the chosen list.
+      final pakeWordList = _wordList.pakeWordList;
+      final pakeWords = TransportPackage.mintPakeWords(list: pakeWordList);
       final outgoing = await TransportPackage.encodeLdpRequest(
         publicKey: keyPair.publicKey,
         labelHint: ownName,
         pakeWords: pakeWords,
+        wordListId: _wordList.id,
       );
       if (!mounted) return;
       setState(() {
@@ -119,6 +131,7 @@ class _PairTransportOutScreenState
           label: label,
           ourKeyPair: keyPair,
           pakeWords: pakeWords,
+          pakeWordList: pakeWordList,
           outgoingWire: outgoing,
         );
         _phase = _Phase.shareAndWait;
@@ -204,6 +217,9 @@ class _PairTransportOutScreenState
           peerPublicKey: ldp.publicKey,
           totpSecret: totpSecret,
           phrase: phrase,
+          // No hint is a v0.4.0 receiver, whose words are English.
+          peerHint: TransportPackage.wordListIdOf(ldp.extensions) ??
+              WordList.english.id,
         );
         _phase = _Phase.confirm;
         _busy = false;
@@ -251,14 +267,18 @@ class _PairTransportOutScreenState
         ourPublicKey: gen.ourKeyPair.publicKey,
         theirPublicKey: conf.peerPublicKey,
       );
-      final relationship = Relationship.fresh(label: gen.label, role: role);
+      final relationship = Relationship.fresh(
+        label: gen.label,
+        role: role,
+        wordLanguage: _wordList.id,
+      );
       await ref.read(secureStoreProvider).saveRelationshipV2(
             relationship,
             sharedSecret: conf.totpSecret,
           );
       ref.invalidate(relationshipsProvider);
       if (!mounted) return;
-      context.go('/pair/complete/${relationship.id}');
+      context.go('/pair/complete/${relationship.id}?distance=sent');
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -362,6 +382,14 @@ class _PairTransportOutScreenState
             if (_ownNameError != null) setState(() => _ownNameError = null);
           },
         ),
+        const SizedBox(height: 16),
+        // Before generating: the 8 words are minted in this language and
+        // the request carries it as a hint for the other phone.
+        WordLanguageRow(
+          selected: _wordList,
+          hint: l10n.wordLanguageRowPairingHint,
+          onChanged: _busy ? null : (list) => setState(() => _wordList = list),
+        ),
         if (_errorText != null) ...<Widget>[
           const SizedBox(height: 8),
           Text(_errorText!, style: TextStyle(color: scheme.error)),
@@ -449,8 +477,9 @@ class _PairTransportOutScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
+                        child: WordText(
                           gen.pakeWords[i],
+                          list: gen.pakeWordList,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 16,
@@ -564,9 +593,23 @@ class _PairTransportOutScreenState
     final gen = _generated!;
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final peer = WordList.byId(conf.peerHint);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // Compare the languages first, then the words; switching re-shows
+        // the same phrase and is what the contact is saved with.
+        WordLanguageRow(
+          selected: _wordList,
+          hint: l10n.wordLanguageRowConfirmHint,
+          note: peer == null
+              ? l10n.wordLanguageTheyChoseUnknown
+              : peer != _wordList
+                  ? l10n.wordLanguageTheyChose(peer.endonym)
+                  : null,
+          onChanged: _busy ? null : (list) => setState(() => _wordList = list),
+        ),
+        const SizedBox(height: 16),
         _SectionHeader(l10n.commonPairTimePhraseHeader),
         const SizedBox(height: 8),
         Text(
@@ -585,7 +628,7 @@ class _PairTransportOutScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (var i = 0; i < conf.phrase.length; i++)
+              for (final (i, word) in _wordList.respell(conf.phrase).indexed)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -604,8 +647,10 @@ class _PairTransportOutScreenState
                         ),
                       ),
                       Expanded(
-                        child: Text(
-                          conf.phrase[i],
+                        child: WordText(
+                          word,
+                          list: _wordList,
+                          bothScripts: true,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 22,
@@ -645,12 +690,17 @@ class _GeneratedState {
     required this.label,
     required this.ourKeyPair,
     required this.pakeWords,
+    required this.pakeWordList,
     required this.outgoingWire,
   });
 
   final String label;
   final PairingKeyPair ourKeyPair;
   final List<String> pakeWords;
+
+  /// The list [pakeWords] were minted in (the confirm pane may switch the
+  /// phrase's language later; these stay as sent).
+  final WordList pakeWordList;
   final String outgoingWire;
 }
 
@@ -659,10 +709,18 @@ class _ConfirmState {
     required this.peerPublicKey,
     required this.totpSecret,
     required this.phrase,
+    required this.peerHint,
   });
+
+  /// The other phone's word-list id, from its response's hint (`en` when
+  /// it sent none). Display only.
+  final String peerHint;
 
   final List<int> peerPublicKey;
   final List<int> totpSecret;
+
+  /// In English, the canonical rendering; shown through `_wordList`, so
+  /// the language switch (plan Task 1.5) re-renders the same indices.
   final List<String> phrase;
 }
 

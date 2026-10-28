@@ -18,10 +18,19 @@ import '../../shared/widgets/fill_or_scroll.dart';
 /// subsequent launches. We rely on the pair flow routing to land here
 /// only at commit time.
 class PairCompleteScreen extends ConsumerWidget {
-  const PairCompleteScreen({super.key, required this.relationshipId});
+  const PairCompleteScreen({
+    super.key,
+    required this.relationshipId,
+    this.distance = PairDistance.together,
+  });
 
   /// The id of the relationship that was just committed.
   final String relationshipId;
+
+  /// How the pair was made. At a distance the two people are not together,
+  /// so the practice run waits for their next call, and on the receiving
+  /// side it works only once the sender has pasted the response.
+  final PairDistance distance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,7 +71,9 @@ class PairCompleteScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                l10n.pairCompleteHeading,
+                distance == PairDistance.together
+                    ? l10n.pairCompleteHeading
+                    : l10n.pairCompleteRemoteHeading,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
@@ -72,13 +83,27 @@ class PairCompleteScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                l10n.pairCompletePracticeBody(label),
+                distance == PairDistance.together
+                    ? l10n.pairCompletePracticeBody(label)
+                    : l10n.pairCompleteRemoteBody(label),
                 style: TextStyle(
                   fontSize: 14,
                   color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
               ),
+              if (distance == PairDistance.received) ...<Widget>[
+                const SizedBox(height: 12),
+                Text(
+                  l10n.pairCompleteRemoteWaitNote(label),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                    height: 1.5,
+                  ),
+                ),
+              ],
               const Spacer(),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -124,3 +149,7 @@ class PairCompleteScreen extends ConsumerWidget {
     );
   }
 }
+
+/// How a pair was made: in person, or at a distance as the side that sent
+/// the package or the side that received it.
+enum PairDistance { together, sent, received }

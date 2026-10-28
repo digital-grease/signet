@@ -289,7 +289,7 @@
   "homeRowMenuVerifyVideo": "Verify (video call)",
   "@homeRowMenuVerifyVideo": {"description": "Row menu item jumping into verify with video mode pre-enabled."},
 
-  "homeRowMenuVerifyVideoSubtitle": "Adds a physical-action check — deepfake-resistant",
+  "homeRowMenuVerifyVideoSubtitle": "Also checks a gesture. Resists deepfakes.",
   "@homeRowMenuVerifyVideoSubtitle": {"description": "Subtitle of the verify (video call) row menu item."},
 
   "homeRowMenuCrGrid": "Challenge-response grid",
@@ -772,6 +772,12 @@
 
   "pairCompletePracticeBody": "This is the easiest moment to practice. Ask {label} to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you'll know it works for real.",
   "@pairCompletePracticeBody": {"description": "Instruction body on pair complete; 'Show-my-words' refers to the verify screen's own-words panel.", "placeholders": {"label": {"type": "String"}}},
+  "pairCompleteRemoteHeading": "Paired at a distance.\nPractice on your next call.",
+  "@pairCompleteRemoteHeading": {"description": "Heading after a long-distance pairing: the two people are not together, so the practice verify waits for their next call."},
+  "pairCompleteRemoteBody": "Next time you talk with {label}, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you'll know it works for real.",
+  "@pairCompleteRemoteBody": {"description": "Body after a long-distance pairing. label is the contact's name.", "placeholders": {"label": {"type": "String"}}},
+  "pairCompleteRemoteWaitNote": "Verify works once {label} has pasted your response package.",
+  "@pairCompleteRemoteWaitNote": {"description": "Shown to the person who received a long-distance package: the sender must still paste the response before their words match. label is the contact's name.", "placeholders": {"label": {"type": "String"}}},
 
   "pairCompleteFallbackPeer": "your peer",
   "@pairCompleteFallbackPeer": {"description": "Fallback for the peer label in pair-complete texts when the label can't be resolved yet."},
@@ -1394,16 +1400,16 @@
   "verifyVideoModeSemanticsLabel": "Video call mode",
   "@verifyVideoModeSemanticsLabel": {"description": "Semantics label of the video-mode toggle row."},
 
-  "verifyVideoModeSemanticsHint": "Turn on to also check a physical action on video.",
+  "verifyVideoModeSemanticsHint": "Turn on to also check a gesture on video.",
   "@verifyVideoModeSemanticsHint": {"description": "Semantics hint of the video-mode toggle row."},
 
   "verifyVideoModeHeader": "VIDEO CALL //",
   "@verifyVideoModeHeader": {"description": "Monospace header of the video-mode toggle row. Keep the ' //' structure."},
 
-  "verifyVideoModeOnText": "Request a physical action too. Defeats deepfakes.",
-  "@verifyVideoModeOnText": {"description": "Toggle row description while video mode is on."},
+  "verifyVideoModeOnText": "Also checks a gesture. Never say it aloud. Defeats deepfakes.",
+  "@verifyVideoModeOnText": {"description": "Toggle row description while video mode is on. Must tell the verifier not to say the gesture aloud: the other person's phone already shows it, and a deepfake that hears it can perform it."},
 
-  "verifyVideoModeOffText": "Turn on to also check a physical action.",
+  "verifyVideoModeOffText": "Turn on to also check a gesture.",
   "@verifyVideoModeOffText": {"description": "Toggle row description while video mode is off."},
 
   "verifyWatchForHeader": "WATCH FOR //",
@@ -1532,7 +1538,110 @@
 
   "pakeMixedLanguagesError": "All 8 words must be in the same language. Check that you copied them from the same place.",
   "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."},
+  "pakeOtherLanguageWordError": "Word {slot} is in a different language from the other seven. Check that you copied it from the same place.",
+  "@pakeOtherLanguageWordError": {"description": "Unlock error: seven of the 8 backup or pairing words are in one word list and word {slot} is a real word of another list (English and French, say). slot is its 1-based position.", "placeholders": {"slot": {"type": "int"}}},
 
   "verifyWatchForChangedAnnouncement": "New gesture to watch for. Touch the WATCH FOR line to hear it.",
-  "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."}
+  "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."},
+
+  "wordLanguageUnknownMessage": "{label}'s words use a language this version of Signet does not have. Update Signet to see them.",
+  "@wordLanguageUnknownMessage": {"description": "Shown instead of a contact's words (verify, challenge grid, binding phrase) when the contact was restored from a backup made by a newer Signet with a word language this version lacks. Showing English words instead would fail against the real contact.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageUnknownWarning": "Until this is fixed you cannot check {label}. Do not act on an urgent request: hang up and call {label} back on a number you already know.",
+  "@wordLanguageUnknownWarning": {"description": "Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageDamagedMessage": "The word language saved for {label} came from a damaged backup, so their words cannot be shown. On Home, press and hold {label}, choose Word language and pick the language you both use.",
+  "@wordLanguageDamagedMessage": {"description": "Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageTitle": "Word language",
+  "@wordLanguageTitle": {"description": "Title of the first-run word-language picker. When the UI is not English the picker also shows the English title under it, so a person who cannot read the UI language still finds the screen."},
+
+  "wordLanguagePickerBody": "Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.",
+  "@wordLanguagePickerBody": {"description": "Body of the first-run word-language picker (feature plan Task 5.3). 'Words' are Signet's verification words, not the app's interface language."},
+
+  "settingsWordLanguageSection": "WORD LANGUAGE",
+  "@settingsWordLanguageSection": {"description": "Settings section title for the default word language. Uppercase like the other section titles."},
+
+  "settingsWordLanguageBody": "The language of the words for new contacts. Contacts you already have keep theirs.",
+  "@settingsWordLanguageBody": {"description": "Settings section body: the default only affects new pairings."},
+
+  "wordLanguageSampleSemantics": "{language}. Words look like: {sample}",
+  "@wordLanguageSampleSemantics": {"description": "Screen-reader label of one word-language option: the language name and three sample words in that language.", "placeholders": {"language": {"type": "String"}, "sample": {"type": "String"}}},
+
+  "homeWordLanguageNotice": "Signet can now show your words in {language}. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.",
+  "@homeWordLanguageNotice": {"description": "One-time notice on Home after upgrading to the first version with word languages, when the phone's language has a word list. {language} is the language's own name (e.g. Français).", "placeholders": {"language": {"type": "String"}}},
+
+  "homeWordLanguageNoticeSettings": "SETTINGS",
+  "@homeWordLanguageNoticeSettings": {"description": "Button on the one-time word-language notice: opens Settings."},
+
+  "wordLanguageRowLabel": "Words: {language}",
+  "@wordLanguageRowLabel": {"description": "The word language of a pairing, a confirm screen or a set of backup words. {language} is the language's own name (English, Français).", "placeholders": {"language": {"type": "String"}}},
+
+  "wordLanguageRowChange": "CHANGE",
+  "@wordLanguageRowChange": {"description": "Button on the word-language row: opens the list of languages."},
+
+  "wordLanguageRowPairingHint": "The words you will read to each other. Choose the same language on both phones.",
+  "@wordLanguageRowPairingHint": {"description": "Under the word-language row when starting a pairing."},
+
+  "wordLanguageRowConfirmHint": "Both screens must show the same language before you compare the words.",
+  "@wordLanguageRowConfirmHint": {"description": "Under the word-language row on a pair-time phrase confirm screen. Switching re-shows the same phrase in another language."},
+
+  "wordLanguageTheyChose": "The other phone chose {language}. Tap CHANGE and choose {language} so your words match.",
+  "@wordLanguageTheyChose": {"description": "Long-distance pairing confirm screen: the other phone's language choice (a hint carried in its package) differs from this phone's. {language} is its own name.", "placeholders": {"language": {"type": "String"}}},
+
+  "homeRowMenuWordLanguage": "Word language",
+  "@homeRowMenuWordLanguage": {"description": "Row menu item: change the word language of an existing contact."},
+
+  "wordLanguageDialogBody": "{label} must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with {label}, never because a caller asks you to.",
+  "@wordLanguageDialogBody": {"description": "Body of the per-contact word-language dialog.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageChangedOn": "Last changed {date}.",
+  "@wordLanguageChangedOn": {"description": "Per-contact word-language dialog: when the language was last changed, so a change a caller talked the user into leaves a visible trace. {date} is a local date.", "placeholders": {"date": {"type": "String"}}},
+
+  "wordLanguageChangedSnackbar": "{label}'s words are now in {language}. Change it on {label}'s phone too.",
+  "@wordLanguageChangedSnackbar": {"description": "Shown after changing a contact's word language.", "placeholders": {"label": {"type": "String"}, "language": {"type": "String"}}},
+
+  "bulkImportOverwriteChangesLanguage": "Also changes the word language to {language}.",
+  "@bulkImportOverwriteChangesLanguage": {"description": "Bulk restore, under the Overwrite option, when the backup's word language differs from the existing contact's. {language} is its own name.", "placeholders": {"language": {"type": "String"}}},
+
+  "wordLanguageRowChangeSemantics": "Change word language",
+  "@wordLanguageRowChangeSemantics": {"description": "Screen-reader label of the CHANGE button on the word-language row."},
+
+  "homeRowMenuWordLanguageUnknown": "Unknown: update Signet",
+  "@homeRowMenuWordLanguageUnknown": {"description": "Subtitle of the Word language menu item when this version lacks the contact's language (or its backup tag was damaged)."},
+
+  "backupWordsAnyLanguage": "A Signet set to any language can read these words.",
+  "@backupWordsAnyLanguage": {"description": "Under the 'Words: <language>' label above the 8 backup words: they restore on a phone whose default language differs."},
+
+  "wordLanguageTheyChoseUnknown": "The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.",
+  "@wordLanguageTheyChoseUnknown": {"description": "Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged)."},
+
+  "verifyOtherLanguageNote": "These words match {label}'s pairing only when read in {other}, but {label}'s words on this phone are in {current}. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold {label} on Home), then check again.",
+  "@verifyOtherLanguageNote": {"description": "Note under a NOT VERIFIED result, shown only when the typed words pass for this contact's secret when read in another word list. Needs the secret, so a caller without it can never trigger it, but it must still never read as a pass. {other} and {current} are languages' own names (Français, English).", "placeholders": {"other": {"type": "String"}, "label": {"type": "String"}, "current": {"type": "String"}}},
+
+  "pairConfirmMismatchLanguageHint": "First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.",
+  "@pairConfirmMismatchLanguageHint": {"description": "First line of the pairing mismatch dialog: a word-language difference shows different words for the same pairing. Never offers to accept a mismatch."},
+
+  "wordInputOtherLanguageHelper": "A {other} word. This contact's words are in {own}.",
+  "@wordInputOtherLanguageHelper": {"description": "Under a verify word slot holding a word of another word list: catches a typo that happens to be a word of that list, and explains the result note when all 4 are in it.", "placeholders": {"other": {"type": "String"}, "own": {"type": "String"}}},
+
+  "faqQ14": "My contact's words are in another language.",
+  "@faqQ14": {"description": "FAQ question about word languages."},
+
+  "faqA14": "Each contact has a word language, and you and that person must choose the same one for each other. If they read you the right words in another language, verify still says NOT VERIFIED and adds a note saying so.\n\nTo fix it, change it together: on both phones, press and hold the contact on Home, choose Word language and pick the same language. Do this only with the real person, never because a caller asks you to. A change is dated and shown in that dialog.\n\nThe language you chose at first run is only the default for new contacts; change it in Settings. A backup keeps each contact's language.",
+  "@faqA14": {"description": "FAQ answer about word languages. Must not suggest ignoring a NOT VERIFIED."},
+  "faqQ15": "Why are Chinese words marked beta?",
+  "@faqQ15": {"description": "FAQ question about the beta label on the Chinese word options."},
+
+  "faqA15": "Signet's Chinese words were chosen with dictionaries, word-frequency data, listening tests run by computer and reviews by AI models, so that no two of them sound alike to a Mandarin speaker. No native speaker has checked the list yet, nor the Chinese interface, which was translated the same way.\n\nThe words are exactly as secure as English or French ones. If a word is hard to say, hard to hear, or easy to mix up with another, tell us with CONTACT US below. The list itself never changes, so your pairings keep working, but a later list can fix it.",
+  "@faqA15": {"description": "FAQ answer: why Chinese words are beta (no native speaker review yet). CONTACT US is faqContactUsButton, the button under the FAQ list."},
+
+  "aboutLicensesButton": "OPEN-SOURCE LICENCES",
+  "@aboutLicensesButton": {"description": "About screen button: opens the list of licences of the libraries, fonts and data Signet includes."},
+
+  "settingsChineseScriptSection": "CHINESE CHARACTERS",
+  "@settingsChineseScriptSection": {"description": "Settings section: show Chinese (zh-1) words in simplified or traditional characters. The options are written in Chinese and not translated."},
+
+  "settingsChineseScriptBody": "How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.",
+  "@settingsChineseScriptBody": {"description": "Settings body for the Chinese script choice: display only, never compared between phones."}
 }

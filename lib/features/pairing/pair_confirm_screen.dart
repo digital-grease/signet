@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/pair_role.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/logging/breadcrumb.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
@@ -10,6 +11,8 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/widgets/big_button.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_row.dart';
+import '../../shared/word_semantics.dart';
 import 'in_person_pairing_controller.dart';
 
 /// Step 3 of the pair flow: show the 4-word verification phrase derived from
@@ -37,6 +40,9 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
   /// The phrase last shown, kept on screen while the route animates out
   /// after the pairing state is reset.
   List<String>? _shownPhrase;
+
+  /// The list last shown, kept with [_shownPhrase].
+  WordList? _shownList;
 
   Future<void> _onMatch(BuildContext context, WidgetRef ref) async {
     if (_busy) return;
@@ -72,6 +78,8 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
       );
       final store = ref.read(secureStoreProvider);
       final rekeyTargetId = pair.rekeyTargetId;
+      // The language on screen when Match was tapped.
+      final wordList = pair.wordList ?? WordList.english;
       final Relationship relationship;
       if (rekeyTargetId != null) {
         // Rekey: overwrite the existing relationship with the new secret.
@@ -86,9 +94,13 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
                   .pairConfirmRekeyTargetMissingError);
           return;
         }
+        final now = DateTime.now().toUtc();
         relationship = existing.copyWith(
           role: role,
-          pairedAt: DateTime.now().toUtc(),
+          pairedAt: now,
+          wordLanguage: wordList.id,
+          wordLanguageChangedAt:
+              wordList.id == existing.wordLanguage ? null : now,
         );
         // Keep the old secret for a while: if the other phone does not
         // finish the rekey, its words can then be recognised as "old
@@ -99,7 +111,11 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
           keepPrevious: true,
         );
       } else {
-        relationship = Relationship.fresh(label: label, role: role);
+        relationship = Relationship.fresh(
+          label: label,
+          role: role,
+          wordLanguage: wordList.id,
+        );
         await store.saveRelationshipV2(relationship, sharedSecret: secret);
       }
       ref
@@ -149,7 +165,19 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.pairConfirmMismatchDialogTitle),
-        content: Text(l10n.pairConfirmMismatchDialogBody),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // A different word language shows different words for the
+              // same pairing; never a reason to accept a mismatch.
+              Text(l10n.pairConfirmMismatchLanguageHint),
+              const SizedBox(height: 12),
+              Text(l10n.pairConfirmMismatchDialogBody),
+            ],
+          ),
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -201,7 +229,12 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
     // While saving or leaving, the state may already be reset: keep
     // showing the phrase the user confirmed.
     final phrase = pair.phrase ?? (_busy ? _shownPhrase : null);
-    if (pair.phrase != null) _shownPhrase = pair.phrase;
+    final wordList =
+        pair.phrase != null ? pair.wordList ?? WordList.english : _shownList;
+    if (pair.phrase != null) {
+      _shownPhrase = pair.phrase;
+      _shownList = wordList;
+    }
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context);
@@ -251,26 +284,54 @@ class _PairConfirmScreenState extends ConsumerState<PairConfirmScreen> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 32,
-                ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(
                   children: <Widget>[
-                    for (final word in phrase)
+                    // Compare the languages first, then the words;
+                    // switching re-shows the same phrase (word-language
+                    // spike §5).
+                    WordLanguageRow(
+                      selected: wordList ?? WordList.english,
+                      // Compact: the 4 words and It matches must stay on
+                      // one screen at normal text.
+                      compact: true,
+                      onChanged: _busy
+                          ? null
+                          : (list) => ref
+                              .read(
+                                  inPersonPairingControllerProvider.notifier)
+                              .setWordList(list),
+                    ),
+                    const SizedBox(height: 4),
+                    for (final word
+                        in (wordList ?? WordList.english).respell(phrase))
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(
-                          word,
-                          style: textTheme.displaySmall?.copyWith(
-                            color: colors.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
+                        // One line per word, as on the verify screen: a
+                        // long French word must not wrap mid-word or push
+                        // It matches off screen.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: WordText(
+                            word,
+                            list: wordList ?? WordList.english,
+                            // Both scripts: a simplified phone next to a
+                            // traditional one shows the same text.
+                            bothScripts: true,
+                            style: textTheme.displaySmall?.copyWith(
+                              color: colors.onPrimaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                            // Also for the layout's height measurement,
+                            // which would otherwise wrap a long word.
+                            maxLines: 1,
+                            softWrap: false,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                   ],

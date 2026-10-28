@@ -10,6 +10,7 @@ import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../core/theme/signet_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/word_language_options.dart';
 import 'debug_logging_controller.dart';
 import 'log_export_sheet.dart';
 
@@ -36,6 +37,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final wordList = ref.watch(defaultWordListProvider);
+    final zhTraditional = ref.watch(zhTraditionalProvider);
     final relationshipsAsync = ref.watch(relationshipsProvider);
     final relationshipCount = relationshipsAsync.maybeWhen(
       data: (rels) => rels.length,
@@ -65,6 +68,40 @@ class SettingsScreen extends ConsumerWidget {
                       ref.read(themeModeProvider.notifier).set(mode),
                 ),
               ),
+              const SizedBox(height: 12),
+              _Section(
+                title: l10n.settingsWordLanguageSection,
+                body: l10n.settingsWordLanguageBody,
+                child: WordLanguageOptions(
+                  selected: wordList,
+                  onChanged: (list) =>
+                      ref.read(defaultWordListProvider.notifier).set(list),
+                ),
+              ),
+              // zh-1's script.
+              ...<Widget>[
+                const SizedBox(height: 12),
+                _Section(
+                  title: l10n.settingsChineseScriptSection,
+                  body: l10n.settingsChineseScriptBody,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      for (final (traditional, label) in const [
+                        (false, '简体字'),
+                        (true, '繁體字'),
+                      ])
+                        _ChoiceTile(
+                          label: label,
+                          selected: zhTraditional == traditional,
+                          onTap: () => ref
+                              .read(zhTraditionalProvider.notifier)
+                              .set(traditional),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               _Section(
                 title: l10n.settingsBulkBackupSection,
@@ -384,6 +421,55 @@ class _ThemeModeTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A radio row for a two-way setting, as the theme tiles are drawn.
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      checked: selected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

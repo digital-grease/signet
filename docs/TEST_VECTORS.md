@@ -134,7 +134,7 @@ cells never collide with the pair-time phrase for the same secret.
 
 ---
 
-## BIP-0039 — Mnemonic wordlist (English)
+## BIP-0039 — Mnemonic wordlists (English and French)
 
 **Spec:** https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 **Canonical wordlist:** https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
@@ -142,12 +142,11 @@ cells never collide with the pair-time phrase for the same secret.
 **What:** 2048 English words, each 4-8 characters, phonetically
 distinct, with a SHA-256 checksum over the file.
 
-**Why Signet cares:** every user-facing BIP-39 word (rotating code,
-pair-time phrase, PAKE secret, transport-package response, backup
-mnemonic, liveness voiced token, challenge-response cell) is drawn
-from this wordlist. Embedded in-tree at
-`lib/core/crypto/bip39_english_wordlist.dart` as a Dart `const
-<String>[]`.
+**Why Signet cares:** every word Signet shows (rotating code, pair-time
+phrase, PAKE secret, backup words, challenge-response cell) is an 11-bit
+index into a 2048-word list, spelled in the contact's word list. Embedded
+in-tree at `lib/core/crypto/bip39_english_wordlist.dart` and
+`lib/core/crypto/bip39_french_wordlist.dart` as Dart `const <String>[]`.
 
 **Integrity check:** `test/crypto/wordlists_test.dart` writes each
 in-tree list one word per line with a trailing newline (French
@@ -163,14 +162,33 @@ Auditors can check the upstream side with
 `curl -s https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt | sha256sum`
 (and `french.txt`).
 
-**French list (from 0.4.0, input only).** Embedded at
-`lib/core/crypto/bip39_french_wordlist.dart`, precomposed (NFC) for
-display; the upstream file is decomposed (NFD) and uses only è and é.
-0.4.0 accepts it for the 8 PAKE words only (see `WIRE_FORMAT.md`,
-key derivation); every word Signet shows is still English. The test
-also checks that no two words of a list share a folded form or their
-first 4 letters, and that NFC, NFD and accent-free input give the
-same index.
+**French list.** Embedded precomposed (NFC) for display; the upstream
+file is decomposed (NFD) and uses only è and é. 0.4.0 accepts it for
+the 8 PAKE words; from 0.5.0 a contact can use it for every word
+(`Relationship.wordLanguage`, transport-package extension `0x01`, see
+`WIRE_FORMAT.md`). The test also checks that no two words of a list
+share a folded form or their first 4 letters, and that NFC, NFD and
+accent-free input give the same index.
+
+**Per-language rendering (from 0.5.0).** Every derivation picks indices;
+the list only spells them. Derivation inputs, outputs and key bytes are
+identical whatever the contact's language, and the PAKE key is derived
+from the English rendering of the verified indices (`WIRE_FORMAT.md`).
+Example, the rotating code for secret `ASCII("12345678901234567890123456789012")`,
+`t = 59`, sender role `a` (the first snapshot vector in
+`test/crypto/totp_words_test.dart`):
+
+| List | Indices | Words |
+|---|---|---|
+| English | 215, 983, 634, 646 | brain kit exercise express |
+| French | 215, 983, 634, 646 | baudrier hommage égaliser élucider |
+| zh-1, simplified | 215, 983, 634, 646 | 床铺 麻雀 幻灯机 回声 |
+| zh-1, traditional | 215, 983, 634, 646 | 床鋪 麻雀 幻燈機 回聲 |
+
+`test/crypto/word_list_rendering_test.dart` checks, for one secret, that
+every list spells the same indices on every surface (rotating words,
+the three pair-time phrases, the challenge grid, PAKE words) and that a
+package sealed with English words opens with the French ones.
 
 **In-tree assertions:**
 - `test/crypto/verification_test.dart` — every word derived by
@@ -179,8 +197,6 @@ same index.
   BIP-39 member.
 - `test/crypto/challenge_response_grid_test.dart` — every axis label
   + every cell word is a BIP-39 member.
-- `test/crypto/liveness_challenge_test.dart` — every minted liveness
-  voiced token is a BIP-39 member.
 
 ---
 

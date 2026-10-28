@@ -5,17 +5,23 @@ import 'package:flutter/widgets.dart';
 /// Flutter's default resolution matches on language code alone, so a
 /// Traditional Chinese device (zh-Hant, or zh-TW / zh-HK / zh-MO with no
 /// script subtag) would be served the Simplified catalog in `app_zh.arb`.
-/// Security copy in the wrong script is worse than English, so those
-/// locales are skipped here and resolution falls through to the next
-/// preferred locale, then to English.
+/// Those get the Traditional catalog (`app_zh_Hant.arb`) when it is
+/// supported; otherwise they are skipped, because security copy in the
+/// wrong script is worse than English, and resolution falls through to
+/// the next preferred locale, then to English.
 Locale resolveSignetLocale(
   List<Locale>? preferred,
   Iterable<Locale> supported,
 ) {
   const fallback = Locale('en');
   final supportedLanguages = supported.map((l) => l.languageCode).toSet();
+  const hant = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+  final hasHant = supported.contains(hant);
   for (final locale in preferred ?? const <Locale>[]) {
-    if (_isTraditionalChinese(locale)) continue;
+    if (_isTraditionalChinese(locale)) {
+      if (hasHant) return hant;
+      continue;
+    }
     if (supportedLanguages.contains(locale.languageCode)) {
       return Locale(locale.languageCode);
     }

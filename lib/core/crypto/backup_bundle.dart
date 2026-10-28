@@ -5,6 +5,7 @@ import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'transport_package.dart';
 import 'wordlists.dart';
+import 'zh_input.dart';
 
 /// Decode the bytes of a backup file as UTF-8 text. Dart's UTF-8 decoder
 /// drops a leading byte order mark (some editors add one), and invalid
@@ -63,13 +64,18 @@ class BackupFiles {
       '$wire\n'
       '$endOfPackageMarker\n';
 
+  /// [language]: the words' language by its own name ("Français"), a
+  /// comment for the person reading the file; parsers skip it, and the
+  /// fingerprint covers only the package.
   static String formatWords({
     required List<String> pakeWords,
     required String fingerprint,
     required DateTime generatedAt,
+    String? language,
   }) =>
       '# Signet backup WORDS · ${_timestamp(generatedAt)}\n'
       '# Fingerprint: $fingerprint\n'
+      '${language == null ? '' : '# Words: $language\n'}'
       '# Keep this apart from the PACKAGE file. Anyone who has both can\n'
       '# restore your pairings. Paper in a safe place is best.\n'
       '${pakeWords.join(' ')}\n';
@@ -152,15 +158,6 @@ class BackupText {
   static final RegExp _fingerprintLine =
       RegExp(r'^#\s*Fingerprint:\s*(\d{3})\s?(\d{3})\s*$');
 
-  /// Separators between words: anything but letters and combining marks
-  /// (Unicode-aware, so accented French words stay whole).
-  static final RegExp _nonLetters = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
-
-  /// Zero-width and soft-hyphen characters, removed before splitting so a
-  /// pasted word they sit inside stays one token.
-  static final RegExp _formatChars =
-      RegExp('[\u200B-\u200F\u2060\uFEFF\u00AD\u061C]');
-
   /// [tokens] as words of the first shipped list that holds all of them
   /// (the list's own spelling), or null. All words must be from one list
   /// (plan Task 8.4c); the decoder then reads them in every such list.
@@ -174,6 +171,12 @@ class BackupText {
     return null;
   }
 
+  /// A line without a leading label such as "密码词：" or a list number
+  /// such as "一、" or "1.", for zh-1 segmentation.
+  static String _withoutHanLabel(String line) => line
+      .replaceFirst(RegExp(r'^[^：:]{1,8}[：:]\s*'), '')
+      .replaceFirst(RegExp(r'^[\d一二三四五六七八①-⑧]+[、.．)）]\s*'), '');
+
   static BackupText read(String text) {
     final lines =
         text.split(RegExp(r'\r\n|\r|\n')).map((l) => l.trim()).toList();
@@ -185,6 +188,7 @@ class BackupText {
     // Letter-only tokens from every line that is neither a comment nor
     // part of the package, for words kept one per line or numbered.
     final looseTokens = <String>[];
+    final hanLines = <String>[];
 
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -226,14 +230,25 @@ class BackupText {
         i = j - 1;
         continue;
       }
-      final clean = line.replaceAll(_formatChars, '');
-      looseTokens.addAll(clean.split(_nonLetters).where((t) => t.isNotEmpty));
-      if (pake == null) {
-        final tokens = clean
-            .split(RegExp(r'\s+'))
-            .where((t) => t.isNotEmpty)
-            .toList();
-        if (tokens.length == 8) pake = _asWords(tokens);
+      // Latin runs only: CJK punctuation, list numbers in any script and
+      // Han labels ("密码词：", "一、") separate words and never count as
+      // one (v0.5.0 plan Task 0.5).
+      final tokens = WordList.splitWords(line);
+      looseTokens.addAll(tokens);
+      if (pake == null && tokens.length == 8) pake = _asWords(tokens);
+      if (line.runes.any(ZhInput.isHanRune)) hanLines.add(line);
+    }
+    // zh-1 words (read half, plan Task 3.5; v0.5.0 shows zh-1 contacts'
+    // PAKE words in English): Han text, glued or punctuated, on one line
+    // or spread over several, read as exactly 8 entries.
+    if (pake == null && WordList.shipped.contains(WordList.zh1)) {
+      final stripped = hanLines.map(_withoutHanLabel).toList();
+      for (final text in [...stripped, stripped.join('、')]) {
+        final entries = ZhInput.zh1.segment(text);
+        if (entries != null && entries.length == 8) {
+          pake = WordList.zh1.render(entries);
+          break;
+        }
       }
     }
     // No single line held the words: accept them spread over several lines

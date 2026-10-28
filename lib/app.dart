@@ -19,6 +19,7 @@ import 'features/inspect/bulk_backup_export_screen.dart';
 import 'features/inspect/bulk_backup_import_screen.dart';
 import 'features/inspect/cr_grid_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/onboarding/word_language_screen.dart';
 import 'features/pairing/pair_complete_screen.dart';
 import 'features/pairing/pair_confirm_screen.dart';
 import 'features/pairing/pair_exchange_screen.dart';
@@ -95,7 +96,13 @@ class _SignetAppState extends ConsumerState<SignetApp> {
   GoRouter _buildRouter() {
     final prefs = widget.prefs;
     return GoRouter(
-          initialLocation: prefs.onboardingCompleted ? '/' : '/onboarding',
+          // A new install picks its word language first (plan Task 1.4);
+          // an upgrade got English in main.dart and never sees the picker.
+          initialLocation: prefs.onboardingCompleted
+              ? '/'
+              : prefs.wordLanguage == null
+                  ? '/language'
+                  : '/onboarding',
           routes: <RouteBase>[
             GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
             GoRoute(path: '/about', builder: (_, _) => const AboutScreen()),
@@ -103,6 +110,10 @@ class _SignetAppState extends ConsumerState<SignetApp> {
             GoRoute(
               path: '/settings',
               builder: (_, _) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: '/language',
+              builder: (_, _) => const WordLanguageScreen(),
             ),
             GoRoute(
               path: '/onboarding',
@@ -187,6 +198,11 @@ class _SignetAppState extends ConsumerState<SignetApp> {
               path: '/pair/complete/:id',
               builder: (_, state) => PairCompleteScreen(
                 relationshipId: state.pathParameters['id']!,
+                distance: switch (state.uri.queryParameters['distance']) {
+                  'sent' => PairDistance.sent,
+                  'received' => PairDistance.received,
+                  _ => PairDistance.together,
+                },
               ),
             ),
             GoRoute(

@@ -106,7 +106,9 @@ ThemeData signetTheme({required bool dark}) {
           primary: SignetTokens.ok,
           onPrimary: SignetTokens.onOk,
           secondary: SignetTokens.warn,
-          onSecondary: SignetTokens.voidBgL,
+          // Dark ink on amber, as in the dark theme: the light background
+          // colour on amber read at 2.6:1 (QA 2026-10-28).
+          onSecondary: SignetTokens.voidBg,
           surface: SignetTokens.surfaceL,
           onSurface: SignetTokens.inkL,
           surfaceContainerHighest: SignetTokens.panelL,

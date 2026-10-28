@@ -22,7 +22,7 @@ void main() {
   void expectGone(String out, List<String> words) {
     final lower = out.toLowerCase();
     for (final w in words) {
-      for (final form in {w, WordList.fold(w)!, toNfd(w)}) {
+      for (final form in {w, WordList.french.fold(w)!, toNfd(w)}) {
         expect(lower, isNot(contains(form.toLowerCase())),
             reason: 'leaked "$form" in: $out');
       }
@@ -31,7 +31,7 @@ void main() {
 
   final runs = <String, String Function(List<String>)>{
     'spaces': (w) => w.join(' '),
-    'accent-free': (w) => w.map((x) => WordList.fold(x)!).join(' '),
+    'accent-free': (w) => w.map((x) => WordList.french.fold(x)!).join(' '),
     'NFD': (w) => w.map(toNfd).join(' '),
     'upper case': (w) => w.map((x) => x.toUpperCase()).join(' '),
     'hyphens': (w) => w.join('-'),

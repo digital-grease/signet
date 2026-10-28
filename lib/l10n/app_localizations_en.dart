@@ -362,7 +362,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRowMenuVerifyVideoSubtitle =>
-      'Adds a physical-action check — deepfake-resistant';
+      'Also checks a gesture. Resists deepfakes.';
 
   @override
   String get homeRowMenuCrGrid => 'Challenge-response grid';
@@ -926,6 +926,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String pairCompletePracticeBody(String label) {
     return 'This is the easiest moment to practice. Ask $label to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.';
+  }
+
+  @override
+  String get pairCompleteRemoteHeading =>
+      'Paired at a distance.\nPractice on your next call.';
+
+  @override
+  String pairCompleteRemoteBody(String label) {
+    return 'Next time you talk with $label, ask them to open Signet, tap your name, and read the 4 words on their Show-my-words screen. Type what you hear into your verify input. Once the green banner lands, you\'ll know it works for real.';
+  }
+
+  @override
+  String pairCompleteRemoteWaitNote(String label) {
+    return 'Verify works once $label has pasted your response package.';
   }
 
   @override
@@ -1788,18 +1802,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyVideoModeSemanticsHint =>
-      'Turn on to also check a physical action on video.';
+      'Turn on to also check a gesture on video.';
 
   @override
   String get verifyVideoModeHeader => 'VIDEO CALL //';
 
   @override
   String get verifyVideoModeOnText =>
-      'Request a physical action too. Defeats deepfakes.';
+      'Also checks a gesture. Never say it aloud. Defeats deepfakes.';
 
   @override
-  String get verifyVideoModeOffText =>
-      'Turn on to also check a physical action.';
+  String get verifyVideoModeOffText => 'Turn on to also check a gesture.';
 
   @override
   String get verifyWatchForHeader => 'WATCH FOR //';
@@ -1961,6 +1974,149 @@ class AppLocalizationsEn extends AppLocalizations {
       'All 8 words must be in the same language. Check that you copied them from the same place.';
 
   @override
+  String pakeOtherLanguageWordError(int slot) {
+    return 'Word $slot is in a different language from the other seven. Check that you copied it from the same place.';
+  }
+
+  @override
   String get verifyWatchForChangedAnnouncement =>
       'New gesture to watch for. Touch the WATCH FOR line to hear it.';
+
+  @override
+  String wordLanguageUnknownMessage(String label) {
+    return '$label\'s words use a language this version of Signet does not have. Update Signet to see them.';
+  }
+
+  @override
+  String wordLanguageUnknownWarning(String label) {
+    return 'Until this is fixed you cannot check $label. Do not act on an urgent request: hang up and call $label back on a number you already know.';
+  }
+
+  @override
+  String wordLanguageDamagedMessage(String label) {
+    return 'The word language saved for $label came from a damaged backup, so their words cannot be shown. On Home, press and hold $label, choose Word language and pick the language you both use.';
+  }
+
+  @override
+  String get wordLanguageTitle => 'Word language';
+
+  @override
+  String get wordLanguagePickerBody =>
+      'Signet shows short words you read to each other to prove who you are. Choose their language. You and each person you pair with must choose the same language for each other. You can pick a different one for a contact when you pair.';
+
+  @override
+  String get settingsWordLanguageSection => 'WORD LANGUAGE';
+
+  @override
+  String get settingsWordLanguageBody =>
+      'The language of the words for new contacts. Contacts you already have keep theirs.';
+
+  @override
+  String wordLanguageSampleSemantics(String language, String sample) {
+    return '$language. Words look like: $sample';
+  }
+
+  @override
+  String homeWordLanguageNotice(String language) {
+    return 'Signet can now show your words in $language. To use it for new contacts, choose it in Settings. A contact you already have keeps English until you both change it: press and hold the contact on Home.';
+  }
+
+  @override
+  String get homeWordLanguageNoticeSettings => 'SETTINGS';
+
+  @override
+  String wordLanguageRowLabel(String language) {
+    return 'Words: $language';
+  }
+
+  @override
+  String get wordLanguageRowChange => 'CHANGE';
+
+  @override
+  String get wordLanguageRowPairingHint =>
+      'The words you will read to each other. Choose the same language on both phones.';
+
+  @override
+  String get wordLanguageRowConfirmHint =>
+      'Both screens must show the same language before you compare the words.';
+
+  @override
+  String wordLanguageTheyChose(String language) {
+    return 'The other phone chose $language. Tap CHANGE and choose $language so your words match.';
+  }
+
+  @override
+  String get homeRowMenuWordLanguage => 'Word language';
+
+  @override
+  String wordLanguageDialogBody(String label) {
+    return '$label must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with $label, never because a caller asks you to.';
+  }
+
+  @override
+  String wordLanguageChangedOn(String date) {
+    return 'Last changed $date.';
+  }
+
+  @override
+  String wordLanguageChangedSnackbar(String label, String language) {
+    return '$label\'s words are now in $language. Change it on $label\'s phone too.';
+  }
+
+  @override
+  String bulkImportOverwriteChangesLanguage(String language) {
+    return 'Also changes the word language to $language.';
+  }
+
+  @override
+  String get wordLanguageRowChangeSemantics => 'Change word language';
+
+  @override
+  String get homeRowMenuWordLanguageUnknown => 'Unknown: update Signet';
+
+  @override
+  String get backupWordsAnyLanguage =>
+      'A Signet set to any language can read these words.';
+
+  @override
+  String get wordLanguageTheyChoseUnknown =>
+      'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.';
+
+  @override
+  String verifyOtherLanguageNote(String other, String label, String current) {
+    return 'These words match $label\'s pairing only when read in $other, but $label\'s words on this phone are in $current. This is still NOT VERIFIED. After this call, choose the same word language on both phones (press and hold $label on Home), then check again.';
+  }
+
+  @override
+  String get pairConfirmMismatchLanguageHint =>
+      'First check that both screens show the same word language above the phrase. If they do not, tap Cancel, choose the same language on both phones and compare again.';
+
+  @override
+  String wordInputOtherLanguageHelper(String other, String own) {
+    return 'A $other word. This contact\'s words are in $own.';
+  }
+
+  @override
+  String get faqQ14 => 'My contact\'s words are in another language.';
+
+  @override
+  String get faqA14 =>
+      'Each contact has a word language, and you and that person must choose the same one for each other. If they read you the right words in another language, verify still says NOT VERIFIED and adds a note saying so.\n\nTo fix it, change it together: on both phones, press and hold the contact on Home, choose Word language and pick the same language. Do this only with the real person, never because a caller asks you to. A change is dated and shown in that dialog.\n\nThe language you chose at first run is only the default for new contacts; change it in Settings. A backup keeps each contact\'s language.';
+
+  @override
+  String get faqQ15 => 'Why are Chinese words marked beta?';
+
+  @override
+  String get faqA15 =>
+      'Signet\'s Chinese words were chosen with dictionaries, word-frequency data, listening tests run by computer and reviews by AI models, so that no two of them sound alike to a Mandarin speaker. No native speaker has checked the list yet, nor the Chinese interface, which was translated the same way.\n\nThe words are exactly as secure as English or French ones. If a word is hard to say, hard to hear, or easy to mix up with another, tell us with CONTACT US below. The list itself never changes, so your pairings keep working, but a later list can fix it.';
+
+  @override
+  String get aboutLicensesButton => 'OPEN-SOURCE LICENCES';
+
+  @override
+  String get settingsChineseScriptSection => 'CHINESE CHARACTERS';
+
+  @override
+  String get settingsChineseScriptBody =>
+      'How Chinese words are written on this phone. Both are the same words, so a contact can use the other script.';
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/crypto/pairing.dart';
 import '../../core/crypto/pairing_commitment.dart';
 import '../../core/crypto/verification.dart';
+import '../../core/crypto/wordlists.dart';
 import 'pairing_code_v2.dart';
 
 /// In-person pairing with commit-then-reveal (plan Task 1.7e; design in
@@ -123,6 +124,7 @@ class InPersonPairingState {
   const InPersonPairingState({
     this.label,
     this.rekeyTargetId,
+    this.wordList,
     this.role,
     this.step = InPersonStep.chooseRole,
     this.qrPayload,
@@ -137,6 +139,12 @@ class InPersonPairingState {
   /// Session context: kept across attempts, cleared only by reset.
   final String? label;
   final String? rekeyTargetId;
+
+  /// The word language the phrase is shown in and the contact is saved
+  /// with (plan Task 1.5): from the name screen's row, or the contact's
+  /// own for a rekey; the confirm screen can switch it. Null shows
+  /// English.
+  final WordList? wordList;
 
   final InPersonRole? role;
   final InPersonStep step;
@@ -189,6 +197,7 @@ class InPersonPairingState {
       InPersonPairingState(
         label: label,
         rekeyTargetId: rekeyTargetId,
+        wordList: wordList,
         role: role,
         step: step,
         qrPayload: qrPayload,
@@ -198,6 +207,22 @@ class InPersonPairingState {
         totpSecret: _readOnly(totpSecret),
         ourPublicKey: _readOnly(ourPublicKey),
         theirPublicKey: _readOnly(theirPublicKey),
+      );
+
+  /// This state with another [wordList] and every other field as it is.
+  InPersonPairingState _withWordList(WordList list) => InPersonPairingState(
+        label: label,
+        rekeyTargetId: rekeyTargetId,
+        wordList: list,
+        role: role,
+        step: step,
+        qrPayload: qrPayload,
+        notice: notice,
+        failure: failure,
+        phrase: phrase,
+        totpSecret: totpSecret,
+        ourPublicKey: ourPublicKey,
+        theirPublicKey: theirPublicKey,
       );
 
   static Uint8List? _readOnly(Uint8List? bytes) =>
@@ -233,18 +258,34 @@ class InPersonPairingController extends Notifier<InPersonPairingState> {
   /// The name for a new contact. Clears any rekey target: a rekey never
   /// goes through the name screen, so a name means a new relationship and
   /// can never save over an existing one.
-  void setLabel(String label) {
+  void setLabel(String label, {WordList? wordList}) {
     _dropAttempt();
     final trimmed = label.trim();
-    state = InPersonPairingState(label: trimmed.isEmpty ? null : trimmed);
+    state = InPersonPairingState(
+      label: trimmed.isEmpty ? null : trimmed,
+      wordList: wordList,
+    );
   }
 
   /// Seed a rekey of an existing relationship: same flow, the confirm step
-  /// overwrites instead of creating.
-  void startRekey({required String id, required String label}) {
+  /// overwrites instead of creating. [wordList] is the contact's own, the
+  /// starting value of the confirm screen's language switch.
+  void startRekey({
+    required String id,
+    required String label,
+    WordList? wordList,
+  }) {
     _dropAttempt();
-    state = InPersonPairingState(label: label, rekeyTargetId: id);
+    state = InPersonPairingState(
+      label: label,
+      rekeyTargetId: id,
+      wordList: wordList,
+    );
   }
+
+  /// The confirm screen's language switch: re-shows the same phrase in
+  /// [list] and saves the contact with it. Never touches the attempt.
+  void setWordList(WordList list) => state = state._withWordList(list);
 
   /// Start a fresh attempt in [role]. Always mints new material: anything
   /// from an earlier attempt is dropped first.

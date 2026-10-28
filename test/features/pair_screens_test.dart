@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signet/core/crypto/pair_role.dart';
 import 'package:signet/core/models/relationship.dart';
+import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/features/pairing/pair_confirm_screen.dart';
 import 'package:signet/features/pairing/pair_start_screen.dart';
@@ -11,6 +13,7 @@ import 'package:signet/features/pairing/in_person_pairing_controller.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 import '../support/in_person_pairing.dart';
 
 /// Minimal `go_router` harness so screens using `context.go(...)` don't crash.
@@ -66,12 +69,16 @@ Widget _wrap({
   return ProviderScope(
     overrides: [
       secureStoreProvider.overrideWithValue(store ?? FakeSecureStore()),
+      appPrefsProvider.overrideWithValue(_prefs),
     ],
     child: MaterialApp.router(localizationsDelegates: AppLocalizations.localizationsDelegates, routerConfig: router),
   );
 }
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
   group('PairStartScreen', () {
     testWidgets('empty label shows inline error and does not navigate',
         (tester) async {

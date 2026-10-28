@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/verification.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_notice.dart';
+import '../../shared/word_semantics.dart';
 
 /// Re-derives the pair-time 4-word phrase from the currently-stored shared
 /// secret and renders it for the user to read aloud to the peer (who
@@ -54,8 +57,14 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
         setState(() => _loadError = StateError('No paired contact.'));
         return;
       }
+      if (relationship.knownWordList == null) {
+        if (!mounted) return;
+        setState(() => _relationship = relationship);
+        return;
+      }
       final phrase = await PairingVerification.derivePhrase(
         sharedSecret: secret,
+        list: relationship.wordList,
       );
       if (!mounted) return;
       setState(() {
@@ -101,6 +110,12 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
     }
     final relationship = _relationship;
     final phrase = _phrase;
+    if (relationship != null && relationship.knownWordList == null) {
+      return WordLanguageUnknownNotice(
+        label: relationship.label,
+        damaged: relationship.wordLanguageDamaged,
+      );
+    }
     if (relationship == null || phrase == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -128,7 +143,7 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        _PhraseCard(words: phrase),
+        _PhraseCard(words: phrase, list: relationship.wordList),
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(16),
@@ -175,8 +190,9 @@ class _BindingPhraseScreenState extends ConsumerState<BindingPhraseScreen> {
 }
 
 class _PhraseCard extends StatelessWidget {
-  const _PhraseCard({required this.words});
+  const _PhraseCard({required this.words, required this.list});
   final List<String> words;
+  final WordList list;
 
   @override
   Widget build(BuildContext context) {
@@ -204,8 +220,9 @@ class _PhraseCard extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: Text(
+                    child: WordText(
                       words[i],
+                      list: list,
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 24,
