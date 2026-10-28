@@ -42,7 +42,7 @@ body:
     attributes:
       label: Signet version
       description: From Settings → About, or pre-filled by the in-app exporter
-      placeholder: 0.4.0 (40000)
+      placeholder: 0.5.0 (50000)
     validations:
       required: true
 

@@ -15,9 +15,9 @@ The threat: voice and video deepfakes targeting families for financial fraud; vi
 
 ## Status
 
-**v0.4.0 beta · Android · available on [F-Droid](https://f-droid.org/packages/dev.digitalgrease.signet/) and [GitHub Releases](https://github.com/digital-grease/signet/releases/latest).** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
+**v0.5.0 beta · Android · available on [F-Droid](https://f-droid.org/packages/dev.digitalgrease.signet/) and [GitHub Releases](https://github.com/digital-grease/signet/releases/latest).** See [Development roadmap](#development-roadmap) for what shipped and what's still ahead.
 
-v0.4.0 makes pairing safer (a commit-then-reveal exchange in person, an 8-word check at a distance) and splits backups into two parts you keep apart. Both phones need 0.4.0 or later to pair, and a 0.4.0 backup needs 0.4.0 or later to restore. See [CHANGELOG.md](CHANGELOG.md) for the full history.
+v0.5.0 adds word languages: the verify words and the challenge grid can be English, French or Chinese (Mandarin, beta), chosen per contact, and the app itself now speaks French and Traditional Chinese too. Both phones need 0.4.0 or later to pair, and 0.5.0 to use French or Chinese words. See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 Built on Flutter for future cross-platform support; iOS is generated but not tested in this release. TestFlight is staged separately.
 

@@ -5,6 +5,64 @@ All notable changes to Signet will appear in this file. Format follows
 versioning follows [Semantic Versioning](https://semver.org/) — pre-1.0
 the surface is allowed to change between minor releases.
 
+## [0.5.0] — 2026-10-28
+
+**Word languages.** The rotating words and the challenge grid can now be
+English, French or Chinese, chosen per contact. Each word is an 11-bit
+index and a language only spells it, so every language is equally
+secure. You and the other person must choose the same language for each
+other. Older Signet versions restore a backup of a French or Chinese
+contact as English.
+
+### Added
+- **Choose the word language** at first run (the default for new
+  contacts, preselected from the phone's languages), when pairing (on
+  both confirm screens), and per contact from Home (press and hold,
+  Word language). A change is dated and shown in that dialog. Backups
+  keep each contact's language.
+- **French words** for any contact, typed with or without accents.
+- **Chinese (Mandarin) words, beta**: Signet's own list of 2,048 two-
+  and three-character words (`zh-1`), shown in simplified or traditional
+  characters (Settings, CHINESE CHARACTERS) with a pinyin or Zhuyin
+  reading line. Type them in characters or pinyin, with or without tone
+  marks or digits. Marked 测试版 / 測試版 because no native speaker has
+  checked the list or the Chinese interface yet; the FAQ explains, and
+  CONTACT US takes reports of confusing words. The 8 backup and pairing
+  words of a Chinese contact stay English in this version.
+- **French interface** for phones set to French, and a **Traditional
+  Chinese interface** for phones set to Traditional Chinese (Taiwan,
+  Hong Kong, Macau). The Simplified Chinese interface is complete.
+- **Verify says when the right words are in the wrong language**: still
+  NOT VERIFIED, with a note that the phones' languages differ, and only
+  when the words are really right.
+- **Words are marked with their language for screen readers.** VoiceOver
+  uses this; Android's TalkBack reads them in the app's language, so set
+  Signet's language to Chinese to hear Chinese words in Mandarin.
+- **Printed challenge cards in French and Chinese**, with embedded
+  fonts; a contact name the fonts cannot draw is printed as a picture
+  instead of empty boxes. The card follows the paper size chosen in the
+  print dialog.
+- **Licences page** in About, for the fonts and word-list data Signet
+  bundles.
+
+### Fixed
+- Crash logs now hide verify and backup words separated by Chinese or
+  Japanese punctuation (、，。), Chinese words in characters, pinyin or
+  Zhuyin, and words hidden behind escapes, web encodings or HTML
+  (`\n`, `%0A`, `&nbsp;`, `<li>`), numbered with letters, or copied
+  with ligatures.
+- In the light theme, text on amber (the Home notice, some pairing
+  buttons) is dark and readable.
+- Pasting words separated by Chinese punctuation, or with list numbers
+  or labels in Chinese, now fills the slots, and backup WORDS files
+  written that way read correctly.
+- Seven correct backup words and one in another language now name the
+  odd word instead of a general error.
+- At the end of a long-distance pairing, the done screen no longer says
+  the phones were together.
+- Word slots read letters typed full width (ａｂａｎｄｏｎ), as Chinese and
+  Japanese keyboards can type them.
+
 ## [0.4.0] — 2026-10-24
 
 **Both phones need Signet 0.4.0 or later to pair**, in person or at a

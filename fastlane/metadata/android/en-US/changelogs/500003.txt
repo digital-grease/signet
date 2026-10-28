@@ -1,0 +1,5 @@
+v0.5.0
+
+Word languages: verify words and the challenge grid can now be English, French or Chinese (Mandarin, beta), chosen per contact. Both phones must choose the same language for each other. Pick it at first run, when pairing, or later from Home.
+
+Also: French and Traditional Chinese interfaces, printed cards in French and Chinese, and a note when the right words are read in the wrong language.

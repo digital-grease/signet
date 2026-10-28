@@ -1,0 +1,5 @@
+v0.5.0
+
+Langues des mots : les mots de vérification et la grille question-réponse peuvent être en anglais, en français ou en chinois (mandarin, bêta), au choix pour chaque contact. Les deux téléphones doivent choisir la même langue l’un pour l’autre : au premier lancement, à l’association ou plus tard depuis l’accueil.
+
+Aussi : interfaces en français et en chinois traditionnel, cartes imprimées en français et en chinois, et une note quand les bons mots sont dans la mauvaise langue.
