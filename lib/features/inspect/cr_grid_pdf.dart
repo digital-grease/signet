@@ -1,11 +1,14 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'dart:ui' show Locale;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/crypto/challenge_response_grid.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Renders a [ChallengeResponseGrid] as a one-page letter-size PDF
@@ -21,23 +24,28 @@ import '../../l10n/app_localizations.dart';
 class CrGridPdf {
   const CrGridPdf._();
 
-  /// UI languages the embedded font can print (v0.5.0 plan Task 1.7).
-  /// Chinese waits for the CJK subset font (plan decision D5); until then a
-  /// Chinese UI prints the English card rather than blank headers and a
-  /// blank safety warning.
-  static const Set<String> printableLanguages = <String>{'en', 'fr'};
+  /// UI languages the embedded fonts can print (v0.5.0 plan Tasks 1.7 and
+  /// 3.6).
+  static const Set<String> printableLanguages = <String>{'en', 'fr', 'zh'};
 
   /// The catalog the card is printed in for a UI in [uiLocale]: the UI's
-  /// own when the font covers it and the app has it, else English.
+  /// own when the fonts cover it and the app has it, else English. Keeps
+  /// the script of a Chinese UI, so a Traditional UI prints the
+  /// Traditional card.
   static AppLocalizations printCatalogFor(Locale uiLocale) {
     final code = uiLocale.languageCode;
     final supported = AppLocalizations.supportedLocales
         .any((l) => l.languageCode == code);
-    return lookupAppLocalizations(
-      printableLanguages.contains(code) && supported
-          ? Locale(code)
-          : const Locale('en'),
-    );
+    if (!printableLanguages.contains(code) || !supported) {
+      return lookupAppLocalizations(const Locale('en'));
+    }
+    const hant = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+    if (code == 'zh' &&
+        uiLocale.scriptCode == 'Hant' &&
+        AppLocalizations.supportedLocales.contains(hant)) {
+      return lookupAppLocalizations(hant);
+    }
+    return lookupAppLocalizations(Locale(code));
   }
 
   /// The embedded Latin subset of Noto Sans (tool/fonts/subset_noto.sh):
@@ -47,30 +55,58 @@ class CrGridPdf {
       'assets/fonts/NotoSans-Regular-Latin.ttf';
   static const String boldFontAsset = 'assets/fonts/NotoSans-Bold-Latin.ttf';
 
-  static Future<pw.ThemeData> printTheme() async {
-    final regular = await rootBundle.load(regularFontAsset);
-    final bold = await rootBundle.load(boldFontAsset);
-    return pw.ThemeData.withFont(
-      base: pw.Font.ttf(regular),
-      bold: pw.Font.ttf(bold),
-    );
-  }
+  /// The embedded Chinese subsets of Noto Sans CJK
+  /// (tool/fonts/subset_noto_cjk.py): every zh-1 word and the Chinese card
+  /// strings, in simplified (SC) and Taiwan traditional (TC) glyph shapes.
+  /// The Latin font's fallback, for Han and CJK punctuation only.
+  static const String regularScFontAsset =
+      'assets/fonts/NotoSansCJKsc-Regular-Card.ttf';
+  static const String boldScFontAsset =
+      'assets/fonts/NotoSansCJKsc-Bold-Card.ttf';
+  static const String regularTcFontAsset =
+      'assets/fonts/NotoSansCJKtc-Regular-Card.ttf';
+  static const String boldTcFontAsset =
+      'assets/fonts/NotoSansCJKtc-Bold-Card.ttf';
+
+  static Future<pw.ThemeData> printTheme() async =>
+      (await _CardFonts.load(traditionalFirst: false)).theme;
 
   /// Build the PDF bytes. Caller hands the result to
   /// `Printing.layoutPdf(onLayout: (_) => bytes)` to open the platform
   /// print dialog, or writes to a file. The card is printed in the UI's
   /// language when [printableLanguages] has it ([printCatalogFor]), with
   /// the grid's words in the contact's list, as on screen.
+  ///
+  /// The contact's name can hold any character (another script, emoji), so
+  /// a name the embedded fonts cannot draw is printed as an image drawn by
+  /// the phone's own fonts ([labelImage], [renderLabelImage] by default;
+  /// plan decision D5) instead of as empty boxes.
   static Future<Uint8List> build({
     required String peerLabel,
     required ChallengeResponseGrid grid,
     required DateTime generatedAt,
     Locale uiLocale = const Locale('en'),
+    Future<Uint8List?> Function(String label)? labelImage,
   }) async {
     final l10n = printCatalogFor(uiLocale);
+    // Characters both scripts share take the shape of the first font: the
+    // card's script when it is Chinese, else the script the words are
+    // shown in.
+    final traditionalFirst = l10n.localeName.startsWith('zh')
+        ? l10n.localeName == 'zh_Hant'
+        : WordList.showTraditionalChinese;
+    final fonts = await _CardFonts.load(traditionalFirst: traditionalFirst);
+    final image = fonts.canDrawBold(peerLabel)
+        ? null
+        : await (labelImage ?? renderLabelImage)(peerLabel);
+    final card = _Card(
+      l10n: l10n,
+      grid: grid,
+      boldFallback: fonts.boldFallback,
+    );
     final doc = pw.Document(
       title: l10n.crPdfDocTitle(peerLabel),
-      theme: await printTheme(),
+      theme: fonts.theme,
     );
     doc.addPage(
       pw.Page(
@@ -80,16 +116,19 @@ class CrGridPdf {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: <pw.Widget>[
-              _headerBlock(
-                  l10n: l10n, peerLabel: peerLabel, generatedAt: generatedAt),
+              card.headerBlock(
+                peerLabel: peerLabel,
+                labelImage: image,
+                generatedAt: generatedAt,
+              ),
               pw.SizedBox(height: 12),
-              _warningBlock(l10n: l10n),
+              card.warningBlock(),
               pw.SizedBox(height: 16),
-              _axisLegend(l10n: l10n, grid: grid),
+              card.axisLegend(),
               pw.SizedBox(height: 14),
-              _bodyTable(grid: grid),
+              card.bodyTable(),
               pw.Spacer(),
-              _footer(l10n: l10n),
+              card.footer(),
             ],
           );
         },
@@ -98,11 +137,209 @@ class CrGridPdf {
     return doc.save();
   }
 
-  // ------------------------------------------------------------------
+  /// Punctuation that must not start a line, and that must not end one,
+  /// in Chinese typesetting.
+  static const String _noLineStart = '，。、；：？！）」』〉》】〕～·,.;:?!)]}%';
+  static const String _noLineEnd = '（「『〈《【〔([{';
 
-  static pw.Widget _headerBlock({
-    required AppLocalizations l10n,
+  /// [text] split into lines no wider than [width], given each
+  /// character's [advance] in points: breaks fall at spaces or between two
+  /// characters either of which is Han or CJK punctuation, never before
+  /// [_noLineStart], after [_noLineEnd], or inside —— and ……. A run of
+  /// other letters (a Latin word) stays whole unless it alone is too wide.
+  @visibleForTesting
+  static List<String> chineseLines(
+    String text,
+    double width,
+    double Function(int rune) advance,
+  ) {
+    bool wide(int r) => r >= 0x2E80 || r == 0x2014 || r == 0x2026;
+    // Units that cannot be split, each with whether a space came first.
+    final units = <(String, bool)>[];
+    var space = false;
+    for (final rune in text.runes) {
+      final ch = String.fromCharCode(rune);
+      if (ch.trim().isEmpty) {
+        space = true;
+        continue;
+      }
+      if (units.isNotEmpty && !space) {
+        final (last, lastSpace) = units.last;
+        final prev = last.runes.last;
+        final glue = _noLineStart.contains(ch) ||
+            _noLineEnd.contains(String.fromCharCode(prev)) ||
+            (rune == prev && (rune == 0x2014 || rune == 0x2026)) ||
+            (!wide(rune) && !wide(prev));
+        if (glue) {
+          units[units.length - 1] = (last + ch, lastSpace);
+          continue;
+        }
+      }
+      units.add((ch, space));
+      space = false;
+    }
+
+    double measure(String s) =>
+        s.runes.fold(0.0, (sum, r) => sum + advance(r));
+    final spaceWidth = advance(0x20);
+    final lines = <String>[];
+    var line = StringBuffer();
+    var lineWidth = 0.0;
+    // Half a point of slack, so the pdf package never wraps a line again.
+    final limit = width - 0.5;
+    for (final (unit, spaced) in units) {
+      final unitWidth = measure(unit);
+      final gap = spaced && line.isNotEmpty ? spaceWidth : 0.0;
+      if (line.isNotEmpty && lineWidth + gap + unitWidth > limit) {
+        lines.add(line.toString());
+        line = StringBuffer(unit);
+        lineWidth = unitWidth;
+        continue;
+      }
+      if (gap > 0) line.write(' ');
+      line.write(unit);
+      lineWidth += gap + unitWidth;
+    }
+    if (line.isNotEmpty) lines.add(line.toString());
+    return lines;
+  }
+
+  /// Size of the printed name, in points.
+  static const double labelFontSize = 22;
+
+  /// Widest the printed name may be, in points: the page less the date.
+  static const double labelMaxWidth = 420;
+
+  /// Pixels per point of the name image: 4 is 288 dpi, sharp on paper.
+  static const double _labelScale = 4;
+
+  /// [label] drawn in black bold by the phone's own fonts, as PNG bytes at
+  /// [_labelScale] pixels per point, at most two lines of [labelMaxWidth];
+  /// null if it draws nothing.
+  static Future<Uint8List?> renderLabelImage(String label) async {
+    final builder = ui.ParagraphBuilder(ui.ParagraphStyle(
+      fontSize: labelFontSize * _labelScale,
+      fontWeight: ui.FontWeight.bold,
+      maxLines: 2,
+      ellipsis: '\u2026',
+    ))
+      ..pushStyle(ui.TextStyle(color: const ui.Color(0xFF000000)))
+      ..addText(label);
+    final paragraph = builder.build()
+      ..layout(const ui.ParagraphConstraints(width: labelMaxWidth * _labelScale));
+    final width = paragraph.longestLine.ceil();
+    final height = paragraph.height.ceil();
+    if (width <= 0 || height <= 0) return null;
+    final recorder = ui.PictureRecorder();
+    ui.Canvas(recorder).drawParagraph(paragraph, ui.Offset.zero);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(width, height);
+    picture.dispose();
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return png?.buffer.asUint8List();
+  }
+}
+
+/// The card's embedded fonts: the Latin subset, with the Chinese subsets
+/// as its fallback.
+class _CardFonts {
+  _CardFonts._(this.theme, this.boldFallback, this._boldChars);
+
+  final pw.ThemeData theme;
+
+  /// The fallback for bold text: the pdf package does not pick a bold face
+  /// from a fallback list, so bold styles name the bold subsets.
+  final List<pw.Font> boldFallback;
+
+  final Set<int> _boldChars;
+
+  /// Whether the bold fonts have every character of [text].
+  bool canDrawBold(String text) => text.runes.every(_boldChars.contains);
+
+  static Future<_CardFonts> load({required bool traditionalFirst}) async {
+    final assets = <String>[
+      CrGridPdf.regularFontAsset,
+      CrGridPdf.boldFontAsset,
+      CrGridPdf.regularScFontAsset,
+      CrGridPdf.boldScFontAsset,
+      CrGridPdf.regularTcFontAsset,
+      CrGridPdf.boldTcFontAsset,
+    ];
+    final data = <ByteData>[for (final a in assets) await rootBundle.load(a)];
+    final fonts = <pw.Font>[for (final d in data) pw.Font.ttf(d)];
+    List<pw.Font> order(pw.Font sc, pw.Font tc) =>
+        traditionalFirst ? <pw.Font>[tc, sc] : <pw.Font>[sc, tc];
+    final boldChars = <int>{
+      for (final i in const <int>[1, 3, 5])
+        ...TtfParser(data[i]).charToGlyphIndexMap.keys,
+    };
+    return _CardFonts._(
+      pw.ThemeData.withFont(
+        base: fonts[0],
+        bold: fonts[1],
+        fontFallback: order(fonts[2], fonts[4]),
+      ),
+      order(fonts[3], fonts[5]),
+      boldChars,
+    );
+  }
+}
+
+/// The card's blocks, in [l10n] with [grid]'s words.
+class _Card {
+  const _Card({
+    required this.l10n,
+    required this.grid,
+    required this.boldFallback,
+  });
+
+  final AppLocalizations l10n;
+  final ChallengeResponseGrid grid;
+  final List<pw.Font> boldFallback;
+
+  /// Whether the card is in Chinese: no letter spacing (it pulls Han
+  /// apart), and paragraphs broken by Chinese rules
+  /// ([CrGridPdf.chineseLines]).
+  bool get _chinese => l10n.localeName.startsWith('zh');
+
+  pw.TextStyle _bold({required double fontSize, double? letterSpacing}) =>
+      pw.TextStyle(
+        fontSize: fontSize,
+        fontWeight: pw.FontWeight.bold,
+        letterSpacing: _chinese ? null : letterSpacing,
+        fontFallback: boldFallback,
+      );
+
+  /// [text] as a wrapped paragraph. The pdf package breaks lines anywhere
+  /// between Han characters, so a Chinese line could start with 。 or ，
+  /// (wrong in Chinese typesetting): Chinese text is broken into lines
+  /// here instead.
+  pw.Widget _paragraph(String text, pw.TextStyle style) {
+    if (!_chinese) return pw.Text(text, style: style);
+    return pw.LayoutBuilder(builder: (context, constraints) {
+      final resolved = pw.Theme.of(context).defaultTextStyle.merge(style);
+      final lines =
+          CrGridPdf.chineseLines(text, constraints!.maxWidth, (rune) {
+        for (final font in <pw.Font>[
+          resolved.font!,
+          ...resolved.fontFallback,
+        ]) {
+          final pdfFont = font.getFont(context);
+          if (pdfFont.isRuneSupported(rune)) {
+            return pdfFont.glyphMetrics(rune).advanceWidth *
+                resolved.fontSize!;
+          }
+        }
+        return resolved.fontSize!;
+      });
+      return pw.Text(lines.join('\n'), style: style);
+    });
+  }
+
+  pw.Widget headerBlock({
     required String peerLabel,
+    required Uint8List? labelImage,
     required DateTime generatedAt,
   }) {
     final y = generatedAt.toUtc().year.toString().padLeft(4, '0');
@@ -124,20 +361,16 @@ class CrGridPdf {
             children: <pw.Widget>[
               pw.Text(
                 l10n.crPdfCardTitle,
-                style: pw.TextStyle(
-                  fontSize: 12,
-                  fontWeight: pw.FontWeight.bold,
-                  letterSpacing: 2,
-                ),
+                style: _bold(fontSize: 12, letterSpacing: 2),
               ),
               pw.SizedBox(height: 4),
-              pw.Text(
-                peerLabel,
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
+              if (labelImage != null)
+                _labelImage(labelImage)
+              else
+                pw.Text(
+                  peerLabel,
+                  style: _bold(fontSize: CrGridPdf.labelFontSize),
                 ),
-              ),
             ],
           ),
           pw.Text(
@@ -149,7 +382,18 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _warningBlock({required AppLocalizations l10n}) {
+  /// The name image at its size in points: [CrGridPdf._labelScale]
+  /// pixels per point.
+  static pw.Widget _labelImage(Uint8List png) {
+    final image = pw.MemoryImage(png);
+    return pw.Image(
+      image,
+      width: image.width! / CrGridPdf._labelScale,
+      height: image.height! / CrGridPdf._labelScale,
+    );
+  }
+
+  pw.Widget warningBlock() {
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
@@ -160,26 +404,19 @@ class CrGridPdf {
         children: <pw.Widget>[
           pw.Text(
             l10n.crPdfWarningTitle,
-            style: pw.TextStyle(
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+            style: _bold(fontSize: 10, letterSpacing: 1.2),
           ),
           pw.SizedBox(height: 4),
-          pw.Text(
+          _paragraph(
             l10n.crPdfWarningBody,
-            style: const pw.TextStyle(fontSize: 9, lineSpacing: 1.4),
+            const pw.TextStyle(fontSize: 9, lineSpacing: 1.4),
           ),
         ],
       ),
     );
   }
 
-  static pw.Widget _axisLegend({
-    required AppLocalizations l10n,
-    required ChallengeResponseGrid grid,
-  }) {
+  pw.Widget axisLegend() {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: <pw.Widget>[
@@ -195,7 +432,7 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _axisPanel({
+  pw.Widget _axisPanel({
     required String title,
     required List<String> words,
   }) {
@@ -209,11 +446,7 @@ class CrGridPdf {
         children: <pw.Widget>[
           pw.Text(
             title,
-            style: pw.TextStyle(
-              fontSize: 9,
-              letterSpacing: 1.5,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: _bold(fontSize: 9, letterSpacing: 1.5),
           ),
           pw.SizedBox(height: 6),
           pw.Wrap(
@@ -229,7 +462,7 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _bodyTable({required ChallengeResponseGrid grid}) {
+  pw.Widget bodyTable() {
     const borderSide = pw.BorderSide(color: PdfColors.grey700, width: 0.5);
     return pw.Table(
       border: const pw.TableBorder(
@@ -247,14 +480,14 @@ class CrGridPdf {
               : const pw.FlexColumnWidth(1.3),
       },
       children: <pw.TableRow>[
-        _headerTableRow(grid: grid),
+        _headerTableRow(),
         for (var row = 0; row < ChallengeResponseGrid.rowCount; row++)
-          _bodyTableRow(grid: grid, row: row),
+          _bodyTableRow(row),
       ],
     );
   }
 
-  static pw.TableRow _headerTableRow({required ChallengeResponseGrid grid}) {
+  pw.TableRow _headerTableRow() {
     return pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColors.grey200),
       children: <pw.Widget>[
@@ -264,25 +497,18 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _headerCell(String text) {
+  pw.Widget _headerCell(String text) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       alignment: pw.Alignment.center,
       child: pw.Text(
         text,
-        style: pw.TextStyle(
-          fontSize: 9,
-          fontWeight: pw.FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+        style: _bold(fontSize: 9, letterSpacing: 0.5),
       ),
     );
   }
 
-  static pw.TableRow _bodyTableRow({
-    required ChallengeResponseGrid grid,
-    required int row,
-  }) {
+  pw.TableRow _bodyTableRow(int row) {
     return pw.TableRow(
       children: <pw.Widget>[
         pw.Container(
@@ -291,10 +517,7 @@ class CrGridPdf {
           decoration: const pw.BoxDecoration(color: PdfColors.grey200),
           child: pw.Text(
             grid.rowLabels[row],
-            style: pw.TextStyle(
-              fontSize: 9,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: _bold(fontSize: 9),
           ),
         ),
         for (var col = 0; col < ChallengeResponseGrid.colCount; col++)
@@ -303,7 +526,7 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _bodyCell(List<String> words) {
+  pw.Widget _bodyCell(List<String> words) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: pw.Column(
@@ -320,7 +543,7 @@ class CrGridPdf {
     );
   }
 
-  static pw.Widget _footer({required AppLocalizations l10n}) {
+  pw.Widget footer() {
     return pw.Container(
       alignment: pw.Alignment.centerRight,
       child: pw.Text(

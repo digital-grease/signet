@@ -129,11 +129,16 @@ flutter:
   uses-material-design: true
 
   # Latin subset of Noto Sans for the printed challenge grid card, which
-  # must render French text (built by tool/fonts/subset_noto.sh; OFL 1.1,
-  # assets/fonts/OFL.txt).
+  # must render French text (built by tool/fonts/subset_noto.sh), and the
+  # Chinese subsets of Noto Sans CJK for Chinese cards (built by
+  # tool/fonts/subset_noto_cjk.py). OFL 1.1, assets/fonts/OFL.txt.
   assets:
     - assets/fonts/NotoSans-Regular-Latin.ttf
     - assets/fonts/NotoSans-Bold-Latin.ttf
+    - assets/fonts/NotoSansCJKsc-Regular-Card.ttf
+    - assets/fonts/NotoSansCJKsc-Bold-Card.ttf
+    - assets/fonts/NotoSansCJKtc-Regular-Card.ttf
+    - assets/fonts/NotoSansCJKtc-Bold-Card.ttf
     - assets/fonts/OFL.txt
     # Licences of bundled data, shown on the licences page (lib/core/licenses.dart).
     - assets/licenses/

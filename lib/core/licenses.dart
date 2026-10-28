@@ -5,7 +5,8 @@ import 'package:flutter/services.dart' show rootBundle;
 /// packages (those are listed by Flutter automatically). Shown on the
 /// licences page opened from About.
 ///
-/// - Noto Sans (subset in the printed card's PDF): SIL OFL 1.1.
+/// - Noto Sans and Noto Sans CJK (subsets in the printed card's PDF): SIL
+///   OFL 1.1.
 /// - zh-1 word list (lib/core/crypto/zh_wordlist.dart): headwords from the
 ///   HSK 3.0 syllabus via complete-hsk-vocabulary (MIT); pinyin from
 ///   pypinyin (MIT); traditional forms from OpenCC (Apache-2.0); Zhuyin
@@ -14,7 +15,7 @@ import 'package:flutter/services.dart' show rootBundle;
 /// - zh-1 reading table (lib/core/crypto/zh_reading_table.dart): pinyin-data
 ///   (MIT) through pypinyin, derived from Unihan (Unicode License v3).
 const List<(List<String>, String)> thirdPartyLicenses = <(List<String>, String)>[
-  (<String>['Noto Sans'], 'assets/fonts/OFL.txt'),
+  (<String>['Noto Sans', 'Noto Sans CJK'], 'assets/fonts/OFL.txt'),
   (<String>['zh-1: complete-hsk-vocabulary'],
       'assets/licenses/complete-hsk-vocabulary-MIT.txt'),
   (<String>['zh-1: pypinyin'], 'assets/licenses/pypinyin-MIT.txt'),

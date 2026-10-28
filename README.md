@@ -340,6 +340,6 @@ Signet is solo-maintained beta software. Issues and PRs are welcome, but please 
 
 AGPL-3.0. See [LICENSE](LICENSE).
 
-The printed challenge-grid card embeds a subset of Noto Sans (SIL Open Font License 1.1, `assets/fonts/OFL.txt`), built by `tool/fonts/subset_noto.sh`.
+The printed challenge-grid card embeds a subset of Noto Sans, built by `tool/fonts/subset_noto.sh`, and subsets of Noto Sans CJK SC and TC, built by `tool/fonts/subset_noto_cjk.py` (all SIL Open Font License 1.1, `assets/fonts/OFL.txt`).
 
 This is user-sovereign software. The license reflects that.

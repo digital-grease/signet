@@ -3,6 +3,14 @@ Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-gree
 NotoSans-Regular-Latin.ttf and NotoSans-Bold-Latin.ttf are subsets of Noto Sans
 made by tool/fonts/subset_noto.sh, distributed under the same licence.
 
+© 2014-2021 Adobe (http://www.adobe.com/). Noto is a trademark of Google Inc.
+
+NotoSansCJKsc-Regular-Card.ttf, NotoSansCJKsc-Bold-Card.ttf,
+NotoSansCJKtc-Regular-Card.ttf and NotoSansCJKtc-Bold-Card.ttf are subsets of
+Noto Sans CJK SC and TC (https://github.com/notofonts/noto-cjk), with their
+outlines converted to TrueType, made by tool/fonts/subset_noto_cjk.py,
+distributed under the same licence.
+
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.
 
