@@ -149,7 +149,9 @@ class _WordInputState extends State<WordInput> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Composing also ends when the user taps another slot: confirm the
         // word, but move focus only if it is still in this slot.
-        if (mounted && _controllers[index].text == text) {
+        // A chip or the next key may have confirmed it meanwhile (which
+        // also ends composing): keep that.
+        if (mounted && _controllers[index].text == text && !_confirmed[index]) {
           _onSlotChanged(index, text,
               mayAdvance: _focusNodes[index].hasFocus);
         }
@@ -295,6 +297,16 @@ class _WordInputState extends State<WordInput> {
   /// the word belongs to, or the only accepted list while it is being
   /// typed; null (the UI's voice) when it could be either.
   Locale? _localeFor(String text) {
+    // A word in two lists is read in the one the other words share.
+    if (_twoWay(text)) {
+      final shared = _sharedList();
+      if (shared != null) return wordLocale(shared);
+    }
+    // Characters on their way to a word are Chinese whatever the contact.
+    if (_hanCount(text) > 0 &&
+        [..._lists, ...widget.alsoAccept].contains(WordList.zh1)) {
+      return wordLocale(WordList.zh1);
+    }
     final latinZh = _latinZhAllowed;
     for (final l in [..._activeLists, ..._lists, ...widget.alsoAccept]) {
       if (_reads(l, text, latinZh: latinZh)) return wordLocale(l);
@@ -307,12 +319,19 @@ class _WordInputState extends State<WordInput> {
   /// (not just the active ones: the next letter may switch languages).
   bool _isPrefixWord(String text) {
     if (!_isWord(text)) return false;
-    // zh-1: pinyin that may still become a longer entry waits ("bei ji"
-    // on the way to 北极熊). A written form never waits: no entry's
-    // characters start another entry's.
-    if (_latinZhAllowed &&
-        _hanCount(text) == 0 &&
-        ZhInput.zh1.isPrefix(text)) {
+    // zh-1: pinyin that may still become a longer entry waits, syllable
+    // by syllable ("bei ji" on the way to 北极熊) or letter by letter
+    // ("daxia" on the way to "daxiang"). A written form never waits: no
+    // entry's characters start another entry's. Other characters, read by
+    // sound (北極 typed for 北極熊 sounds like 飞机), wait like pinyin.
+    final han = _hanCount(text) > 0;
+    if (han
+        ? [..._lists, ...widget.alsoAccept].contains(WordList.zh1) &&
+            !ZhInput.zh1.isWrittenForm(text) &&
+            ZhInput.zh1.isPrefix(text)
+        : _latinZhAllowed &&
+            (ZhInput.zh1.isPrefix(text) ||
+                ZhInput.zh1.isSpellingPrefix(text))) {
       return true;
     }
     final lists = _otherLanguageInUse
@@ -466,7 +485,9 @@ class _WordInputState extends State<WordInput> {
     if (parts.length != widget.wordCount) return false;
     if (!parts.every(_isWord)) return false;
     for (var i = 0; i < widget.wordCount; i++) {
-      _controllers[i].text = _canonical(parts[i])!;
+      // A word that is English and pinyin keeps its letters, as typed
+      // ones do ([_twoWay]).
+      _controllers[i].text = _twoWay(parts[i]) ? parts[i] : _canonical(parts[i])!;
       _confirmed[i] = true;
     }
     _focusNodes[widget.wordCount - 1].unfocus();
@@ -501,6 +522,12 @@ class _WordInputState extends State<WordInput> {
     final pinyinSpace = spaced &&
         _latinZhAllowed &&
         _hanCount(trimmed) == 0 &&
+        // An English word read to a Chinese contact ("pen ") is done.
+        !widget.alsoAccept
+            .any((l) => l != WordList.zh1 && l.contains(trimmed)) &&
+        // A word's own spelling is done ("bu xie " is 布鞋, though it
+        // could start a longer word); only a sound-alike waits.
+        !ZhInput.zh1.isExactSpelling(trimmed) &&
         ZhInput.zh1.isPrefix(trimmed);
     if (pinyinSpace) {
       final lower = value.toLowerCase();
@@ -605,6 +632,25 @@ class _WordInputState extends State<WordInput> {
       WordList.zh1.contains(text) &&
       [..._lists, ...widget.alsoAccept]
           .any((l) => l != WordList.zh1 && l.contains(text));
+
+  /// The list that reads every filled slot, the contact's first, or null.
+  WordList? _sharedList() {
+    final texts = [
+      for (final c in _controllers)
+        if (c.text.trim().isNotEmpty) c.text.trim(),
+    ];
+    final latinZh = _latinZhAllowed;
+    for (final l in <WordList>{
+      ..._activeLists,
+      ..._lists,
+      ...widget.alsoAccept,
+    }) {
+      if (texts.every((t) => _indexIn(l, t, latinZh: latinZh) != null)) {
+        return l;
+      }
+    }
+    return null;
+  }
 
   List<String>? _collectValidWords() {
     // One list that reads every slot, the contact's first: a word in two
@@ -759,7 +805,11 @@ class _WordInputState extends State<WordInput> {
             : TextInputAction.done,
         keyboardType: TextInputType.text,
         autocorrect: false,
-        enableSuggestions: false,
+        // Off, Android asks for a visible-password field, where Chinese
+        // input methods offer only Latin letters: a Chinese contact's words
+        // could then be typed only in pinyin. On for Chinese contacts;
+        // personalised learning stays off either way.
+        enableSuggestions: _lists.length == 1 && _lists.single == WordList.zh1,
         // Words are secrets: the keyboard must not learn them.
         enableIMEPersonalizedLearning: false,
         textCapitalization: TextCapitalization.none,

@@ -336,6 +336,139 @@ void main() {
     });
   });
 
+  group('word input review 2 (patch 27)', () {
+    testWidgets('pinyin typed letter by letter reaches the longer word, '
+        'for every entry a shorter spelling of which names another',
+        (tester) async {
+      // "daxia" names 大侠 on the way to "daxiang", 大象; through the
+      // mergers "buli" names 妇女 on the way to "buliao", 布料.
+      final trapped = <ZhWord>[
+        for (final w in zhWordlist)
+          if (() {
+            final spelled = w.key.replaceAll(' ', '');
+            for (var n = 2; n < spelled.length; n++) {
+              final i = ZhInput.zh1.indexOf(spelled.substring(0, n));
+              if (i != null && zhWordlist[i] != w) return true;
+            }
+            return false;
+          }())
+            w,
+      ];
+      expect(trapped.length, greaterThan(100));
+      await _pump(tester, [zh]);
+      for (final w in trapped) {
+        final spelled = w.key.replaceAll(' ', '');
+        for (var n = 1; n <= spelled.length; n++) {
+          await tester.enterText(
+              find.byType(TextField).first, spelled.substring(0, n));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+        // Never a shorter word; a spelling that also starts a longer one
+        // waits for a space, as English "act" does.
+        if (_slot(tester, 0).controller!.text == spelled) {
+          expect(
+              ZhInput.zh1.isSpellingPrefix(spelled) ||
+                  ZhInput.zh1.isPrefix(spelled),
+              isTrue,
+              reason: spelled);
+          await tester.enterText(find.byType(TextField).first, '$spelled ');
+          await tester.pumpAndSettle();
+        }
+        expect(_slot(tester, 0).controller!.text, w.simplified,
+            reason: spelled);
+        await tester.enterText(find.byType(TextField).first, '');
+        await tester.pump();
+      }
+    });
+
+    testWidgets('characters read by sound wait like pinyin', (tester) async {
+      await _pump(tester, [zh]);
+      // Traditional 北極 is not a written form of 飞机; it starts 北極熊.
+      await tester.enterText(find.byType(TextField).first, '北極');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, '北極');
+      expect(_slot(tester, 0).focusNode!.hasFocus, isTrue);
+      await tester.enterText(find.byType(TextField).first, '北極熊');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, '北极熊');
+    });
+
+    testWidgets('a pasted English code with "dance" in it stays English '
+        'for a Chinese contact', (tester) async {
+      List<String>? got;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: WordInput(
+              lists: [zh],
+              alsoAccept: [WordList.english, WordList.french],
+              onSubmit: (w) async => got = w,
+            ),
+          ),
+        ),
+      ));
+      await tester.enterText(
+          find.byType(TextField).first, 'dance abandon ability able');
+      await tester.pumpAndSettle();
+      expect(got, ['dance', 'abandon', 'ability', 'able']);
+    });
+
+    testWidgets('an English word read to a Chinese contact confirms with a '
+        'space even when it starts a longer pinyin word', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: WordInput(
+            lists: [zh],
+            alsoAccept: [WordList.english, WordList.french],
+          ),
+        ),
+      ));
+      await tester.enterText(find.byType(TextField).first, 'pen ');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, 'pen');
+      expect(_slot(tester, 1).focusNode!.hasFocus, isTrue);
+    });
+
+    testWidgets('a chip picked while the keyboard composes stays confirmed',
+        (tester) async {
+      List<String>? got;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: WordInput(onSubmit: (w) async => got = w),
+          ),
+        ),
+      ));
+      await tester.showKeyboard(find.byType(TextField).first);
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: 'act',
+        selection: TextSelection.collapsed(offset: 3),
+        composing: TextRange(start: 0, end: 3),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ActionChip, 'act'));
+      await tester.pumpAndSettle();
+      for (var i = 1; i < 4; i++) {
+        await tester.enterText(find.byType(TextField).at(i), 'zoo');
+        await tester.pumpAndSettle();
+      }
+      expect(got, ['act', 'zoo', 'zoo', 'zoo']);
+    });
+
+    testWidgets('Chinese input methods are not shut out on a Chinese '
+        "contact's slots", (tester) async {
+      // enableSuggestions: false makes Android ask for a password field.
+      await _pump(tester, [zh]);
+      expect(_slot(tester, 0).enableSuggestions, isTrue);
+      await _pump(tester, [WordList.english]);
+      expect(_slot(tester, 0).enableSuggestions, isFalse);
+    });
+  });
+
   group('input methods', () {
     testWidgets('a composed word confirmed by tapping another slot keeps '
         'focus where the user tapped', (tester) async {

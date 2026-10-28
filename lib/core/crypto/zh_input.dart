@@ -110,6 +110,40 @@ class ZhInput {
     return false;
   }
 
+  /// Whether Latin [input] spells the start of a longer entry, letter by
+  /// letter ("daxia" on the way to "daxiang", 大象): typed so far, it must
+  /// wait, though it already names 大侠. Tone marks and digits, spaces and
+  /// apostrophes do not count.
+  bool isSpellingPrefix(String input) {
+    final text = _clean(input);
+    if (text.isEmpty || text.runes.any(_isHan)) return false;
+    final chunks = _latinChunks(text);
+    if (chunks == null || chunks.isEmpty) return false;
+    return _spelledPrefixes.contains(chunks.join());
+  }
+
+  /// Whether Latin [input] spells an entry exactly, letter for letter
+  /// (tone marks, digits and spaces aside), not only through the mergers:
+  /// "bu xie" is 布鞋's own spelling, while "bei ji" only sounds like 飞机.
+  bool isExactSpelling(String input) {
+    final text = _clean(input);
+    if (text.isEmpty || text.runes.any(_isHan)) return false;
+    final chunks = _latinChunks(text);
+    if (chunks == null || chunks.isEmpty) return false;
+    return _spelledSet.contains(chunks.join());
+  }
+
+  late final Set<String> _spelledSet = _spelled.toSet();
+
+  late final Set<String> _spelledPrefixes = <String>{
+    for (final s in _spelled)
+      for (var n = 1; n < s.length; n++) s.substring(0, n),
+  };
+
+  /// Whether [input] is a written form of an entry exactly (not read
+  /// through the reading table).
+  bool isWrittenForm(String input) => _forms.containsKey(_clean(input));
+
   /// Up to [limit] entries a partly typed word may become, for chips: from
   /// characters, entries with a written form starting with them, then
   /// (spike §4) entries with a form containing them, since a person may
