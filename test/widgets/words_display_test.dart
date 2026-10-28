@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:signet/core/crypto/wordlists.dart';
+import 'package:signet/core/crypto/zh_wordlist.dart';
 import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/widgets/words_display.dart';
 
@@ -123,5 +125,24 @@ void main() {
     );
     final ink = tester.widget<InkWell>(find.byType(InkWell));
     expect(ink.onTap, isNull);
+  });
+
+  testWidgets('Chinese words show their reading line for the reader',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: Scaffold(
+        body: WordsDisplay(
+          words: WordList.zh1.render(const [0, 1, 2, 3]),
+          list: WordList.zh1,
+          secondsRemaining: 20,
+          windowSeconds: 30,
+        ),
+      ),
+    ));
+    for (var i = 0; i < 4; i++) {
+      expect(find.text(zhWordlist[i].simplified), findsOneWidget);
+      expect(find.text(zhWordlist[i].pinyin), findsOneWidget);
+    }
   });
 }

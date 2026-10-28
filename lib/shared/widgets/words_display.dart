@@ -64,8 +64,13 @@ class WordsDisplay extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
+                    // A Chinese word gets its reading line (pinyin or
+                    // Zhuyin) under it, for the person reading it aloud,
+                    // and Chinese glyph shapes (found in emulator QA).
+                    child: WordText(
                       word,
+                      list: list ?? WordList.english,
+                      textAlign: TextAlign.center,
                       style: textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1,
