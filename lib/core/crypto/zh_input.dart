@@ -57,6 +57,15 @@ class ZhInput {
   final Map<int, List<String>> _charReadings = <int, List<String>>{};
   final Set<String> _prefixKeys = <String>{};
 
+  /// Per entry: its toneless spelling without spaces, and its syllable
+  /// initials, for chips.
+  late final List<String> _spelled = [
+    for (final w in _list) w.key.replaceAll(' ', ''),
+  ];
+  late final List<String> _initials = [
+    for (final w in _list) w.key.split(' ').map((s) => s[0]).join(),
+  ];
+
   /// The one entry [input] names, or null when it names none or more than
   /// one.
   int? indexOf(String input) {
@@ -100,6 +109,119 @@ class ZhInput {
     }
     return false;
   }
+
+  /// Up to [limit] entries a partly typed word may become, for chips: from
+  /// one character, entries with a written form starting with the typed
+  /// characters; from two Latin letters, entries whose toneless spelling
+  /// starts with them, or failing that whose syllable initials do ("pg"
+  /// for 苹果). Chips only: initials never name a word on their own.
+  List<int> prefixMatches(String prefix, {int limit = 6}) {
+    final text = _clean(prefix);
+    if (text.isEmpty) return const <int>[];
+    final runes = text.runes.toList();
+    final hits = <int>[];
+    if (runes.every(_isHan)) {
+      for (var i = 0; i < _list.length && hits.length < limit; i++) {
+        final w = _list[i];
+        if (<String>{w.simplified, w.traditional, ...w.otherForms}
+            .any((f) => f.startsWith(text))) {
+          hits.add(i);
+        }
+      }
+      return hits;
+    }
+    if (runes.any(_isHan)) return const <int>[];
+    final chunks = _latinChunks(text);
+    if (chunks == null) return const <int>[];
+    final typed = chunks.join();
+    if (typed.length < 2) return const <int>[];
+    for (var i = 0; i < _list.length && hits.length < limit; i++) {
+      if (_spelled[i].startsWith(typed)) hits.add(i);
+    }
+    if (hits.isNotEmpty) return hits;
+    for (var i = 0; i < _list.length && hits.length < limit; i++) {
+      if (_initials[i].startsWith(typed)) hits.add(i);
+    }
+    return hits;
+  }
+
+  /// The entries in pasted [text], in order, or null unless there is
+  /// exactly one way to read all of it as entries. Glued characters
+  /// ("苹果火车电脑手机") are cut at exact written forms; Latin is read as
+  /// words of two or three syllables, one word per token when each token
+  /// names one entry ("pingguo huoche"), else grouped from syllables
+  /// ("ping guo huo che"). Han and Latin mixed is not a paste of zh-1.
+  List<int>? segment(String text) {
+    final clean = _clean(text);
+    if (clean.isEmpty) return null;
+    final runes = clean.runes.toList();
+    if (runes.any(_isHan)) {
+      if (runes.any((r) => _isLatinLetter(r))) return null;
+      final out = <int>[];
+      final run = <int>[];
+      bool flush() {
+        if (run.isEmpty) return true;
+        final cut = _uniqueCover(run.length, (start, len) {
+          final f = String.fromCharCodes(run.sublist(start, start + len));
+          return _forms[f];
+        });
+        run.clear();
+        if (cut == null) return false;
+        out.addAll(cut);
+        return true;
+      }
+
+      for (final r in runes) {
+        if (_isHan(r)) {
+          run.add(r);
+        } else if (!flush()) {
+          return null;
+        }
+      }
+      return flush() ? out : null;
+    }
+    final tokens = <String>[
+      for (final m in RegExp(r'[^\s,，、;；.。]+').allMatches(clean)) m[0]!,
+    ];
+    if (tokens.isEmpty) return null;
+    final whole = [for (final t in tokens) indexOf(t)];
+    if (!whole.contains(null)) return whole.cast<int>();
+    return _uniqueCover(tokens.length, (start, len) {
+      if (len < 2 || len > 3) return null;
+      return indexOf(tokens.sublist(start, start + len).join(' '));
+    });
+  }
+
+  /// The one way to cover [n] items by pieces of 1-3 that [entryAt] names,
+  /// or null when there is none or more than one.
+  static List<int>? _uniqueCover(
+      int n, int? Function(int start, int len) entryAt) {
+    // ways[k]: how many covers of the first k items (capped at 2), and the
+    // last piece of one of them.
+    final ways = List<int>.filled(n + 1, 0);
+    final back = List<(int, int)?>.filled(n + 1, null);
+    ways[0] = 1;
+    for (var k = 1; k <= n; k++) {
+      for (var len = 1; len <= 3 && len <= k; len++) {
+        if (ways[k - len] == 0) continue;
+        final e = entryAt(k - len, len);
+        if (e == null) continue;
+        ways[k] = (ways[k] + ways[k - len]).clamp(0, 2);
+        back[k] = (len, e);
+      }
+    }
+    if (ways[n] != 1) return null;
+    final out = <int>[];
+    for (var k = n; k > 0;) {
+      final (len, e) = back[k]!;
+      out.insert(0, e);
+      k -= len;
+    }
+    return out;
+  }
+
+  static bool _isLatinLetter(int r) =>
+      (r >= 0x61 && r <= 0x7A) || (r >= 0xC0 && r <= 0x24F);
 
   /// The lookup form of a typed word: format characters, variation
   /// selectors and whitespace removed, compatibility ideographs unified,

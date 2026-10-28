@@ -288,6 +288,22 @@ class TransportPackage {
       readings.add([for (final i in indices) WordList.english.wordAt(i!)]);
     }
     if (readings.isNotEmpty) return readings;
+    // Seven words of one list and one that is not: that one is a typo,
+    // even when it happens to be a word of another list (a pinyin reading
+    // of zh-1, say). Point at it rather than at "mixed languages".
+    for (final list in WordList.shipped) {
+      final outside = [
+        for (var i = 0; i < trimmed.length; i++)
+          if (!list.contains(trimmed[i])) i,
+      ];
+      if (outside.length == 1) {
+        throw InvalidPakeException(
+          'Word ${outside.single + 1} is not in a supported BIP-39 wordlist.',
+          reason: InvalidPakeReason.unknownWord,
+          slot: outside.single + 1,
+        );
+      }
+    }
     for (var i = 0; i < trimmed.length; i++) {
       if (!WordList.shipped.any((l) => l.contains(trimmed[i]))) {
         throw InvalidPakeException(

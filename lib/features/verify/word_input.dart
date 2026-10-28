@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../core/crypto/wordlists.dart';
+import '../../core/crypto/zh_input.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/word_semantics.dart';
 
@@ -132,6 +133,27 @@ class _WordInputState extends State<WordInput> {
   bool _submitting = false;
   bool _typing = false;
 
+  /// Per slot: an input method was composing at the last change.
+  late final List<bool> _composing;
+
+  /// An input method that commits the very text it was composing changes
+  /// only the composing range, which [TextField.onChanged] does not report;
+  /// read the slot when composing ends.
+  void _onValue(int index) {
+    final composing = _controllers[index].value.composing;
+    final now = composing.isValid && !composing.isCollapsed;
+    final was = _composing[index];
+    _composing[index] = now;
+    if (was && !now) {
+      final text = _controllers[index].text;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controllers[index].text == text) {
+          _onSlotChanged(index, text);
+        }
+      });
+    }
+  }
+
   /// The words last handed to [WordInput.onSubmit] since the last reset,
   /// so an edit that changes nothing does not check the same words twice.
   List<String>? _lastSubmitted;
@@ -143,6 +165,10 @@ class _WordInputState extends State<WordInput> {
       widget.wordCount,
       (_) => _WordController(localeFor: _localeFor),
     );
+    _composing = List<bool>.filled(widget.wordCount, false);
+    for (var i = 0; i < widget.wordCount; i++) {
+      _controllers[i].addListener(() => _onValue(i));
+    }
     _focusNodes = List<FocusNode>.generate(
       widget.wordCount,
       (_) => FocusNode(),
@@ -188,8 +214,12 @@ class _WordInputState extends State<WordInput> {
 
   /// [text] as the matched list spells it, or null if it is not a word of
   /// any accepted list.
+  ///
+  /// Once a confirmed word fixes the language ([_activeLists]), only that
+  /// language counts: after "abandon", a typo that happens to be pinyin
+  /// ("bosi") must not become 博士 (spike chinese-words.md §6).
   String? _canonical(String text) {
-    for (final l in [..._activeLists, ..._lists, ...widget.alsoAccept]) {
+    for (final l in [..._activeLists, ...widget.alsoAccept]) {
       final i = l.indexOf(text);
       if (i != null) return l.wordAt(i);
     }
@@ -198,8 +228,9 @@ class _WordInputState extends State<WordInput> {
 
   bool _isWord(String text) => _canonical(text) != null;
 
-  /// A word of [WordInput.lists] itself, not only of [WordInput.alsoAccept].
-  bool _isOwnWord(String text) => _lists.any((l) => l.contains(text));
+  /// A word of [WordInput.lists] itself (of the active ones, once a word
+  /// fixes the language), not only of [WordInput.alsoAccept].
+  bool _isOwnWord(String text) => _activeLists.any((l) => l.contains(text));
 
   /// The [WordInput.alsoAccept] list [text] is a word of, when it is not a
   /// word of [WordInput.lists].
@@ -241,6 +272,15 @@ class _WordInputState extends State<WordInput> {
   /// (not just the active ones: the next letter may switch languages).
   bool _isPrefixWord(String text) {
     if (!_isWord(text)) return false;
+    // zh-1: one or two syllables or characters that may still become a
+    // longer entry wait ("bei ji" on the way to 北极熊). Not for a word of
+    // another active list, so English words keep auto-advancing.
+    if (_activeLists.contains(WordList.zh1) &&
+        WordList.zh1.contains(text) &&
+        !_activeLists.any((l) => l != WordList.zh1 && l.contains(text)) &&
+        ZhInput.zh1.isPrefix(text)) {
+      return true;
+    }
     final lists = _otherLanguageInUse
         ? <WordList>[..._lists, ...widget.alsoAccept]
         : _lists;
@@ -313,9 +353,16 @@ class _WordInputState extends State<WordInput> {
   /// Up to 6 words starting with [prefix], each with the list it is from
   /// (the chip reads it in that list's language).
   List<(String, WordList)> _matchesFor(String prefix) {
-    if (prefix.trim().length < 2) return const <(String, WordList)>[];
     final hits = <(String, WordList)>[];
+    // zh-1 from one character or two letters, with initials ("pg").
+    if (_activeLists.contains(WordList.zh1)) {
+      for (final i in ZhInput.zh1.prefixMatches(prefix)) {
+        hits.add((WordList.zh1.wordAt(i), WordList.zh1));
+      }
+    }
+    if (prefix.trim().length < 2) return hits;
     for (final l in _activeLists) {
+      if (l == WordList.zh1) continue;
       final folded = l.fold(prefix.trim());
       if (folded == null) continue;
       final foldedWords = _foldedOf(l);
@@ -331,6 +378,10 @@ class _WordInputState extends State<WordInput> {
 
   bool _isPrefixOfAnyWord(String text) {
     return [..._activeLists, ...widget.alsoAccept].any((l) {
+      // zh-1 spelling, characters or initials still on the way to a word.
+      if (l == WordList.zh1) {
+        return ZhInput.zh1.prefixMatches(text, limit: 1).isNotEmpty;
+      }
       final folded = l.fold(text);
       return folded != null && _foldedOf(l).any((w) => w.startsWith(folded));
     });
@@ -340,9 +391,26 @@ class _WordInputState extends State<WordInput> {
   /// separates them (spaces, hyphens, commas, CJK punctuation such as
   /// "abandon、ability", list numbers; v0.5.0 plan Task 0.5).
   bool _looksLikePaste(String text) =>
-      WordList.splitWords(text.trim()).length > 1;
+      WordList.splitWords(text.trim()).length > 1 ||
+      _hanCount(text) > 3; // glued characters: more than one zh-1 word
+
+  static int _hanCount(String text) =>
+      text.runes.where((r) => r >= 0x3400 && r <= 0x9FFF).length;
 
   bool _tryDistributePaste(String pasted) {
+    // zh-1: glued characters or pinyin cut into entries, when there is
+    // exactly one way to do it.
+    if (_activeLists.contains(WordList.zh1)) {
+      final entries = ZhInput.zh1.segment(pasted);
+      if (entries != null && entries.length == widget.wordCount) {
+        for (var i = 0; i < widget.wordCount; i++) {
+          _controllers[i].text = WordList.zh1.wordAt(entries[i]);
+          _confirmed[i] = true;
+        }
+        _focusNodes[widget.wordCount - 1].unfocus();
+        return true;
+      }
+    }
     final parts = WordList.splitWords(pasted.toLowerCase());
     if (parts.length != widget.wordCount) return false;
     if (!parts.every(_isWord)) return false;
@@ -356,6 +424,10 @@ class _WordInputState extends State<WordInput> {
 
   void _onSlotChanged(int index, String value) {
     if (_submitting) return;
+    // An input method still composing (pinyin, Zhuyin, handwriting): wait
+    // for the committed text, never confirm a half-composed word.
+    final composing = _controllers[index].value.composing;
+    if (composing.isValid && !composing.isCollapsed) return;
     if (_looksLikePaste(value) && _tryDistributePaste(value)) {
       setState(() {});
       _afterChange();
@@ -541,7 +613,9 @@ class _WordInputState extends State<WordInput> {
   /// confirmed word: a partial word, or a prefix word such as "act".
   bool _showsChips(int index) {
     final text = _controllers[index].text.trim().toLowerCase();
-    if (text.length < 2) return false;
+    // One character is enough for zh-1 (it usually narrows to 1-3 words).
+    final minimum = _hanCount(text) > 0 ? 1 : 2;
+    if (text.length < minimum) return false;
     if (!_isWord(text)) return true;
     return !_confirmed[index];
   }
@@ -573,6 +647,8 @@ class _WordInputState extends State<WordInput> {
         keyboardType: TextInputType.text,
         autocorrect: false,
         enableSuggestions: false,
+        // Words are secrets: the keyboard must not learn them.
+        enableIMEPersonalizedLearning: false,
         textCapitalization: TextCapitalization.none,
         style: textTheme.titleLarge?.copyWith(
           fontFamily: 'monospace',
