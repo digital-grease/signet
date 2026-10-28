@@ -77,4 +77,29 @@ void main() {
       expect(BackupText.read(text).pakeWords, _eight);
     });
   });
+
+  testWidgets('fullwidth letters from a CJK keyboard are read as letters',
+      (tester) async {
+    List<String>? got;
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: WordInput(onWordsChanged: (w) => got = w),
+        ),
+      ),
+    ));
+    String wide(String s) =>
+        String.fromCharCodes([for (final r in s.runes) r + 0xFEE0]);
+    for (var i = 0; i < 4; i++) {
+      await tester.enterText(find.byType(TextField).at(i), wide(_four[i]));
+      await tester.pumpAndSettle();
+    }
+    expect(got, _four);
+    // A whole fullwidth paste, with an ideographic space, spreads too.
+    await tester.enterText(find.byType(TextField).first,
+        _four.map(wide).join('\u3000'));
+    await tester.pumpAndSettle();
+    expect(got, _four);
+  });
 }

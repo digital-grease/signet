@@ -451,6 +451,21 @@ class _WordInputState extends State<WordInput> {
       WordList.splitWords(text.trim()).length > 1 ||
       _hanCount(text) > 3; // glued characters: more than one zh-1 word
 
+  /// Fullwidth ASCII (U+FF01-FF5E) and the ideographic space as ASCII.
+  static String _narrowFullwidth(String text) {
+    if (!text.runes.any((r) => r == 0x3000 || (r >= 0xFF01 && r <= 0xFF5E))) {
+      return text;
+    }
+    return String.fromCharCodes([
+      for (final r in text.runes)
+        r == 0x3000
+            ? 0x20
+            : r >= 0xFF01 && r <= 0xFF5E
+                ? r - 0xFEE0
+                : r,
+    ]);
+  }
+
   static int _hanCount(String text) =>
       text.runes.where(ZhInput.isHanRune).length;
 
@@ -507,6 +522,16 @@ class _WordInputState extends State<WordInput> {
       setState(() => _confirmed[index] = false);
       _afterChange();
       return;
+    }
+    // A Chinese or Japanese keyboard in fullwidth mode types ａｂａｎｄｏｎ:
+    // the same letters, so narrow them where they are typed.
+    final narrow = _narrowFullwidth(value);
+    if (narrow != value) {
+      _controllers[index].value = TextEditingValue(
+        text: narrow,
+        selection: TextSelection.collapsed(offset: narrow.length),
+      );
+      value = narrow;
     }
     if (_looksLikePaste(value) && _tryDistributePaste(value)) {
       setState(() {});
