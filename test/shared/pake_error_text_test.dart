@@ -31,7 +31,14 @@ void main() {
       WordList.french.wordAt(WordList.english.indexOf(w)!),
   ]);
 
+  final otherLanguage = refusal([
+    ...english.take(7),
+    WordList.french.wordAt(WordList.english.indexOf('zoo')!),
+  ]);
+
   test('refusals carry their reason and position', () {
+    expect(otherLanguage.reason, InvalidPakeReason.otherLanguageWord);
+    expect(otherLanguage.slot, 8);
     expect(unknown.reason, InvalidPakeReason.unknownWord);
     expect(unknown.slot, 3);
     expect(mixed.reason, InvalidPakeReason.mixedLanguages);
@@ -46,6 +53,8 @@ void main() {
       expect(unknownText, contains('3'));
       expect(unknownText, isNot(contains('BIP-39')));
       expect(pakeErrorText(mixed, l10n), l10n.pakeMixedLanguagesError);
+      expect(pakeErrorText(otherLanguage, l10n),
+          l10n.pakeOtherLanguageWordError(8));
       expect(pakeErrorText(mixed, l10n), isNot(contains('mix languages')));
     });
   }

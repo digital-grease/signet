@@ -3237,6 +3237,12 @@ abstract class AppLocalizations {
   /// **'All 8 words must be in the same language. Check that you copied them from the same place.'**
   String get pakeMixedLanguagesError;
 
+  /// Unlock error: seven of the 8 backup or pairing words are in one word list and word {slot} is a real word of another list (English and French, say). slot is its 1-based position.
+  ///
+  /// In en, this message translates to:
+  /// **'Word {slot} is in a different language from the other seven. Check that you copied it from the same place.'**
+  String pakeOtherLanguageWordError(int slot);
+
   /// Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line.
   ///
   /// In en, this message translates to:

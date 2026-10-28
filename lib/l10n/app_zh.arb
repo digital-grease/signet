@@ -903,6 +903,7 @@
   "pakeUnknownWordError": "第 {slot} 个单词不是 Signet 使用的单词，请检查拼写。",
 
   "pakeMixedLanguagesError": "8 个单词必须是同一种语言。请确认它们抄自同一处。",
+  "pakeOtherLanguageWordError": "第 {slot} 个单词与其他七个不是同一种语言。请确认它抄自同一处。",
 
   "verifyWatchForChangedAnnouncement": "有新的要注意观察的动作。轻触“注意观察”这一行即可听到。",
 

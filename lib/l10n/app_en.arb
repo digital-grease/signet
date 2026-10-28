@@ -1532,6 +1532,8 @@
 
   "pakeMixedLanguagesError": "All 8 words must be in the same language. Check that you copied them from the same place.",
   "@pakeMixedLanguagesError": {"description": "Unlock error: the 8 words are all real words, but some are English and some French (or another list)."},
+  "pakeOtherLanguageWordError": "Word {slot} is in a different language from the other seven. Check that you copied it from the same place.",
+  "@pakeOtherLanguageWordError": {"description": "Unlock error: seven of the 8 backup or pairing words are in one word list and word {slot} is a real word of another list (English and French, say). slot is its 1-based position.", "placeholders": {"slot": {"type": "int"}}},
 
   "verifyWatchForChangedAnnouncement": "New gesture to watch for. Touch the WATCH FOR line to hear it.",
   "@verifyWatchForChangedAnnouncement": {"description": "Spoken by the screen reader when the WATCH FOR gesture appears or changes in video mode. Deliberately does not name the gesture: on speaker, the other side of the call could hear it. The gesture is read only when the user touches the line."},

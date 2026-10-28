@@ -7,6 +7,7 @@ import 'package:meta/meta.dart' show visibleForTesting;
 
 import 'pair_role.dart';
 import 'wordlists.dart';
+import 'zh_input.dart';
 
 /// Wire format + crypto for Signet's Phase-10 transport package. One
 /// primitive, three payload types:
@@ -288,21 +289,34 @@ class TransportPackage {
       readings.add([for (final i in indices) WordList.english.wordAt(i!)]);
     }
     if (readings.isNotEmpty) return readings;
-    // Seven words of one list and one that is not: that one is a typo,
-    // even when it happens to be a word of another list (a pinyin reading
-    // of zh-1, say). Point at it rather than at "mixed languages".
+    // Seven words of one list and one that is not: point at that one
+    // rather than at "mixed languages", but only when a single slot is the
+    // odd one out (six shared words can leave a different slot out of
+    // each list).
+    final odd = <int>{};
     for (final list in WordList.shipped) {
       final outside = [
         for (var i = 0; i < trimmed.length; i++)
           if (!list.contains(trimmed[i])) i,
       ];
-      if (outside.length == 1) {
-        throw InvalidPakeException(
-          'Word ${outside.single + 1} is not in a supported BIP-39 wordlist.',
-          reason: InvalidPakeReason.unknownWord,
-          slot: outside.single + 1,
-        );
-      }
+      if (outside.length == 1) odd.add(outside.single);
+    }
+    if (odd.length == 1) {
+      final slot = odd.single;
+      final word = trimmed[slot];
+      // A word another list spells that way ("élève" among English words)
+      // is in the wrong language; Latin that only reads as pinyin ("bage"
+      // for "badge") is a typo.
+      final otherLanguage = WordList.shipped.any((l) =>
+          l.contains(word) &&
+          (l != WordList.zh1 || word.runes.any(ZhInput.isHanRune)));
+      throw InvalidPakeException(
+        'Word ${slot + 1} is not in the same wordlist as the others.',
+        reason: otherLanguage
+            ? InvalidPakeReason.otherLanguageWord
+            : InvalidPakeReason.unknownWord,
+        slot: slot + 1,
+      );
     }
     for (var i = 0; i < trimmed.length; i++) {
       if (!WordList.shipped.any((l) => l.contains(trimmed[i]))) {
@@ -1403,6 +1417,10 @@ enum InvalidPakeReason {
 
   /// Every word is a list word, but not all 8 from the same list.
   mixedLanguages,
+
+  /// [InvalidPakeException.slot] (1-based) is a word of another list than
+  /// the other seven, which share one.
+  otherLanguageWord,
 }
 
 class InvalidPakeException implements Exception {
@@ -1410,7 +1428,8 @@ class InvalidPakeException implements Exception {
   final String message;
   final InvalidPakeReason? reason;
 
-  /// 1-based position of the word for [InvalidPakeReason.unknownWord].
+  /// 1-based position of the word for [InvalidPakeReason.unknownWord] and
+  /// [InvalidPakeReason.otherLanguageWord].
   final int? slot;
 
   @override

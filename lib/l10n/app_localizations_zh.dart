@@ -1845,6 +1845,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pakeMixedLanguagesError => '8 个单词必须是同一种语言。请确认它们抄自同一处。';
 
   @override
+  String pakeOtherLanguageWordError(int slot) {
+    return '第 $slot 个单词与其他七个不是同一种语言。请确认它抄自同一处。';
+  }
+
+  @override
   String get verifyWatchForChangedAnnouncement =>
       '有新的要注意观察的动作。轻触“注意观察”这一行即可听到。';
 
@@ -3816,6 +3821,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get pakeMixedLanguagesError => '8 個字詞必須是同一種語言。請確認它們抄自同一處。';
+
+  @override
+  String pakeOtherLanguageWordError(int slot) {
+    return '第 $slot 個字詞與其他七個不是同一種語言。請確認它抄自同一處。';
+  }
 
   @override
   String get verifyWatchForChangedAnnouncement =>

@@ -470,6 +470,7 @@
   "wordsDisplayCountdown": "{seconds} 秒",
   "pakeUnknownWordError": "第 {slot} 個字詞不是 Signet 使用的字詞，請檢查是否輸入正確。",
   "pakeMixedLanguagesError": "8 個字詞必須是同一種語言。請確認它們抄自同一處。",
+  "pakeOtherLanguageWordError": "第 {slot} 個字詞與其他七個不是同一種語言。請確認它抄自同一處。",
   "verifyWatchForChangedAnnouncement": "有新的動作需要注意觀察。輕觸「注意觀察」這一行即可聽到。",
   "wordLanguageUnknownMessage": "{label} 的字詞使用了此版本 Signet 沒有的語言。請更新 Signet 後再查看。",
   "wordLanguageUnknownWarning": "在這個問題解決之前，你無法驗證 {label}。不要照著緊急要求去做：請掛斷電話，用你原本就知道的號碼回撥給 {label}。",

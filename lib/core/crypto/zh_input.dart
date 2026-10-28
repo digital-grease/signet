@@ -111,20 +111,26 @@ class ZhInput {
   }
 
   /// Up to [limit] entries a partly typed word may become, for chips: from
-  /// one character, entries with a written form starting with the typed
-  /// characters; from two Latin letters, entries whose toneless spelling
-  /// starts with them, or failing that whose syllable initials do ("pg"
-  /// for 苹果). Chips only: initials never name a word on their own.
+  /// characters, entries with a written form starting with them, then
+  /// (spike §4) entries with a form containing them, since a person may
+  /// remember any character of a word; from two Latin letters, entries
+  /// whose toneless spelling starts with them, or failing that whose
+  /// syllable initials do ("pg" for 苹果). Chips only: initials never name
+  /// a word on their own.
   List<int> prefixMatches(String prefix, {int limit = 6}) {
     final text = _clean(prefix);
     if (text.isEmpty) return const <int>[];
     final runes = text.runes.toList();
     final hits = <int>[];
     if (runes.every(_isHan)) {
+      Iterable<String> forms(ZhWord w) =>
+          <String>{w.simplified, w.traditional, ...w.otherForms};
       for (var i = 0; i < _list.length && hits.length < limit; i++) {
-        final w = _list[i];
-        if (<String>{w.simplified, w.traditional, ...w.otherForms}
-            .any((f) => f.startsWith(text))) {
+        if (forms(_list[i]).any((f) => f.startsWith(text))) hits.add(i);
+      }
+      for (var i = 0; i < _list.length && hits.length < limit; i++) {
+        if (!hits.contains(i) &&
+            forms(_list[i]).any((f) => f.contains(text))) {
           hits.add(i);
         }
       }
@@ -155,6 +161,9 @@ class ZhInput {
     final clean = _clean(text);
     if (clean.isEmpty) return null;
     final runes = clean.runes.toList();
+    // At most 8 words of 3 syllables or characters; anything longer is not
+    // a word-slot paste, and must not cost time on every keystroke.
+    if (runes.where(_isHan).length > 24) return null;
     if (runes.any(_isHan)) {
       if (runes.any((r) => _isLatinLetter(r))) return null;
       final out = <int>[];
@@ -183,7 +192,7 @@ class ZhInput {
     final tokens = <String>[
       for (final m in RegExp(r'[^\s,，、;；.。]+').allMatches(clean)) m[0]!,
     ];
-    if (tokens.isEmpty) return null;
+    if (tokens.isEmpty || tokens.length > 24) return null;
     final whole = [for (final t in tokens) indexOf(t)];
     if (!whole.contains(null)) return whole.cast<int>();
     return _uniqueCover(tokens.length, (start, len) {
@@ -214,10 +223,10 @@ class ZhInput {
     final out = <int>[];
     for (var k = n; k > 0;) {
       final (len, e) = back[k]!;
-      out.insert(0, e);
+      out.add(e);
       k -= len;
     }
-    return out;
+    return out.reversed.toList();
   }
 
   static bool _isLatinLetter(int r) =>

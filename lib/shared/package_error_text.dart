@@ -29,6 +29,8 @@ String pakeErrorText(InvalidPakeException e, AppLocalizations l10n) =>
     switch (e.reason) {
       InvalidPakeReason.unknownWord => l10n.pakeUnknownWordError(e.slot ?? 0),
       InvalidPakeReason.mixedLanguages => l10n.pakeMixedLanguagesError,
+      InvalidPakeReason.otherLanguageWord =>
+        l10n.pakeOtherLanguageWordError(e.slot ?? 0),
       null => l10n.commonUnlockFailedError(e.message),
     };
 

@@ -189,15 +189,199 @@ void main() {
     expect(find.byType(WordText), findsNothing);
   });
 
-  test('seven words of one list and one typo: the typo slot is named', () {
+  group('seven words of one list and one odd word', () {
     const english = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb'];
-    for (final odd in ['élève', 'zzzz']) {
-      expect(
-        () => TransportPackage.pakeCandidates([...english, odd]),
+    Matcher refused(InvalidPakeReason reason, int? slot) =>
         throwsA(isA<InvalidPakeException>()
-            .having((e) => e.reason, 'reason', InvalidPakeReason.unknownWord)
-            .having((e) => e.slot, 'slot', 8)),
+            .having((e) => e.reason, 'reason', reason)
+            .having((e) => e.slot, 'slot', slot));
+
+    test('a typo is named as not a word', () {
+      for (final odd in ['zzzz', 'bage']) {
+        // "bage" ("badge" mistyped) only reads as pinyin for 八哥.
+        expect(() => TransportPackage.pakeCandidates([...english, odd]),
+            refused(InvalidPakeReason.unknownWord, 8));
+      }
+    });
+
+    test('a word of another list is named as another language', () {
+      // 八哥 is a word of a shipped list only with Chinese built in.
+      for (final odd in ['élève', if (WordList.chineseEnabled) '八哥']) {
+        expect(() => TransportPackage.pakeCandidates([...english, odd]),
+            refused(InvalidPakeReason.otherLanguageWord, 8));
+      }
+    });
+
+    test('no slot is named when each list leaves out a different one', () {
+      // Six words both lists spell alike, one English-only, one
+      // French-only: either could be the odd one out.
+      final shared = [
+        for (final w in WordList.english.words)
+          if (WordList.french.contains(w)) w,
+      ].take(6).toList();
+      expect(shared, hasLength(6));
+      expect(
+          () => TransportPackage.pakeCandidates(
+              [shared[0], 'zebra', ...shared.skip(1), 'élève']),
+          refused(InvalidPakeReason.mixedLanguages, null));
+    });
+  });
+
+  group('Latin letters are zh-1 only once the input is Chinese '
+      '(Task 3.2 review)', () {
+    final all = [WordList.english, WordList.french, zh];
+
+    testWidgets('8 words: an English typo that reads as pinyin is a typo',
+        (tester) async {
+      await _pump(tester, all, count: 8);
+      await tester.enterText(find.byType(TextField).at(0), 'bage');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, 'bage'); // not 八哥
+      expect(_slot(tester, 0).focusNode!.hasFocus, isTrue);
+      expect(find.text('Not a valid word'), findsOneWidget);
+      // Nothing locked: the next English words are fine.
+      await tester.enterText(find.byType(TextField).at(0), 'badge');
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(1), 'abandon');
+      await tester.pumpAndSettle();
+      expect(find.text('Not a valid word'), findsNothing);
+    });
+
+    testWidgets('8 words: English letters get English chips only',
+        (tester) async {
+      await _pump(tester, all, count: 8);
+      await tester.enterText(find.byType(TextField).at(0), 'ba');
+      await tester.pumpAndSettle();
+      final chips = tester.widgetList<ActionChip>(find.byType(ActionChip));
+      expect(chips, isNotEmpty);
+      expect(chips.length, lessThanOrEqualTo(6));
+      expect(
+          find.descendant(
+              of: find.byType(ActionChip),
+              matching: find.textContaining(RegExp(r'\p{Script=Han}',
+                  unicode: true))),
+          findsNothing);
+    });
+
+    testWidgets('8 words: a word in characters makes pinyin count',
+        (tester) async {
+      await _pump(tester, all, count: 8);
+      await tester.enterText(find.byType(TextField).at(0), '苹果');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 1).focusNode!.hasFocus, isTrue);
+      await tester.enterText(find.byType(TextField).at(1), 'huoche');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 1).controller!.text, '火车');
+    });
+
+    testWidgets('an English contact: pinyin is not taken for a Chinese word, '
+        'characters are', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(
+          body: WordInput(
+            lists: [WordList.english],
+            alsoAccept: [WordList.french, zh],
+          ),
+        ),
+      ));
+      await tester.enterText(find.byType(TextField).at(0), 'bage ');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, isNot('八哥'));
+      expect(find.textContaining('中文'), findsNothing);
+      await tester.enterText(find.byType(TextField).at(0), '八哥 ');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, '八哥');
+    });
+  });
+
+  group('input methods', () {
+    testWidgets('a composed word confirmed by tapping another slot keeps '
+        'focus where the user tapped', (tester) async {
+      await _pump(tester, [WordList.english]);
+      final controller = _slot(tester, 0).controller!;
+      await tester.showKeyboard(find.byType(TextField).at(0));
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: 'zebra',
+        selection: TextSelection.collapsed(offset: 5),
+        composing: TextRange(start: 0, end: 5),
+      ));
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField).at(2));
+      // Losing focus ends the composition.
+      controller.value = const TextEditingValue(
+        text: 'zebra',
+        selection: TextSelection.collapsed(offset: 5),
       );
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 2).focusNode!.hasFocus, isTrue);
+      expect(_slot(tester, 1).focusNode!.hasFocus, isFalse);
+    });
+
+    testWidgets('chips and errors show while a keyboard composes',
+        (tester) async {
+      await _pump(tester, [WordList.english]);
+      await tester.showKeyboard(find.byType(TextField).at(0));
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: 'zeb',
+        selection: TextSelection.collapsed(offset: 3),
+        composing: TextRange(start: 0, end: 3),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ActionChip, 'zebra'), findsOneWidget);
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: 'zebrx',
+        selection: TextSelection.collapsed(offset: 5),
+        composing: TextRange(start: 0, end: 5),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Not a valid word'), findsOneWidget);
+    });
+
+    testWidgets('a word typed in characters never waits, even one that '
+        'sounds like the start of another', (tester) async {
+      await _pump(tester, [zh]);
+      // 飞机 sounds like the start of 北极熊.
+      await tester.enterText(find.byType(TextField).at(0), '飞机');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 1).focusNode!.hasFocus, isTrue);
+    });
+
+    testWidgets('a fullwidth space confirms a word', (tester) async {
+      await _pump(tester, [WordList.english]);
+      // "act" starts "action", so only a confirm moves on.
+      await tester.enterText(find.byType(TextField).at(0), 'act\u3000');
+      await tester.pumpAndSettle();
+      expect(_slot(tester, 0).controller!.text, 'act');
+      expect(_slot(tester, 1).focusNode!.hasFocus, isTrue);
+    });
+
+    testWidgets('one character offers words that contain it anywhere',
+        (tester) async {
+      await _pump(tester, [zh]);
+      await tester.enterText(find.byType(TextField).at(0), '哥');
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ActionChip, '八哥'), findsOneWidget);
+      expect(tester.widgetList(find.byType(ActionChip)).length,
+          lessThanOrEqualTo(6));
+    });
+  });
+
+  testWidgets('typing spaced pinyin key by key reaches a longer word',
+      (tester) async {
+    await _pump(tester, [zh]);
+    const target = 'bei ji xiong';
+    for (var n = 1; n <= target.length; n++) {
+      await tester.enterText(find.byType(TextField).at(0), target.substring(0, n));
+      await tester.pumpAndSettle();
     }
+    expect(_slot(tester, 0).controller!.text, '北极熊');
+  });
+
+  test('huge pastes are refused quickly', () {
+    final sw = Stopwatch()..start();
+    expect(ZhInput.zh1.segment('苹果' * 50000), isNull);
+    expect(ZhInput.zh1.segment('ping guo ' * 50000), isNull);
+    expect(sw.elapsedMilliseconds, lessThan(1000));
   });
 }

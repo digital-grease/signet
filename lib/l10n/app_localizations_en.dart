@@ -1961,6 +1961,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'All 8 words must be in the same language. Check that you copied them from the same place.';
 
   @override
+  String pakeOtherLanguageWordError(int slot) {
+    return 'Word $slot is in a different language from the other seven. Check that you copied it from the same place.';
+  }
+
+  @override
   String get verifyWatchForChangedAnnouncement =>
       'New gesture to watch for. Touch the WATCH FOR line to hear it.';
 
