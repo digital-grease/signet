@@ -427,7 +427,7 @@
   "verifyVideoModeSemanticsLabel": "視訊通話模式",
   "verifyVideoModeSemanticsHint": "開啟後在視訊畫面中額外檢查一個肢體動作。",
   "verifyVideoModeHeader": "視訊通話 //",
-  "verifyVideoModeOnText": "額外要求一個肢體動作，用來對抗深度偽造。",
+  "verifyVideoModeOnText": "額外檢查一個肢體動作，不要說出來。可抵禦深度偽造。",
   "verifyVideoModeOffText": "開啟後額外檢查一個肢體動作。",
   "verifyWatchForHeader": "注意觀察 //",
   "verifyExpectedActionText": "{label} 應該：{action}。",

@@ -3692,7 +3692,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get verifyVideoModeHeader => '視訊通話 //';
 
   @override
-  String get verifyVideoModeOnText => '額外要求一個肢體動作，用來對抗深度偽造。';
+  String get verifyVideoModeOnText => '額外檢查一個肢體動作，不要說出來。可抵禦深度偽造。';
 
   @override
   String get verifyVideoModeOffText => '開啟後額外檢查一個肢體動作。';
