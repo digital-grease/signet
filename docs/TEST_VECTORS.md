@@ -190,7 +190,7 @@ every list spells the same indices on every surface (rotating words,
 the three pair-time phrases, the challenge grid, PAKE words) and that a
 package sealed with English words opens with the French ones.
 
-**Chinese list zh-1 (frozen 2026-10-26, not yet shown or accepted).**
+**Chinese list zh-1 (frozen 2026-10-26, shipped as a beta from 0.5.0).**
 Embedded at `lib/core/crypto/zh_wordlist.dart`: 2048 Mandarin words of
 two or three characters, curated by Signet (not a BIP-39 list), built
 by `tool/zh_wordlist/` (selection, review and listening checks in its
