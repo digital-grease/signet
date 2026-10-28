@@ -1,4 +1,7 @@
 import '../crypto/wordlists.dart';
+import '../crypto/zh_input.dart';
+import '../crypto/zh_reading_table.dart';
+import '../crypto/zh_wordlist.dart';
 
 /// Pre-write scrubber for crash-log stack traces and error messages.
 ///
@@ -36,6 +39,11 @@ import '../crypto/wordlists.dart';
 ///     any script or a list-final "and" or "et", looked for across the
 ///     whole text. Shorter runs
 ///     pass through — "above", "abandon", "able" are common English.
+///   - Runs of 4+ zh-1 words: in characters (any written form, glued or
+///     separated, starting anywhere in a line of Han), in pinyin (tone
+///     marks, tone digits or none; a word's syllables spaced, hyphenated
+///     or glued, one word per token), also
+///     inside `\uXXXX` and `%XX` escapes. Each run is redacted whole.
 ///   - Values after a name-like key (`label`, `labelHint`, `title`,
 ///     `peer`, `displayName`, ...), quoted or not.
 ///
@@ -71,6 +79,7 @@ class LogScrubber {
     });
     // Across line breaks: PAKE words are often written one per line.
     text = _redactBip39Clusters(text);
+    text = _redactZhClusters(text);
     return text.split('\n').map(_scrubLineJudgment).join('\n');
   }
 
@@ -359,6 +368,143 @@ class LogScrubber {
   }
 
   // ===========================================================================
+  // zh-1 cluster detector (100% bar)
+  // ===========================================================================
+
+  /// Every written form of every zh-1 entry (simplified, Taiwan
+  /// traditional, other accepted forms). Characters count as a word only
+  /// as one of these, never through the reading table, which would take
+  /// ordinary Chinese prose for words.
+  static final Set<String> _zhForms = <String>{
+    for (final w in zhWordlist) ...<String>{
+      w.simplified,
+      w.traditional,
+      ...w.otherForms,
+    },
+  };
+
+  /// Between the syllables of one word written in pinyin: a tone digit
+  /// and any spaces, apostrophes, hyphens or middle dots.
+  static final RegExp _pinyinJoiner =
+      RegExp('^[0-5]?[\\s\'‘’ʼ\\-‐‑·・]*\$');
+
+  /// Find runs of ≥ 4 zh-1 words and redact each run whole: in characters
+  /// (any written form, glued or separated, at either parity of a glued
+  /// line), in pinyin (one Latin token per word, or two or three syllable
+  /// tokens; not several words glued into one token), or both, and inside `\uXXXX` and `%XX` escapes
+  /// ([_ZhView]). Words are joined as Latin-list words are
+  /// ([_bip39SeparatorPattern]), except that a character which is not part
+  /// of a word ends the run: that is prose. Variation selectors and format
+  /// characters are ignored, compatibility ideographs read as the
+  /// character they stand for.
+  static String _redactZhClusters(String text) {
+    final view = _ZhView.of(text);
+    final runes = view.runes;
+    final n = runes.length;
+    if (n < 8) return text;
+    bool isLetter(int r) => ZhInput.isHanRune(r) || _isLatinLetterRune(r);
+
+    // Each word as [start, end) in runes of the view.
+    final words = <(int, int)>[];
+    for (var p = 0; p + 1 < n; p++) {
+      if (!ZhInput.isHanRune(runes[p])) continue;
+      for (var len = 2; len <= 3 && p + len <= n; len++) {
+        final piece = runes.sublist(p, p + len);
+        if (!piece.every(ZhInput.isHanRune)) break;
+        if (_zhForms.contains(String.fromCharCodes(piece))) {
+          words.add((p, p + len));
+        }
+      }
+    }
+    final latin = view.latinTokens();
+    if (latin.isNotEmpty) {
+      final paths = _pathRanges(text);
+      final seen = <String, bool>{};
+      bool names(String s) => seen.putIfAbsent(
+          s, () => ZhInput.zh1.candidates(s).isNotEmpty);
+      for (var c = 0; c < latin.length; c++) {
+        if (_insideAny(view.starts[latin[c].$1], paths)) continue;
+        for (var k = 1; k <= 3 && c + k <= latin.length; k++) {
+          final last = latin[c + k - 1];
+          if (k > 1) {
+            final prev = latin[c + k - 2];
+            // Several tokens make one word only as syllables.
+            if (prev.$2 - prev.$1 > 6 || last.$2 - last.$1 > 6) break;
+            if (!_pinyinJoiner.hasMatch(view.slice(prev.$2, last.$1))) break;
+          }
+          final s = view.slice(latin[c].$1, last.$2);
+          if (s.length > 24) break;
+          if (names(s)) words.add((latin[c].$1, last.$2));
+        }
+      }
+    }
+    if (words.length < 4) return text;
+
+    // nextLetter[i]: the first Han or Latin letter at or after i, where
+    // the next word of a run must start.
+    final nextLetter = List<int>.filled(n + 1, n);
+    for (var i = n - 1; i >= 0; i--) {
+      nextLetter[i] = isLetter(runes[i]) ? i : nextLetter[i + 1];
+    }
+    final byStart = <int, List<int>>{};
+    for (var w = 0; w < words.length; w++) {
+      (byStart[words[w].$1] ??= <int>[]).add(w);
+    }
+    // best[w]: the most words in a run starting with w; next[w]: the word
+    // after it in that run; reach[w]: where that run ends. Of two runs
+    // with as many words, the one reaching further wins, so syllables
+    // grouped another way ("biao ge" for "... biao ge qu") leave nothing.
+    final order = List<int>.generate(words.length, (i) => i)
+      ..sort((a, b) => words[b].$1.compareTo(words[a].$1));
+    final best = List<int>.filled(words.length, 1);
+    final next = List<int>.filled(words.length, -1);
+    final reach = [for (final w in words) w.$2];
+    for (final w in order) {
+      final end = words[w].$2;
+      final q = nextLetter[end];
+      final followers = byStart[q];
+      if (followers == null) continue;
+      if (!_bip39SeparatorPattern.hasMatch(view.slice(end, q))) continue;
+      for (final f in followers) {
+        if (best[f] + 1 > best[w] ||
+            (best[f] + 1 == best[w] && reach[f] > reach[w])) {
+          best[w] = best[f] + 1;
+          next[w] = f;
+          reach[w] = reach[f];
+        }
+      }
+    }
+
+    final runs = <(int, int)>[]; // original offsets
+    var covered = -1;
+    final byStartAsc = List<int>.generate(words.length, (i) => i)
+      ..sort((a, b) => words[a].$1.compareTo(words[b].$1));
+    for (final w in byStartAsc) {
+      if (words[w].$1 < covered || best[w] < 4) continue;
+      var last = w;
+      while (next[last] >= 0) {
+        last = next[last];
+      }
+      runs.add((view.starts[words[w].$1], view.ends[words[last].$2 - 1]));
+      covered = words[last].$2;
+    }
+    if (runs.isEmpty) return text;
+    final buf = StringBuffer();
+    var cursor = 0;
+    for (final (s, e) in runs) {
+      buf.write(text.substring(cursor, s));
+      buf.write(_redactToken(e - s));
+      cursor = e;
+    }
+    buf.write(text.substring(cursor));
+    return buf.toString();
+  }
+
+  static bool _isLatinLetterRune(int r) =>
+      _latinLetter.hasMatch(String.fromCharCode(r));
+  static final RegExp _latinLetter = RegExp(r'\p{Script=Latin}', unicode: true);
+
+  // ===========================================================================
   // Label values after a name-like key (100% bar)
   // ===========================================================================
 
@@ -627,5 +773,181 @@ class _RedactState {
   String finish() {
     buf.write(line.substring(cursor));
     return buf.toString();
+  }
+}
+
+/// [text] as the zh-1 detector reads it: one entry per code point, with
+/// `\uXXXX`, `\u{X...}` and `%XX` (UTF-8) escapes decoded, variation
+/// selectors and format characters dropped, and compatibility ideographs
+/// unified; each entry keeps the range of [text] it came from, so a run
+/// found here is redacted in the original, escapes and all.
+class _ZhView {
+  _ZhView._(this.runes, this.starts, this.ends, this._text, this._offsets);
+
+  final List<int> runes;
+  final List<int> starts;
+  final List<int> ends;
+
+  /// The decoded text, and the UTF-16 offset in it of each rune.
+  final String _text;
+  final List<int> _offsets;
+
+  /// Runes [from, to) as a string.
+  String slice(int from, int to) => _text.substring(_offsets[from], _offsets[to]);
+
+  /// Runs of Latin letters (with combining marks), as [start, end) runes.
+  List<(int, int)> latinTokens() => [
+        for (final m in LogScrubber._candidateWordPattern.allMatches(_text))
+          (_runeAt(m.start), _runeAt(m.end)),
+      ];
+
+  int _runeAt(int offset) {
+    var lo = 0;
+    var hi = _offsets.length - 1;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (_offsets[mid] < offset) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  static _ZhView of(String text) {
+    final runes = <int>[];
+    final starts = <int>[];
+    final ends = <int>[];
+    void add(int r, int s, int e) {
+      if (_ignored(r)) {
+        if (ends.isNotEmpty) ends[ends.length - 1] = e;
+        return;
+      }
+      runes.add(zhCompatibilityIdeographs[r] ?? r);
+      starts.add(s);
+      ends.add(e);
+    }
+
+    var i = 0;
+    while (i < text.length) {
+      final escape = _unicodeEscape(text, i);
+      if (escape != null) {
+        add(escape.$1, i, escape.$2);
+        i = escape.$2;
+        continue;
+      }
+      final percent = _percentEscapes(text, i);
+      if (percent.isNotEmpty) {
+        for (final (r, s, e) in percent) {
+          add(r, s, e);
+        }
+        i = percent.last.$3;
+        continue;
+      }
+      final unit = text.codeUnitAt(i);
+      if (unit >= 0xD800 &&
+          unit <= 0xDBFF &&
+          i + 1 < text.length &&
+          (text.codeUnitAt(i + 1) & 0xFC00) == 0xDC00) {
+        add(0x10000 + ((unit - 0xD800) << 10) + (text.codeUnitAt(i + 1) - 0xDC00),
+            i, i + 2);
+        i += 2;
+        continue;
+      }
+      add(unit, i, i + 1);
+      i++;
+    }
+    final decoded = String.fromCharCodes(runes);
+    final offsets = List<int>.filled(runes.length + 1, 0);
+    for (var k = 0; k < runes.length; k++) {
+      offsets[k + 1] = offsets[k] + (runes[k] > 0xFFFF ? 2 : 1);
+    }
+    return _ZhView._(runes, starts, ends, decoded, offsets);
+  }
+
+  static bool _ignored(int r) =>
+      (r >= 0x200B && r <= 0x200F) ||
+      r == 0x2060 ||
+      r == 0xFEFF ||
+      r == 0x00AD ||
+      (r >= 0xFE00 && r <= 0xFE0F) ||
+      (r >= 0xE0100 && r <= 0xE01EF);
+
+  static int? _hex(String text, int from, int count) {
+    if (from + count > text.length) return null;
+    final s = text.substring(from, from + count);
+    if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(s)) return null;
+    return int.parse(s, radix: 16);
+  }
+
+  /// `\uXXXX` (a surrogate pair as two) or `\u{X...}` at [i]: the code
+  /// point and the offset after it.
+  static (int, int)? _unicodeEscape(String text, int i) {
+    if (i + 1 >= text.length ||
+        text.codeUnitAt(i) != 0x5C ||
+        text.codeUnitAt(i + 1) != 0x75) {
+      return null;
+    }
+    if (i + 2 < text.length && text[i + 2] == '{') {
+      final close = text.indexOf('}', i + 3);
+      if (close < 0 || close - (i + 3) > 6) return null;
+      final value = _hex(text, i + 3, close - (i + 3));
+      if (value == null || value > 0x10FFFF) return null;
+      return (value, close + 1);
+    }
+    final unit = _hex(text, i + 2, 4);
+    if (unit == null) return null;
+    if (unit >= 0xD800 && unit <= 0xDBFF && text.startsWith(r'\u', i + 6)) {
+      final low = _hex(text, i + 8, 4);
+      if (low != null && low >= 0xDC00 && low <= 0xDFFF) {
+        return (0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00), i + 12);
+      }
+    }
+    return (unit, i + 6);
+  }
+
+  /// Consecutive `%XX` escapes at [i] decoded as UTF-8: each code point
+  /// with its range. Empty when there is none, and the decoding stops at
+  /// the first byte that is not valid UTF-8.
+  static List<(int, int, int)> _percentEscapes(String text, int i) {
+    final out = <(int, int, int)>[];
+    var at = i;
+    int? byteAt(int k) =>
+        k < text.length && text.codeUnitAt(k) == 0x25 ? _hex(text, k + 1, 2) : null;
+    while (true) {
+      final lead = byteAt(at);
+      if (lead == null) break;
+      final int length;
+      int value;
+      if (lead < 0x80) {
+        length = 1;
+        value = lead;
+      } else if (lead >= 0xC2 && lead <= 0xDF) {
+        length = 2;
+        value = lead & 0x1F;
+      } else if (lead >= 0xE0 && lead <= 0xEF) {
+        length = 3;
+        value = lead & 0x0F;
+      } else if (lead >= 0xF0 && lead <= 0xF4) {
+        length = 4;
+        value = lead & 0x07;
+      } else {
+        break;
+      }
+      var ok = true;
+      for (var k = 1; k < length; k++) {
+        final b = byteAt(at + 3 * k);
+        if (b == null || (b & 0xC0) != 0x80) {
+          ok = false;
+          break;
+        }
+        value = (value << 6) | (b & 0x3F);
+      }
+      if (!ok) break;
+      out.add((value, at, at + 3 * length));
+      at += 3 * length;
+    }
+    return out;
   }
 }

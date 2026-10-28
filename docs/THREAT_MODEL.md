@@ -428,7 +428,11 @@ rendering).
   the dialog says to change it together and never because a caller
   asks, and it never makes wrong words pass.
 - **Logs.** The scrubber redacts runs of 4 or more words of any shipped
-  list or mix of lists (§2.10).
+  list or mix of lists (§2.10), and of 4 or more zh-1 words whether
+  they are written in characters (either script, glued or separated) or
+  in pinyin with each word as one token or as spaced syllables, also
+  inside `\uXXXX` and `%XX` escapes. Several pinyin words glued into
+  one token are not recognised.
 
 ### 3.3 Transport package (long-distance pairing + lost-phone recovery)
 
@@ -527,7 +531,7 @@ guarantee.
 | Layer | Mechanism | What it catches | What it misses |
 |---|---|---|---|
 | 1. Code-side discipline | Sensitive types never embed their secret payload in `toString` / error messages. Enforced by `test/logging/leak_prevention_test.dart` (`Relationship`, `PairingKeyPair`, `BackupText`, `LdpPackage`/`LprPackage`/`BlkPackage`, `ChallengeResponseGrid`, etc.). | Material that never enters a string in the first place. | Bugs / regressions; newly-added sensitive types added without the discipline. |
-| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16; byte lists of 8+ bytes in decimal (signed too, wrapped across lines too), `0x`, colon/hyphen or hexdump form; base64url≥16; standard base64≥16 that looks random; `signet:tp1:` wire; the source a `FormatException` echoes; runs of 4+ BIP-39 words from any list Signet reads (English or French, or a mix; accented, accent-free, decomposed or with zero-width characters inside) joined by spaces, tabs, newlines, hyphens, underscores, commas, periods, slashes, colons, semicolons, bars, plus signs, quotes, brackets, list numbers or a list-final "and"/"et", matched across lines; values after name-like keys such as `label`, `title`, `peer`, `displayName`, quoted or not) have a 100% pass-or-fail-CI bar on the test corpus. `package:<pkg>/<path>.dart` and `dart:<lib>` code paths are exempt so traces stay readable, but only for a match wholly inside the path; a secret glued onto a path is still redacted. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
+| 2. Pre-write scrubber | `lib/core/logging/log_scrubber.dart` — deny-by-default with allow-list. Mechanical patterns (hex≥16; byte lists of 8+ bytes in decimal (signed too, wrapped across lines too), `0x`, colon/hyphen or hexdump form; base64url≥16; standard base64≥16 that looks random; `signet:tp1:` wire; the source a `FormatException` echoes; runs of 4+ BIP-39 words from any list Signet reads (English or French, or a mix; accented, accent-free, decomposed or with zero-width characters inside) joined by spaces, tabs, newlines, hyphens, underscores, commas, periods, slashes, colons, semicolons, bars, plus signs, quotes, brackets, list numbers or a list-final "and"/"et", matched across lines; runs of 4+ zh-1 words in characters or pinyin, escaped or not; values after name-like keys such as `label`, `title`, `peer`, `displayName`, quoted or not) have a 100% pass-or-fail-CI bar on the test corpus. `package:<pkg>/<path>.dart` and `dart:<lib>` code paths are exempt so traces stay readable, but only for a match wholly inside the path; a secret glued onto a path is still redacted. Judgment patterns (pair labels in toString dumps, user-input string literals) have ≥95% bar. | Anything that slipped past layer 1 in a regex-detectable shape. | Context-dependent edge cases (≤5% on the curated corpus). |
 | 3. AES-GCM at rest | `lib/core/logging/crashlog_cipher.dart` — AES-256-GCM with 12-byte nonce + 16-byte tag. Key under `crashlog.aead_key.v1` in `flutter_secure_storage` (Android Keystore / iOS Keychain). Lazy-generated on first crash. | The ~5% the judgment scrubber misses, while the file sits on disk. | In-process attackers running with our keys; nothing post-decryption. |
 | 4. OS sandbox + FDE | Android app-private storage; iOS sandbox; full-disk encryption when the device is locked. | Other apps reading our private storage; lost-device-pre-unlock. | Forensic-level adversary with root + screen-lock bypass (§4 limit). |
 
