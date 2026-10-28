@@ -435,6 +435,18 @@ class _WordInputState extends State<WordInput> {
   static int _hanCount(String text) =>
       text.runes.where(ZhInput.isHanRune).length;
 
+  /// Zhuyin letters or tone marks that a Zhuyin keyboard left in the
+  /// field on its way to characters: not yet a word, but not a typo.
+  bool _zhuyinInProgress(String text) =>
+      [..._activeLists, ...widget.alsoAccept].contains(WordList.zh1) &&
+      text.runes.any((r) =>
+          (r >= 0x3100 && r <= 0x312F) ||
+          (r >= 0x31A0 && r <= 0x31BF) ||
+          r == 0x02CA ||
+          r == 0x02C7 ||
+          r == 0x02CB ||
+          r == 0x02D9);
+
   bool _tryDistributePaste(String pasted) {
     // zh-1: glued characters, or pinyin once the input is Chinese, cut
     // into entries when there is exactly one way to do it.
@@ -694,8 +706,10 @@ class _WordInputState extends State<WordInput> {
     final controller = _controllers[index];
     final value = controller.text.trim().toLowerCase();
     final isKnown = _isWord(value);
-    final looksInvalid =
-        value.length >= 2 && !isKnown && !_isPrefixOfAnyWord(value);
+    final looksInvalid = value.length >= 2 &&
+        !isKnown &&
+        !_isPrefixOfAnyWord(value) &&
+        !_zhuyinInProgress(value);
     // Another language's word: say so, so a typo that happens to be a
     // French word ("baron" for "bacon") is seen before it is checked.
     final otherList = _otherListOf(value);

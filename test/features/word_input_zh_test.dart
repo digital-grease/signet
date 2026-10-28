@@ -355,6 +355,18 @@ void main() {
       expect(_slot(tester, 1).focusNode!.hasFocus, isTrue);
     });
 
+    testWidgets('Zhuyin left in a slot is not called a typo', (tester) async {
+      await _pump(tester, [zh]);
+      await tester.enterText(find.byType(TextField).at(0), 'ㄅㄚ');
+      await tester.pumpAndSettle();
+      expect(find.text('Not a valid word'), findsNothing);
+      // Without zh-1 it is just not a word.
+      await _pump(tester, [WordList.english]);
+      await tester.enterText(find.byType(TextField).at(0), 'ㄅㄚ');
+      await tester.pumpAndSettle();
+      expect(find.text('Not a valid word'), findsOneWidget);
+    });
+
     testWidgets('one character offers words that contain it anywhere',
         (tester) async {
       await _pump(tester, [zh]);
