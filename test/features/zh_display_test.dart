@@ -202,7 +202,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.text('CHINESE CHARACTERS', skipOffstage: false),
-        WordList.chineseEnabled ? findsOneWidget : findsNothing);
+        findsOneWidget);
   });
 
   group('screen readers (plan Task 3.4)', () {

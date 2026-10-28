@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/crypto/wordlists.dart';
 import '../../core/logging/debug_log_export_scrubber.dart';
 import '../../core/logging/report_context.dart';
 import '../../core/prefs/settings_controller.dart';
@@ -79,8 +78,8 @@ class SettingsScreen extends ConsumerWidget {
                       ref.read(defaultWordListProvider.notifier).set(list),
                 ),
               ),
-              // zh-1's script: shown once Chinese words ship (build flag).
-              if (WordList.chineseEnabled) ...<Widget>[
+              // zh-1's script.
+              ...<Widget>[
                 const SizedBox(height: 12),
                 _Section(
                   title: l10n.settingsChineseScriptSection,

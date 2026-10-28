@@ -12,7 +12,9 @@ import '../word_semantics.dart';
 ///
 /// zh-1 is offered twice, 中文（普通话） in simplified and 中文（國語） in
 /// traditional characters: the same list, so choosing one also sets the
-/// phone's script (plan Tasks 3.3 and 3.5).
+/// phone's script (plan Tasks 3.3 and 3.5). Both are marked 测试版 / 測試版
+/// (beta) in v0.5.0: no native speaker has checked the list (spike
+/// chinese-words.md decision 7; FAQ "Why are Chinese words marked beta?").
 class WordLanguageOptions extends StatelessWidget {
   const WordLanguageOptions({
     super.key,
@@ -76,6 +78,7 @@ class _Option extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final script = traditional ?? WordList.showTraditionalChinese;
     final endonym = list.endonymIn(traditional: script);
+    final beta = list == WordList.zh1 ? (script ? '測試版' : '测试版') : null;
     final samples = list.renderIn(WordLanguageOptions._sampleIndices,
         traditional: script);
     final sample = samples.join(' · ');
@@ -87,11 +90,12 @@ class _Option extends StatelessWidget {
       button: true,
       // The name and the samples in their own language's voice.
       attributedLabel: attributedWords(
-        AppLocalizations.of(context)
-            .wordLanguageSampleSemantics(endonym, sample),
+        AppLocalizations.of(context).wordLanguageSampleSemantics(
+            beta == null ? endonym : '$endonym $beta', sample),
         list,
         words: <String>[
           endonym,
+          ?beta,
           ...samples,
         ],
       ),
@@ -116,9 +120,28 @@ class _Option extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      endonym,
-                      style: Theme.of(context).textTheme.titleLarge,
+                    Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        Text(
+                          endonym,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        if (beta != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: scheme.outline),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              beta,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(

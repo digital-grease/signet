@@ -47,4 +47,23 @@ void main() {
     expect(text, contains('press and hold the contact'));
     expect(text, contains('never because a caller asks you to'));
   });
+
+  testWidgets('the beta entry says no native speaker checked the Chinese '
+      'words and where to report one (v0.5.0 Task 3.8)', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: FaqScreen(),
+    ));
+    await tester.pumpAndSettle();
+    final question = find.text('Why are Chinese words marked beta?');
+    await tester.scrollUntilVisible(question, 200);
+    await tester.ensureVisible(question);
+    await tester.pumpAndSettle();
+    await tester.tap(question);
+    await tester.pumpAndSettle();
+    final answer = find.textContaining('No native speaker has checked',
+        skipOffstage: false);
+    expect(answer, findsOneWidget);
+    expect(tester.widget<Text>(answer).data, contains('CONTACT US'));
+  });
 }

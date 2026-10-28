@@ -64,16 +64,8 @@ class WordList {
   /// everything on the wire are the same in both scripts.
   static bool showTraditionalChinese = false;
 
-  /// Chinese stays behind the build flag until it ships (v0.5.0 plan
-  /// Phase 3): `--dart-define=SIGNET_ZH=true`.
-  static const bool chineseEnabled = bool.fromEnvironment('SIGNET_ZH');
-
   /// Every list this version can read, English first.
-  static final List<WordList> shipped = [
-    english,
-    french,
-    if (chineseEnabled) zh1,
-  ];
+  static final List<WordList> shipped = [english, french, zh1];
 
   /// Words in every list: one per 11-bit index.
   static const int size = 2048;

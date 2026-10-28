@@ -191,9 +191,9 @@ void main() {
     expect(ZhSound.classes('ba').intersection(ZhSound.classes('pa')), isEmpty);
   });
 
-  test('not in the shipped lists unless built with SIGNET_ZH', () {
-    expect(WordList.shipped.contains(zh), WordList.chineseEnabled);
-    expect(WordList.byId('zh-1') == zh, WordList.chineseEnabled);
+  test('shipped', () {
+    expect(WordList.shipped, contains(zh));
+    expect(WordList.byId('zh-1'), same(zh));
   });
 
   group('review fixes (Task 3.1 review)', () {

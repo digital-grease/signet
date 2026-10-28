@@ -205,8 +205,7 @@ void main() {
     });
 
     test('a word of another list is named as another language', () {
-      // 八哥 is a word of a shipped list only with Chinese built in.
-      for (final odd in ['élève', if (WordList.chineseEnabled) '八哥']) {
+      for (final odd in ['élève', '八哥']) {
         expect(() => TransportPackage.pakeCandidates([...english, odd]),
             refused(InvalidPakeReason.otherLanguageWord, 8));
       }

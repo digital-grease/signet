@@ -88,7 +88,7 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 
 ### Word languages
 
-The words can be English or French (Chinese is planned). Each word is an 11-bit index, and a language only spells it, so the security is the same in every language. Each contact has its own word language: you choose it when you pair (preselected to your phone's default, chosen at first run), and you and the other person must choose the same one for each other. A backup carries each contact's language. If someone reads you the right words in the wrong language, verify still says NOT VERIFIED and adds a note that the two phones' languages differ. Screen readers read each word in its own language. See `docs/THREAT_MODEL.md` §3.2a.
+The words can be English, French or Chinese (Mandarin, in simplified or traditional characters; marked beta because no native speaker has checked the list yet). Each word is an 11-bit index, and a language only spells it, so the security is the same in every language. Each contact has its own word language: you choose it when you pair (preselected to your phone's default, chosen at first run), and you and the other person must choose the same one for each other. A backup carries each contact's language. If someone reads you the right words in the wrong language, verify still says NOT VERIFIED and adds a note that the two phones' languages differ. Screen readers read each word in its own language. See `docs/THREAT_MODEL.md` §3.2a.
 
 ### Properties
 
@@ -300,7 +300,7 @@ Shipped in v0.2.0 (Google Play Internal Testing, 2026-04). See `.devloop/archive
 ### v0.5.0 — word languages
 
 - ✅ **French words** for any contact, chosen at first run and when pairing, carried in backups (transport-package extension `0x01`), switchable on the pairing confirm screens, read by screen readers in French, printed on the challenge-grid card with an embedded font.
-- ⏳ **Chinese (Mandarin) words** from a Signet-curated list (`zh-1`), and the Traditional Chinese interface.
+- ✅ **Chinese (Mandarin) words** from a Signet-curated list (`zh-1`, beta), typed in characters or pinyin, shown in simplified or traditional characters with a pinyin or Zhuyin reading line, read by screen readers in Mandarin, printed on the challenge-grid card; and the Traditional Chinese interface.
 
 ### v1.0
 

@@ -28,9 +28,8 @@ Future<String> _sha256Hex(String s) async {
 }
 
 void main() {
-  test('shipped lists are English then French', () {
-    expect(WordList.shipped.map((l) => l.id),
-        ['en', 'fr', if (WordList.chineseEnabled) 'zh-1']);
+  test('shipped lists are English, French, then zh-1', () {
+    expect(WordList.shipped.map((l) => l.id), ['en', 'fr', 'zh-1']);
     expect(WordList.english.words, same(bip39EnglishWordlist));
     expect(WordList.french.words, same(bip39FrenchWordlist));
   });

@@ -59,7 +59,10 @@ Widget _app(AppPrefs prefs, FakeSecureStore store, Widget screen,
 List<String> _checked(WidgetTester tester) => [
       for (final list in WordList.shipped)
         if (tester
-            .getSemantics(find.bySemanticsLabel(RegExp('^${list.endonym}\\.')))
+            // "中文（普通话） 测试版. Words look like ...": the beta mark
+            // follows the name.
+            .getSemantics(find.bySemanticsLabel(
+                RegExp('^${RegExp.escape(list.endonym)}( \\S+)?\\.')))
             .flagsCollection
             .isChecked == CheckedState.isTrue)
           list.endonym,

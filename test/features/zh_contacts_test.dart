@@ -1,6 +1,4 @@
-// zh-1 contacts end to end (v0.5.0 plan Task 3.5). Tests marked
-// [_needsZh] run when built with --dart-define=SIGNET_ZH=true (CI runs the
-// suite both ways).
+// zh-1 contacts end to end (v0.5.0 plan Task 3.5).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,8 +18,6 @@ import 'package:signet/shared/widgets/word_language_options.dart';
 
 import '../support/fake_secure_store.dart';
 import '../support/test_prefs.dart';
-
-const _needsZh = !WordList.chineseEnabled;
 
 final _mama = Relationship(
   id: 'mama-id',
@@ -95,8 +91,7 @@ void main() {
     expect(decoded.label, '妈妈');
     expect(TransportPackage.wordListIdOf(decoded.extensions), 'zh-1');
     final restored = _mama.copyWith(wordLanguage: 'zh-1');
-    expect(restored.knownWordList,
-        WordList.chineseEnabled ? same(WordList.zh1) : isNull);
+    expect(restored.knownWordList, same(WordList.zh1));
   });
 
   group('the WORDS file reads 8 zh-1 words (read half)', () {
@@ -110,8 +105,7 @@ void main() {
         '密码词：${[for (final w in eight) w.traditional].join('，')}',
         [for (var i = 0; i < 8; i++) '${i + 1}. ${simplified[i]}'].join('\n'),
       ]) {
-        expect(BackupText.read(text).pakeWords,
-            WordList.chineseEnabled ? simplified : isNull, reason: text);
+        expect(BackupText.read(text).pakeWords, simplified, reason: text);
       }
     });
 
@@ -128,7 +122,7 @@ void main() {
       );
       final decoded = await TransportPackage.decodeLpr(wire, pakeWords: words);
       expect(decoded.label, '妈妈');
-    }, skip: _needsZh);
+    });
   });
 
   testWidgets('the options offer 中文（普通话） and 中文（國語）; picking one sets '
@@ -151,9 +145,14 @@ void main() {
     ));
     expect(find.text('中文（普通话）'), findsOneWidget);
     expect(find.text('中文（國語）'), findsOneWidget);
+    // Both marked beta, each in its own script; English and French not.
+    expect(find.text('测试版'), findsOneWidget);
+    expect(find.text('測試版'), findsOneWidget);
+    expect(
+        find.bySemanticsLabel(RegExp('^中文（普通话） 测试版')), findsOneWidget);
     await tester.tap(find.text('中文（國語）'));
     await tester.pumpAndSettle();
     expect(picked, same(WordList.zh1));
     expect(WordList.showTraditionalChinese, isTrue);
-  }, skip: _needsZh);
+  });
 }
