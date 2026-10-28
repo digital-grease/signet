@@ -1,0 +1,300 @@
+word	reviewer	reason	note	adj-a-verdict	adj-b-verdict	adj-c-verdict	adj-c-note	outcome
+中文	sonnet	abstract		overrule	uphold	overrule	everyday word every adult knows; a language name is easy to pin down	keep
+中餐	sonnet	regional	lunch in Mainland, Chinese food in Taiwan	uphold	overrule	overrule	both senses (lunch, Chinese food) are harmless and the word is known everywhere	keep
+交通	sonnet	abstract		overrule	uphold	overrule	very common word (cd 10.7); traffic is easy to picture	keep
+佐料	sonnet	regional		uphold	overrule	overrule	seasoning; known in both Mainland and Taiwan	keep
+体育	sonnet	abstract		overrule	uphold	overrule	very common word (cd 6.3); sports/PE is clear to all	keep
+便装	sonnet	abstract		overrule	uphold	overrule	casual clothes; transparent compound known in both regions	keep
+借书证	sonnet	verify	library card, credential	overrule	uphold	overrule	library card is not a code/checking word; known in both regions	keep
+假面具	sonnet	reading	假 jiǎ/jià	uphold	overrule	uphold	reading claim false, but 撕下假面具 'unmask a hypocrite' is a common pejorative; 'fake' in an impersonation check	reject
+冰河	sonnet	name		overrule	uphold	overrule	glacier/frozen river, not a name; known via 冰河时期 in both regions	keep
+刀背	sonnet	alarming	knife	overrule	uphold	uphold	knife part (weapon association in a crisis call) and very low familiarity (cd 0.03)	reject
+匠人	sonnet	regional	Taiwan says 師傅/工匠	overrule	uphold	overrule	craftsman; understood in both regions, not region-specific	keep
+双氧水	sonnet	rare	chemical/medical	overrule	uphold	uphold	not rare, but it is the wound antiseptic: injury/medical association (alarming)	reject
+口罩	sonnet	alarming	illness	overrule	uphold	overrule	everyday object since COVID; not frightening, not a face part	keep
+台词	sonnet	other	theatre jargon	overrule	uphold	overrule	common word (cd 5.9) everyone knows, not jargon	keep
+同事	sonnet	conversational	ordinary talk	overrule	uphold	overrule	concrete person noun, not a filler or reply	keep
+名厨	sonnet	rare		overrule	uphold	overrule	transparent compound 'famous chef', understood instantly	keep
+名菜	sonnet	abstract		overrule	uphold	overrule	transparent 'famous dish', clear and harmless	keep
+名酒	sonnet	abstract		overrule	uphold	overrule	transparent 'famous liquor', clear and harmless	keep
+哈哈镜	sonnet	conversational	哈哈 laughter filler	uphold	overrule	overrule	funhouse mirror, well known; read as one word it is not taken as laughter	keep
+哑剧	sonnet	rare	pantomime	overrule	uphold	uphold	Taiwan normally says 默劇; 哑 also a disability term	reject
+国道	sonnet	regional	Taiwan 國道 means freeway	overrule	uphold	overrule	a highway in both regions; sense difference minor and harmless	keep
+地瓜	sonnet	regional	sweet potato vs jicama	overrule	uphold	uphold	means sweet potato in the north and Taiwan but jicama in southwestern China	reject
+城楼	sonnet	regional	Beijing-centric	overrule	uphold	uphold	very low familiarity (cd 0.02) and strongly evokes 天安门城楼 rostrum (political)	reject
+外国人	sonnet	other	nationality category, conversational/political risk	overrule	uphold	overrule	common noun, not political in daily use	keep
+外壳	sonnet	reading	ké vs qiào	uphold	overrule	overrule	everyone says wàiké in this word; qiào only in 地壳-type words	keep
+外皮	sonnet	abstract	outer skin	overrule	uphold	overrule	outer skin/peel is concrete	keep
+大头菜	sonnet	regional	kohlrabi vs turnip differs	overrule	uphold	uphold	means cabbage, rutabaga or kohlrabi depending on region; 大头 also sucker slang	reject
+天使	sonnet	political	religion, angel	overrule	uphold	overrule	everyday secular word (白衣天使), not religious in use	keep
+天马	sonnet	name		uphold	overrule	uphold	mostly appears in idiom 天马行空 or as brand/proper name, not a standalone noun	reject
+头盔	sonnet	regional	Taiwan says 安全帽; 头盔 military	overrule	uphold	overrule	Taiwan also knows 頭盔 instantly; helmet is not the head itself	keep
+学童	sonnet	regional	Taiwan usage; Mainland says 小学生	uphold	overrule	overrule	understood in both regions, transparent	keep
+安全门	sonnet	alarming	emergency exit, scam flag	overrule	uphold	uphold	emergency exit/security gate: evokes emergency and security checks next to a verification code	reject
+寒流	sonnet	regional	Mainland says 寒潮	overrule	uphold	overrule	cold wave understood in both regions; harmless weather word	keep
+导师	sonnet	other	mentor/religious teacher	uphold	overrule	uphold	Taiwan homeroom teacher vs Mainland graduate advisor; also 革命导师 political sense	reject
+小精灵	sonnet	regional	Pac-Man in mainland, Smurfs in Taiwan; cartoon name	uphold	overrule	uphold	tied to character names (宠物小精灵, 藍色小精靈, Pac-Man), name-like and vague	reject
+履历表	sonnet	abstract	resume	overrule	uphold	overrule	concrete document known in both regions	keep
+山野	sonnet	abstract	vague scenery	uphold	overrule	uphold	literary collective scenery term, low familiarity (cd 0.08), not a concrete thing	reject
+店铺	sonnet	regional	Taiwan says 店家/店面	overrule	uphold	uphold	Taiwan commonly writes 店舖 as well as 店鋪: variant character typing risk	reject
+废水	sonnet	abstract	waste water	overrule	uphold	overrule	concrete; pollution is not on the alarming list	keep
+彩笔	sonnet	regional	Taiwan says 彩色筆	overrule	uphold	overrule	transparent compound, recognised in Taiwan	keep
+扁豆	sonnet	regional	ambiguous vegetable meaning	overrule	uphold	overrule	bean variety varies, but the word is known as a bean in both regions	keep
+手掌	sonnet	other	palm, video-check gesture	uphold	overrule	overrule	palm is not a video-check target or gesture	keep
+扫把	sonnet	regional		overrule	uphold	overrule	broom; known in both regions	keep
+投手	sonnet	regional	baseball term, Taiwan-leaning	uphold	overrule	uphold	baseball term familiar in Taiwan, not to a typical Beijing 75-year-old	reject
+折扇	sonnet	reading	折 zhé/shé; tw 摺扇	overrule	uphold	uphold	reading claim weak, but Taiwan writes both 摺扇 and 折扇: variant typing risk; low cd	reject
+摩天楼	sonnet	regional	Taiwan says 摩天大樓	overrule	uphold	uphold	both regions say 摩天大楼; clipped form unfamiliar, risk of 摩天轮	reject
+支架	sonnet	other	medical stent	uphold	overrule	uphold	heart stent (放支架) is a very familiar medical sense for elderly	reject
+收藏品	sonnet	abstract	collectibles, vague	uphold	overrule	uphold	collectibles fraud targeting elderly is a well-known scam (alarming)	reject
+新手	sonnet	abstract		overrule	uphold	overrule	common, clear word for a beginner	keep
+暗门	sonnet	rare	also 暗 recalls 暗号 (verify)	uphold	overrule	uphold	secret door: covert, uncommon, 暗 echoes 暗号	reject
+木棒	sonnet	alarming		uphold	overrule	uphold	club; standard weapon in assault reports	reject
+栏杆	sonnet	reading	杆 gān vs gǎn, 干/桿	uphold	overrule	overrule	everyone reads lán gān; no hesitation	keep
+横幅	sonnet	political		overrule	uphold	uphold	拉横幅 strongly tied to protests and political slogans	reject
+橡皮	sonnet	regional	Taiwan says 橡皮擦	uphold	overrule	overrule	Taiwan recognises 橡皮 instantly; harmless	keep
+毛驴	sonnet	regional	Mainland north; Taiwan says 驢子	overrule	uphold	overrule	known in Taiwan (小毛驢 children's song)	keep
+气垫船	sonnet	rare	hovercraft	overrule	uphold	overrule	transparent compound, known to most adults	keep
+气管	sonnet	alarming	medical	overrule	uphold	uphold	trachea; 气管炎 bronchitis very familiar to elderly; also 妻管严 pun	reject
+氢气	sonnet	abstract	chemistry gas	overrule	uphold	overrule	known via 氢气球; concrete substance	keep
+水疗	sonnet	vulgar		uphold	overrule	uphold	水疗会所 sex-trade connotation in Mainland; also medical treatment	reject
+洗衣板	sonnet	regional	dated; Mainland 搓衣板	overrule	uphold	uphold	slang for flat-chested woman in both regions	reject
+流水	sonnet	abstract	confusable with 水流	overrule	uphold	overrule	running water, concrete and common	keep
+游园会	sonnet	regional		overrule	uphold	overrule	fair/garden party known in both regions	keep
+潜水艇	sonnet	regional		overrule	uphold	uphold	submarine is military (political list); Mainland says 潜艇	reject
+烂泥	sonnet	vulgar	insult 烂泥扶不上墙	overrule	uphold	uphold	烂泥扶不上墙 is a common insult known in both regions	reject
+煎饼	sonnet	regional	Shandong/Tianjin snack; Taiwan 煎餅 differs	overrule	uphold	overrule	pan-fried flat cake in both regions; variety differs only	keep
+熔岩	sonnet	rare	lava	uphold	overrule	overrule	lava understood by adults; not alarming in itself	keep
+爵士舞	sonnet	rare		uphold	overrule	overrule	cd 1.09, common enough and clear	keep
+牙医	sonnet	alarming	medical	uphold	overrule	overrule	dentist is mundane, not illness or emergency	keep
+牙科	sonnet	alarming	medical	uphold	overrule	overrule	dental department, mundane	keep
+牛蒡	sonnet	reading	蒡 rare char	uphold	overrule	uphold	蒡 rare character; food uncommon to many Mainland elderly	reject
+牧民	sonnet	regional	Mainland pastoral term	overrule	uphold	uphold	Mainland ethnic/pastoral policy term, rare in Taiwan daily speech	reject
+狒狒	sonnet	rare	rare character	uphold	overrule	overrule	baboon known from zoos; reduplicated, easy	keep
+独生女	sonnet	political		overrule	uphold	uphold	evokes one-child policy; as a kinship term it sounds like a claim about the caller	reject
+猎户座	sonnet	rare	Orion	uphold	overrule	uphold	proper name of a constellation; low familiarity	reject
+猛禽	sonnet	rare		overrule	uphold	overrule	transparent compound adults understand	keep
+玉兰	sonnet	name	common female name	uphold	overrule	uphold	very common given name of that generation; flower usually said 玉兰花	reject
+王妃	sonnet	other	royal title; sounds like name 王飞	overrule	uphold	uphold	royal title, and wáng fēi is a homophone of singer 王菲 (Faye Wong)	reject
+王牌	sonnet	abstract	also cigarette brand	uphold	overrule	uphold	mostly figurative (trump card, ace) and a cigarette brand, not a thing	reject
+电话机	sonnet	other	telephone word, confusing in a phone-call code	uphold	overrule	uphold	naming the phone during a phone call may be taken as remark about the call	reject
+画布	sonnet	confusable	花布 huā bù	overrule	uphold	uphold	pinyin IMEs ignore tones: huabu gives common 花布 as easily as 画布	reject
+看台	sonnet	rare		overrule	uphold	overrule	common word (cd 1.04)	keep
+眼泪	sonnet	other	distress, emotional	overrule	uphold	uphold	crying evokes distress in a crisis call; eye is a face part	reject
+石材	sonnet	rare		uphold	overrule	overrule	transparent compound, understood	keep
+矿坑	sonnet	regional	Mainland says 矿井; mining accident link	overrule	uphold	uphold	strong mining-disaster association (矿难, Taiwan mine disasters)	reject
+砂土	sonnet	rare		uphold	overrule	uphold	砂/沙 variant: Mainland usually writes 沙土; low cd	reject
+砂石	sonnet	rare		uphold	overrule	uphold	砂/沙 variant: Mainland often writes 沙石; typing risk	reject
+礼物	sonnet	alarming	gift/prize scam hook	overrule	uphold	overrule	everyday warm word; prize scams use 奖品/中奖, not gift	keep
+祖先	sonnet	abstract	ancestors	overrule	uphold	uphold	evokes the dead and ancestor worship (death/religion)	reject
+竖琴	sonnet	rare	harp, not everyday	uphold	overrule	overrule	harp; instrument name most adults know	keep
+管道	sonnet	abstract	pipe or channel	overrule	uphold	uphold	Taiwan mostly abstract 'channel/means', Mainland concrete pipe: meaning differs	reject
+米糕	sonnet	regional	differs Mainland vs Taiwan (steamed vs oil rice)	overrule	uphold	overrule	rice food in both regions; variety differs only	keep
+纹路	sonnet	abstract	texture	overrule	uphold	overrule	lines/grain are concrete enough and common	keep
+维生素	sonnet	regional	Taiwan says 維他命	uphold	overrule	overrule	Taiwan also uses 維生素 on labels; known in both	keep
+羊皮纸	sonnet	rare	parchment	overrule	uphold	uphold	parchment: elderly would not know or use it	reject
+羔羊	sonnet	rare	bookish	overrule	uphold	uphold	bookish; mostly in 替罪羔羊/待宰羔羊 victim idioms and religious 'Lamb of God'	reject
+胃酸	sonnet	alarming	stomach acid, illness	uphold	overrule	uphold	stomach acid: illness symptom	reject
+胸口	sonnet	other	chest pain, intimate body area	uphold	overrule	overrule	chest is not a video target and not intimate in this word	keep
+脚心	sonnet	regional	Taiwan says 腳底	overrule	uphold	overrule	transparent body-part word understood in Taiwan; not a video target	keep
+膏药	sonnet	alarming	medicine	uphold	overrule	uphold	medicine/injury; 狗皮膏药 pejorative	reject
+舞厅	sonnet	regional	dated, vice connotation	overrule	uphold	uphold	seedy connotation: Taiwan 舞廳 hostess halls, Mainland 1990s dance halls	reject
+航班	sonnet	other	flight-ticket scam hook	overrule	uphold	uphold	flight cancellation/refund calls are a well-known phone scam	reject
+花蕊	sonnet	reading	蕊 often misread ruì	overrule	uphold	overrule	蕊 ruǐ widely known from names; harmless	keep
+菜市	sonnet	regional	truncated of 菜市场	uphold	overrule	uphold	people say 菜市场; clipped form is a homophone of 菜式	reject
+葡萄糖	sonnet	alarming	glucose, diabetes/medical	overrule	uphold	uphold	hospital IV drip / diabetes association for elderly (medical)	reject
+蛋壳	sonnet	reading	壳 ké/qiào	overrule	uphold	overrule	everyone says dàn ké; no hesitation	keep
+螺栓	sonnet	rare		overrule	uphold	uphold	technical; daily speech says 螺丝/螺絲	reject
+裂纹	sonnet	abstract	crack	overrule	uphold	overrule	crack is concrete	keep
+货舱	sonnet	rare		uphold	overrule	overrule	transparent compound, understood	keep
+跷跷板	sonnet	reading	跷 hard to write	uphold	overrule	uphold	commonly written 翘翘板, Taiwan 蹺蹺板; variant and qiāo/qiào reading	reject
+邻座	sonnet	rare	not an everyday noun	uphold	overrule	uphold	relational position term, sounds like conversational reference	reject
+邻村	sonnet	abstract		overrule	uphold	uphold	relational place term, not a concrete thing; low cd	reject
+酋长	sonnet	rare		overrule	uphold	overrule	known word (cd 0.95) from stories	keep
+酒楼	sonnet	regional	old-fashioned in Taiwan	overrule	uphold	overrule	understood in Taiwan (港式酒樓)	keep
+野地	sonnet	regional	Taiwan rarely says this	overrule	uphold	overrule	transparent compound, understood	keep
+金丝雀	sonnet	reading		uphold	overrule	uphold	金丝雀 is common slang for a kept mistress	reject
+铁栏杆	sonnet	reading	杆 gān/gǎn	uphold	overrule	overrule	lán gān reading is stable; iron railings are everyday	keep
+银杏	sonnet	confusable	sounds like 银行 yínháng (bank)	uphold	overrule	overrule	yínxìng vs yínháng clearly different	keep
+镜头	sonnet	other	camera term, video call	uphold	overrule	uphold	on a video call 镜头 could be taken as an instruction (看镜头)	reject
+防腐剂	sonnet	alarming		overrule	uphold	overrule	everyday food-label word, not alarming	keep
+面具	sonnet	other	mask evokes deepfake	overrule	uphold	overrule	common concrete object; deepfake link too distant	keep
+面板	sonnet	other	panel: Mainland vs Taiwan senses differ, vague	uphold	overrule	uphold	vague, senses differ (Taiwan display panel industry, Mainland control panel/kneading board)	reject
+马棚	sonnet	rare	stable	overrule	uphold	overrule	transparent compound, understood	keep
+骨骼	sonnet	alarming	skeleton/medical	overrule	uphold	uphold	anatomical/medical, and 骼 gé often misread	reject
+高手	sonnet	conversational		overrule	uphold	uphold	abstract (3.05) compliment used in ordinary talk	reject
+高领	sonnet	other	garment feature not a standalone noun; 领 vs 领导	uphold	overrule	uphold	clipped from 高领毛衣; toneless pinyin gaoling yields 高龄	reject
+鸡笼	sonnet	name	Keelung old name 雞籠	overrule	uphold	uphold	Taiwan elders know 雞籠 as Keelung's old name	reject
+鸡胸	sonnet	vulgar		uphold	overrule	uphold	standalone it means the chest deformity (food is 鸡胸肉); 鸡 slang	reject
+黏土	sonnet	reading	黏 nián/zhān	uphold	overrule	uphold	variant 粘土 common in Mainland, nián/zhān reading hesitation	reject
+三级跳	claude-b	abstract		overrule	uphold	overrule	concrete athletic event known in both regions	keep
+专家	claude-a	abstract		overrule	uphold	overrule	everyday person noun, not abstract	keep
+主队	claude-b	regional	Taiwan says 地主隊	overrule	uphold	overrule	Taiwan sports talk uses 主隊/客隊 too	keep
+书局	claude-b	regional	Mainland says 书店	overrule	uphold	uphold	Taiwan 書局 is a stationery-book shop; Mainland 书局 mostly publisher names	reject
+书橱	claude-a	regional	Mainland says 书柜	overrule	uphold	overrule	standard older word both regions' elders know	keep
+乳酸	claude-a	rare		overrule	uphold	overrule	familiar via 乳酸菌 drinks in both regions	keep
+二手货	claude-b	abstract		uphold	overrule	uphold	other real reason: known derogatory slang for a woman with past partners	reject
+交谊舞	claude-b	regional	Taiwan says 社交舞	overrule	uphold	uphold	Taiwan says 社交舞; no Taiwan zhuyin entry	reject
+交际舞	claude-b	regional	Taiwan says 社交舞	overrule	uphold	overrule	older generation in both regions knows 交際舞	keep
+使者	claude-a	abstract		uphold	overrule	overrule	familiar person noun from stories and dramas	keep
+便鞋	claude-a	rare		overrule	uphold	overrule	common casual-shoe word in both regions	keep
+信差	claude-a	regional	old-fashioned	overrule	uphold	overrule	old but instantly known to 75-year-olds	keep
+健美	claude-a	abstract		overrule	uphold	overrule	picturable (bodybuilding), common word	keep
+冰晶	claude-a	rare		overrule	uphold	overrule	transparent compound, instantly understood	keep
+剧照	claude-a	rare		overrule	uphold	overrule	common entertainment-news word	keep
+升降机	claude-a	regional		overrule	uphold	overrule	transparent, understood in both regions	keep
+单打	claude-a	abstract		overrule	uphold	overrule	concrete sports term, everyone knows	keep
+历史剧	claude-a	abstract		overrule	uphold	overrule	familiar TV genre	keep
+压缩机	claude-a	rare		overrule	uphold	overrule	known from fridges and air conditioners	keep
+厨子	claude-b	regional	old-fashioned	overrule	uphold	overrule	known colloquial word for cook in both	keep
+双打	claude-a	abstract		overrule	uphold	overrule	concrete sports term, everyone knows	keep
+口粮	claude-a	abstract		overrule	uphold	overrule	ordinary food word; concern too vague	keep
+台面	claude-b	abstract		overrule	uphold	uphold	other real reason: 檯/台 variant writing, figurative 檯面上/下, Taiwan mahjong stakes sense	reject
+哲学家	claude-a	abstract		overrule	uphold	overrule	picturable person, known word	keep
+喷壶	claude-b	regional	Taiwan 澆花器	overrule	uphold	overrule	transparent compound, understood in Taiwan	keep
+固体	claude-b	abstract		overrule	uphold	uphold	abstract state-of-matter category, not a picturable thing	reject
+图纸	claude-b	regional	Taiwan says 設計圖/藍圖	overrule	uphold	overrule	transparent, understood in Taiwan	keep
+土星	claude-a	name	planet name	overrule	uphold	overrule	planet everyone knows; not a misleading name	keep
+坛子	claude-b	regional	Mainland colloquial; Taiwan 甕	overrule	uphold	uphold	坛 maps to 壇/罈 (and variant 罎); Taiwan says 甕	reject
+堂兄弟	claude-a	abstract		overrule	uphold	uphold	kin term in a family call sounds like talk about relatives; 堂/表 mix-up	reject
+塑胶	claude-a	regional	Mainland says 塑料	overrule	uphold	overrule	used in southern Mainland too, recognised instantly	keep
+夜光表	claude-a	rare		overrule	uphold	overrule	well-known item to this generation	keep
+大篷车	claude-b	rare		overrule	uphold	uphold	famous Indian film title in Mainland; no Taiwan zhuyin, uncommon there	reject
+大米	claude-b	regional	Taiwan says 白米	overrule	uphold	overrule	Taiwan understands 大米 instantly	keep
+太空人	claude-a	regional	Mainland 宇航员	overrule	uphold	overrule	used in Mainland too, instantly understood	keep
+奔跑	claude-a	conversational		overrule	uphold	overrule	ordinary verb, not chat filler	keep
+套间	claude-b	regional	Mainland usage	overrule	uphold	uphold	Taiwan says 套房; 套間 not everyday there	reject
+好汉	claude-b	abstract		overrule	uphold	overrule	familiar person noun	keep
+家宴	claude-a	rare		overrule	uphold	overrule	transparent, familiar	keep
+对抗赛	claude-a	abstract		overrule	uphold	overrule	ordinary sports event noun	keep
+对虾	claude-b	regional		overrule	uphold	uphold	northern Mainland term; Taiwan says 明蝦/草蝦	reject
+小报	claude-a	abstract		overrule	uphold	overrule	concrete, known in both	keep
+小车	claude-b	regional	Mainland usage for car	overrule	uphold	overrule	transparent, understood in Taiwan	keep
+小道	claude-b	conversational		overrule	uphold	overrule	concrete path, not conversational	keep
+山沟	claude-b	regional	Mainland flavour, backwater sense	overrule	uphold	overrule	ordinary landscape word, used in Taiwan too	keep
+工程队	claude-a	abstract		overrule	uphold	overrule	concrete group, known	keep
+布匹	claude-a	rare		overrule	uphold	overrule	known to elders in both	keep
+席子	claude-a	regional		overrule	uphold	uphold	Taiwan commonly writes 蓆子/草蓆, variant character	reject
+平面图	claude-a	rare		overrule	uphold	overrule	common word, known	keep
+幻灯机	claude-a	rare		overrule	uphold	overrule	known to this generation in both	keep
+庄稼汉	claude-b	regional	northern Mainland flavour	overrule	uphold	uphold	northern Mainland colloquial; Taiwan says 農夫	reject
+库房	claude-b	regional	Taiwan says 倉庫	overrule	uphold	overrule	transparent, used in Taiwan too	keep
+庭园	claude-a	regional		uphold	overrule	uphold	other real reason: confusable with 庭院 (tone only), the commoner Mainland word	reject
+手球	claude-a	rare		overrule	uphold	overrule	known sport and football term	keep
+打孔机	claude-a	rare		overrule	uphold	uphold	other real reason: Taiwan says 打洞機	reject
+打字员	claude-a	rare		overrule	uphold	overrule	familiar job to this generation	keep
+扫描器	claude-a	rare		overrule	uphold	uphold	other real reason: Mainland says 扫描仪; tech device elders rarely use	reject
+承重墙	claude-b	regional	Mainland	overrule	uphold	uphold	technical; no Taiwan zhuyin, not everyday there	reject
+报童	claude-a	regional	old-fashioned	overrule	uphold	overrule	old but instantly known to 75-year-olds	keep
+拐角	claude-b	regional	Taiwan says 轉角	overrule	uphold	overrule	Taiwan uses 拐彎, understands 拐角	keep
+拖船	claude-a	rare		overrule	uphold	overrule	known, transparent	keep
+挂面	claude-b	regional		overrule	uphold	uphold	Mainland staple word; Taiwan says 麵條/乾麵條, 乾麵 means a dish	reject
+控制室	claude-a	rare		overrule	uphold	overrule	transparent, familiar	keep
+搅拌机	claude-a	regional	Taiwan blender is 果汁機	overrule	uphold	overrule	transparent, recognised in both	keep
+搓板	claude-b	regional		overrule	uphold	uphold	Taiwan says 洗衣板; slang 跪搓板 and flat-chest jibe	reject
+收成	claude-a	abstract		overrule	uphold	overrule	ordinary farming word	keep
+放大器	claude-a	rare		overrule	uphold	overrule	known device word	keep
+放映机	claude-a	rare		overrule	uphold	overrule	known to this generation	keep
+散文	claude-a	reading	散 san3/san4	overrule	uphold	overrule	sǎn wén read correctly by most; known genre	keep
+文字	claude-a	abstract		overrule	uphold	uphold	generic meta-word; could be heard as referring to the code words themselves	reject
+旅行车	claude-a	regional		overrule	uphold	overrule	used in Taiwan for station wagon too	keep
+早稻	claude-b	rare	also evokes 早稻田 (Waseda)	overrule	uphold	uphold	low familiarity outside rice farmers, strong 早稻田 association in Taiwan	reject
+早茶	claude-b	regional	Cantonese dim sum sense	overrule	uphold	uphold	Cantonese/Yangzhou custom; no Taiwan zhuyin, Taiwan says 飲茶	reject
+时间表	claude-a	abstract		overrule	uphold	overrule	concrete document, known	keep
+暖气	claude-a	regional	northern heating, not in Taiwan	overrule	uphold	overrule	Taiwan uses 暖氣 for heaters	keep
+月夜	claude-a	rare	literary	overrule	uphold	overrule	common in songs and poems, known	keep
+本子	claude-b	regional	Taiwan says 筆記本	overrule	uphold	overrule	used in both regions	keep
+松仁	claude-b	regional	Taiwan says 松子	overrule	uphold	overrule	transparent, understood in Taiwan	keep
+样品	claude-a	abstract		overrule	uphold	overrule	concrete everyday item	keep
+桥头	claude-b	name	Kaohsiung district 橋頭	overrule	uphold	overrule	common noun primarily; place-name use secondary	keep
+桥洞	claude-b	regional		overrule	uphold	uphold	other real reason: 睡桥洞 meme means destitute; Taiwan says 橋下	reject
+棉田	claude-b	rare		overrule	uphold	overrule	transparent, known	keep
+棋手	claude-a	abstract		overrule	uphold	overrule	person noun, known	keep
+楼房	claude-b	regional	Taiwan says 大樓	overrule	uphold	overrule	Taiwan understands 樓房	keep
+槐树	claude-b	regional		overrule	uphold	uphold	northern tree; uncommon in Taiwan, 槐 less familiar there	reject
+比赛	claude-a	conversational		overrule	uphold	overrule	ordinary noun, not filler	keep
+毛料	claude-a	rare		overrule	uphold	overrule	known to elders in both	keep
+气体	claude-b	abstract		overrule	uphold	uphold	abstract category; gas-leak association	reject
+气门	claude-b	rare	technical valve	overrule	uphold	uphold	technical; Taiwan says 氣嘴	reject
+水压	claude-b	abstract		overrule	uphold	uphold	physical quantity, hard to picture	reject
+池子	claude-b	regional		overrule	uphold	overrule	understood in both	keep
+沥青	claude-b	regional	Taiwan says 柏油	overrule	uphold	overrule	瀝青 used in Taiwan news, known	keep
+沼气	claude-b	rare		overrule	uphold	uphold	Mainland rural technical term; unknown in Taiwan	reject
+清凉油	claude-b	regional		overrule	uphold	uphold	Taiwan says 萬金油/綠油精; medicine product	reject
+游泳	claude-a	conversational		overrule	uphold	overrule	ordinary activity noun	keep
+火烧云	claude-b	rare		overrule	uphold	uphold	Taiwan says 晚霞; low familiarity, fire wording	reject
+火钳	claude-b	regional	Mainland	overrule	uphold	overrule	known household tool to elders in both	keep
+灯油	claude-b	rare		overrule	uphold	overrule	known to this generation	keep
+炉灰	claude-b	rare		overrule	uphold	overrule	known to elders	keep
+炊烟	claude-b	rare	literary	overrule	uphold	overrule	well-known poetic word	keep
+烙饼	claude-b	regional		overrule	uphold	uphold	northern food term; 烙 has lào/luò readings in Taiwan	reject
+焰火	claude-b	regional	Mainland usage; Taiwan says 煙火	overrule	uphold	uphold	other real reason: confusable with 烟火 yān huǒ (tone only), Taiwan word	reject
+煤气灯	claude-a	rare		overrule	uphold	uphold	Taiwan says 瓦斯; 煤气 evokes gas poisoning	reject
+照相	claude-a	conversational		uphold	overrule	uphold	action verb; on a video call sounds like an instruction to take a photo	reject
+爬山虎	claude-b	regional	Taiwan says 爬牆虎	overrule	uphold	uphold	Taiwan says 爬牆虎	reject
+牛皮	claude-a	other	idiom 吹牛皮	uphold	overrule	overrule	everyday material (牛皮鞋); idiom not embarrassing	keep
+牡蛎	claude-a	regional	Mainland 生蚝, Taiwan 蚵仔	overrule	uphold	uphold	neither region's everyday word: 生蚝/海蛎子 vs 蚵仔	reject
+生铁	claude-b	rare		overrule	uphold	uphold	technical metallurgy term, not daily	reject
+电动机	claude-a	abstract		overrule	uphold	overrule	concrete object, known	keep
+真空	claude-a	abstract		uphold	overrule	uphold	abstract; also known slang for no underwear	reject
+短笛	claude-b	rare		overrule	uphold	uphold	rare instrument; no Taiwan zhuyin	reject
+砧板	claude-a	reading	砧 zhēn often unsure; Mainland 菜板	uphold	overrule	uphold	砧 often misread zhān/zhàn; Mainland says 菜板	reject
+社长	claude-a	abstract		uphold	overrule	overrule	known title in both	keep
+秃鹰	claude-b	other	carrion bird, 秃 insult	uphold	overrule	uphold	carrion/death association; 秃 bald jibe	reject
+穗子	claude-b	rare		overrule	uphold	uphold	other real reason: 穗 commonly misread huì	reject
+管乐队	claude-a	rare		uphold	overrule	uphold	乐 yuè/lè reading risk; low familiarity	reject
+组长	claude-a	abstract		overrule	uphold	overrule	known title	keep
+老丈人	claude-b	regional	northern colloquial	overrule	uphold	uphold	kin term in family call; northern colloquial	reject
+老板娘	claude-a	conversational	address term	uphold	overrule	uphold	address term, sounds like talk	reject
+胚芽	claude-a	rare		uphold	overrule	uphold	胚 commonly misread pī; low familiarity in Mainland	reject
+花卉	claude-a	rare		uphold	overrule	overrule	known from flower markets	keep
+茶匙	claude-a	reading	匙 chí vs shi	uphold	overrule	uphold	匙 chí/shi reading split	reject
+茶话会	claude-b	regional	Mainland-flavoured	overrule	uphold	uphold	Mainland work-unit event; Taiwan says 茶會	reject
+藏书	claude-a	reading	cáng/zàng	uphold	overrule	overrule	read cáng shū without trouble	keep
+蟾蜍	claude-a	rare		uphold	overrule	overrule	everyday in Taiwan, known in Mainland	keep
+衣帽间	claude-b	regional		uphold	overrule	overrule	transparent, used in both	keep
+表兄弟	claude-a	abstract		overrule	uphold	uphold	kin term in a family call sounds like talk; 堂/表 mix-up	reject
+表姐妹	claude-a	conversational	kin term, sounds like chat about relatives	overrule	uphold	uphold	kin term sounds like talk about relatives	reject
+表针	claude-b	rare	指针 more common	overrule	uphold	uphold	rare; 指针 is the usual word; no Taiwan zhuyin	reject
+装备	claude-a	political	military gear	uphold	overrule	overrule	everyday gear word, not military	keep
+触须	claude-a	rare		uphold	overrule	overrule	transparent, understood	keep
+请柬	claude-b	rare		overrule	uphold	overrule	common in Mainland, understood in Taiwan	keep
+豆荚	claude-a	reading	荚 jiá	uphold	overrule	uphold	荚 jiá commonly misread jiā	reject
+贝类	claude-a	abstract		uphold	overrule	overrule	concrete food category	keep
+趾甲	claude-a	regional	Mainland says 脚指甲	uphold	overrule	uphold	other real reason: homophone of 指甲 zhǐ jiǎ	reject
+跳伞	claude-a	conversational		uphold	overrule	overrule	ordinary activity noun	keep
+车床	claude-b	rare		overrule	uphold	uphold	other real reason: confusable with 车窗 (tone only); technical	reject
+车辆	claude-a	other	formal collective term	uphold	overrule	overrule	formal but concrete; concern vague	keep
+输油管	claude-a	rare		uphold	overrule	overrule	transparent, understood	keep
+酒水	claude-a	regional	Mainland restaurant term	overrule	uphold	uphold	Mainland restaurant term; no Taiwan zhuyin	reject
+钓具	claude-a	rare		uphold	overrule	overrule	transparent, Taiwan 釣具店 common	keep
+钢架	claude-a	rare		uphold	overrule	overrule	transparent, understood	keep
+铁笼	claude-b	alarming	confinement	overrule	uphold	uphold	cage/confinement imagery reads as threat	reject
+霹雳舞	claude-b	rare	dated; 霹靂 also Taiwan puppet brand	overrule	uphold	uphold	dated; 霹靂 Taiwan puppet brand; no zhuyin	reject
+顶梁柱	claude-b	abstract	mostly figurative	overrule	uphold	uphold	mostly figurative; no Taiwan zhuyin	reject
+餐会	claude-a	regional		uphold	overrule	overrule	transparent, used in Taiwan	keep
+驼色	claude-b	confusable	tuó sè vs 脱色 tuō sè (fade)	overrule	uphold	uphold	confusable with 脱色; no Taiwan zhuyin	reject
+黎明	claude-b	name	singer Leon Lai's name	uphold	overrule	overrule	primary sense is dawn; singer link secondary	keep
+黑麦	claude-a	rare		uphold	overrule	overrule	known grain word	keep
+专家	sonnet	abstract	also a scam persona (investment expert)	uphold	overrule	overrule	everyday person noun known in both regions; not on alarming or scam list	keep
+乳酸	sonnet	rare	chemistry term	uphold	overrule	uphold	chemistry term; elders know 乳酸菌 not bare 乳酸, hard to picture	reject
+交际舞	sonnet	regional	Taiwan says 社交舞	uphold	overrule	uphold	competing names 交谊舞 (Mainland) and 社交舞 (Taiwan) invite wrong typing	reject
+便鞋	sonnet	regional	Taiwan rarely says	overrule	uphold	overrule	casual shoe understood in both regions; plain concrete object	keep
+健美	sonnet	other	bodybuilding; body-focused, dated Mainland	uphold	overrule	overrule	common word in both regions; bodybuilding is not a video-check gesture	keep
+口粮	sonnet	regional	ration; hardship connotation	overrule	uphold	uphold	ration: famine-era hardship for Mainland elders, military ration in Taiwan	reject
+图纸	sonnet	regional	technical; Taiwan less common	overrule	uphold	overrule	blueprint known in both; Taiwan also uses 圖紙 in building trade	keep
+塑胶	sonnet	regional	Mainland says 塑料	uphold	overrule	overrule	Mainland prefers 塑料 but 塑胶 is instantly known (塑胶花, 塑胶跑道)	keep
+对抗赛	sonnet	regional	sports jargon	uphold	overrule	uphold	three-character words must be concrete nouns; event noun with confrontational 对抗	reject
+布匹	sonnet	regional	Taiwan says 布料	overrule	uphold	uphold	formal collective term, very low frequency; both regions say 布 or 布料	reject
+手球	sonnet	rare	handball; hand may clash with video check	uphold	overrule	uphold	handball barely played in either region; elders would not recognise it	reject
+放大器	sonnet	rare	technical	overrule	uphold	uphold	technical device; heard as the familiar 放大镜 magnifier	reject
+松仁	sonnet	regional	Taiwan says 松子	overrule	uphold	uphold	Taiwan and most speakers say 松子; very low frequency	reject
+沥青	sonnet	reading	沥 is hard to read/write	overrule	uphold	uphold	everyday word is 柏油 in both regions; 沥/瀝 hard to write	reject
+灯油	sonnet	rare	kerosene, Japanese-style term	overrule	uphold	uphold	very rare; Mainland says 煤油, Taiwan 煤油 or 火油	reject
+炉灰	sonnet	rare	dated	overrule	uphold	uphold	dated coal-stove term, unfamiliar to Taipei elders; ash association	reject
+炊烟	sonnet	rare	literary	overrule	uphold	uphold	literary; spoken chuīyān easily heard as 抽烟 or typed 吹烟	reject
+牛皮	sonnet	other	slang for bragging	uphold	overrule	uphold	well-known slang 吹牛皮 bragging, also 牛皮癣 psoriasis	reject
+蟾蜍	sonnet	reading	蜍 rare character	uphold	overrule	overrule	standard word for toad, everyday in Taiwan, textbook word in Mainland; IME gives it directly	keep
+装备	sonnet	other	generic, military flavour	uphold	overrule	overrule	common concrete gear word (户外装备); military link is distant	keep
+餐会	sonnet	regional	Mainland says 聚餐	uphold	overrule	uphold	exact homophone of Mainland 参会 attend a meeting; Mainland says 聚餐	reject
+黑麦	sonnet	rare	rye	uphold	overrule	uphold	rye is unfamiliar to elders in both regions	reject
