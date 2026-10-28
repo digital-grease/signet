@@ -1,0 +1,23 @@
+[project]
+name = "zh-wordlist"
+version = "0.1.0"
+description = "Build-time generator for Signet's zh-1 word list (never shipped)"
+requires-python = "==3.12.*"
+dependencies = [
+    "opencc==1.4.2",
+    "openpyxl==3.1.5",
+    "pypinyin==0.53.0",
+]
+
+[dependency-groups]
+# The automated listening pipeline (listen/), plan Task 2.3.
+listen = [
+    "kaldi-native-fbank",
+    "numpy",
+    "onnxruntime",
+    "sentencepiece",
+    "sherpa-onnx",
+]
+
+[tool.uv]
+package = false

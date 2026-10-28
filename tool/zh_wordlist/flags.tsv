@@ -1,0 +1,48 @@
+# Hand-written flags shown to reviewers (never an automatic reject).
+# A row matches a candidate that contains it. Columns: text, category, note.
+# category: scam (phrases and topics of impersonation and payment scams),
+# verify (words about verification itself, confusing next to a code),
+# alarm (danger, crime, body, illness), money.
+text	category	note
+验证	verify	"verification" next to a verification code
+密码	verify	password
+口令	verify	passphrase
+暗号	verify	secret signal
+代码	verify	code
+号码	verify	number
+确认	verify	confirm
+安全	scam	"safe account" (安全账户) scams
+账户	scam	account
+账号	scam	account
+转账	scam	transfer
+汇款	scam	remittance
+银行	scam	bank
+公安	scam	police impersonation
+警察	scam	police
+法院	scam	court
+检察	scam	prosecutor
+调查	scam	investigation (配合调查)
+冻结	scam	frozen account
+涉嫌	scam	suspected of
+洗钱	scam	money laundering
+通缉	scam	wanted
+逮捕	scam	arrest
+保释	scam	bail
+律师	scam	lawyer, as in "your grandson needs a lawyer"
+绑架	scam	kidnapping
+医院	scam	hospital, as in "your son is in hospital"
+手术	scam	surgery
+车祸	scam	car accident
+快递	scam	parcel scams
+客服	scam	customer-service impersonation
+退款	scam	refund
+中奖	scam	prize
+红包	money	red envelope
+现金	money	cash
+信用	money	credit
+子弹	alarm	bullet
+手铐	alarm	handcuffs
+犯人	alarm	prisoner
+牢房	alarm	cell
+大麻	alarm	cannabis
+毒品	alarm	drugs

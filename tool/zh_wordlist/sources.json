@@ -1,0 +1,92 @@
+[
+  {
+    "id": "hsk",
+    "file": "hsk-complete.json",
+    "url": "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.json",
+    "sha256": "c869a0ce353279c9333d9b42c31fc3549785e8b40673dab57ee42bc99cd14131",
+    "licence": "MIT (repository); vocabulary from the HSK 3.0 syllabus GF0025-2021",
+    "use": "candidate pool, part of speech, level"
+  },
+  {
+    "id": "subtlex-wf",
+    "file": "subtlexchwf.zip",
+    "url": "https://www.ugent.be/pp/experimentele-psychologie/en/research/documents/subtlexch/subtlexchwf.zip",
+    "sha256": "72d4b18a53488da97dd63becef429fd626f9be3f1940e5463b9cd692c2ff15f5",
+    "licence": "No licence text; free for research per Cai & Brysbaert 2010, and the authors allowed redistribution for any purpose with credit (wordfreq README)",
+    "use": "build time only: frequency and contextual diversity"
+  },
+  {
+    "id": "subtlex-pos",
+    "file": "subtlexchwfpos.zip",
+    "url": "https://www.ugent.be/pp/experimentele-psychologie/en/research/documents/subtlexch/subtlexuschwfpos.zip",
+    "sha256": "d93a0f06f63b02c0fe9f5645c9f55c061a75ba3682829ae2c88e7605a465181c",
+    "licence": "As subtlex-wf",
+    "use": "build time only: part of speech of words outside HSK"
+  },
+  {
+    "id": "moe",
+    "file": "moe-concised.zip",
+    "url": "https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/download/dict_concised_2014_20260929.zip",
+    "sha256": "5bab99dac44ad7a6ccdcf481e770e8aca05ede7445c4cc25b8199e0e5df64cf2",
+    "ipv4": true,
+    "licence": "CC BY-ND 3.0 TW plus the MOE usage note (no change to readings, no conversion to simplified)",
+    "use": "build time only, never shipped: Taiwan-common gate and Taiwan reading oracle"
+  },
+  {
+    "id": "chewing",
+    "file": "chewing-tsi.csv",
+    "url": "https://codeberg.org/chewing/libchewing-data/raw/commit/703accab3792d9ed939dc51bd718ba981b376fc0/dict/chewing/tsi.csv",
+    "sha256": "c889a1ac3ae1901b3f8f62748bc41b958f010bf995f7f88dbaf9e3494f341428",
+    "licence": "LGPL-2.1-or-later (Copyright (c) 2025 libchewing Core Team)",
+    "use": "shipped: Zhuyin, only where it equals the MOE reading"
+  },
+  {
+    "id": "mcb-bpmf",
+    "file": "mcb-BPMFMappings.txt",
+    "url": "https://raw.githubusercontent.com/openvanilla/McBopomofo/ccd2cd7892c93301b23e5f5ffe8945f0a3765088/Source/Data/BPMFMappings.txt",
+    "sha256": "8dd751310c5effb7f9bdb24da494cb308492acd73a1665974fd886c4caf1fb26",
+    "licence": "MIT (Copyright 2011-2026 Mengjuei Hsieh et al.)",
+    "use": "shipped: Zhuyin fallback, only where it equals the MOE reading"
+  },
+  {
+    "id": "mcb-occ",
+    "file": "mcb-phrase.occ",
+    "url": "https://raw.githubusercontent.com/openvanilla/McBopomofo/ccd2cd7892c93301b23e5f5ffe8945f0a3765088/Source/Data/phrase.occ",
+    "sha256": "f3b52d572233ea2c0f2eac1872adfa2fbe2491d8ad051f875863217707561a0e",
+    "licence": "MIT",
+    "use": "build time only: Taiwan frequency evidence for reviewers"
+  },
+  {
+    "id": "xu-li-2020",
+    "file": "xu-li-2020-s001.rar",
+    "url": "https://journals.plos.org/plosone/article/file?type=supplementary&id=10.1371/journal.pone.0232133.s001",
+    "sha256": "c6c1e2eac96e775c93239092c1cc8636539bfd4ffa74a85e026f77927f244c87",
+    "licence": "CC BY 4.0 (Xu & Li 2020, PLoS ONE 15(6) e0232133)",
+    "use": "build time only: concreteness ranking (1 concrete, 5 abstract), 9,877 words"
+  },
+  {
+    "id": "ldnoobw-zh",
+    "file": "ldnoobw-zh.txt",
+    "url": "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/921a29654ac45aacd6cf8255c8c168278697e782/zh",
+    "sha256": "a1d9aa037c8b039ef3b40148b3364ce2ca62ce4a955b7082a16ad99f6cbd1bc0",
+    "licence": "CC BY 4.0",
+    "use": "build time only: flags vulgar words for reviewers"
+  },
+  {
+    "id": "icefall-byte-utils",
+    "file": "icefall_byte_utils.py",
+    "url": "https://raw.githubusercontent.com/k2-fsa/icefall/242002e0bd660fda6ca1067a326737ce86b8b4a3/icefall/byte_utils.py",
+    "sha256": "21c9c52130f1bfb4f2e5dda1fe239589af2660d778522db8f97a5d681a50c0e2",
+    "licence": "MIT (fairseq, via icefall)",
+    "use": "build time only: byte-level BPE text encoding for the zipformer CTC recognizer"
+  },
+  {
+    "id": "moe-revised",
+    "file": "moe-revised.zip",
+    "url": "https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/download/dict_revised_2015_20260929.zip",
+    "sha256": "65a24fff76d0fbfa078541f39761bb9f302bdf7ad6bb48be4ce1052d1b49f609",
+    "ipv4": true,
+    "licence": "CC BY-ND 3.0 TW plus the MOE usage note (as moe)",
+    "use": "build time only, never shipped: membership and readings for words outside 簡編本 (larger pool)"
+  }
+]
