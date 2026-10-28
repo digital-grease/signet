@@ -88,7 +88,7 @@ A naïve rotating-code design would give both paired devices the same 4 words ea
 
 ### Word languages
 
-The words can be English, French or Chinese (Mandarin, in simplified or traditional characters; marked beta because no native speaker has checked the list yet). Each word is an 11-bit index, and a language only spells it, so the security is the same in every language. Each contact has its own word language: you choose it when you pair (preselected to your phone's default, chosen at first run), and you and the other person must choose the same one for each other. A backup carries each contact's language. If someone reads you the right words in the wrong language, verify still says NOT VERIFIED and adds a note that the two phones' languages differ. Screen readers read each word in its own language. See `docs/THREAT_MODEL.md` §3.2a.
+The words can be English, French or Chinese (Mandarin, in simplified or traditional characters; marked beta because no native speaker has checked the list yet). Each word is an 11-bit index, and a language only spells it, so the security is the same in every language. Each contact has its own word language: you choose it when you pair (preselected to your phone's default, chosen at first run), and you and the other person must choose the same one for each other. A backup carries each contact's language. If someone reads you the right words in the wrong language, verify still says NOT VERIFIED and adds a note that the two phones' languages differ. Each word is marked with its language for screen readers (VoiceOver uses this; Android's TalkBack reads words in the app's language, see `docs/LIMITATIONS.md` L-FEAT-3). See `docs/THREAT_MODEL.md` §3.2a.
 
 ### Properties
 

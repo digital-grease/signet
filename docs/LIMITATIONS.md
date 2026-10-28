@@ -364,16 +364,22 @@ Each limitation carries four fields:
     paper, but not text in the PDF.
   - In Chinese card text, dashes, ellipses and curly quotes come from
     the Latin font, so they have Latin widths.
-  - The spoken announcement of a verify result (Android's announce
-    call takes plain text) reads a language name in its note in the
-    interface's voice. Elsewhere language names, like the words, are
-    read in their own language.
+  - **Android's TalkBack reads words in the interface's language.**
+    Signet marks each word, and each language name, with its own
+    language for screen readers, and Flutter passes the marks to
+    Android. TalkBack 16 does not use them for Flutter text: checked on
+    an API 36.1 emulator, English and Chinese words were both spoken in
+    the app's language (a Mandarin voice on a Chinese interface, an
+    English voice on an English one), also with the language set on
+    the node itself. A Chinese contact's words on an English phone are
+    therefore read by the English voice. Set Signet's language to
+    Chinese (Android 13+ per-app language) to hear Chinese words in
+    Mandarin. iOS VoiceOver reads the marks; not tested on a device.
   - Chinese words are tagged zh-Hans-CN or zh-Hant-TW for screen
-    readers. On a phone with no Mandarin text-to-speech voice (some
-    OEM builds), Android reads them with its default voice, which may
-    spell the characters or skip them; the reading line (pinyin or
-    Zhuyin) is not read. Install a Mandarin voice in the system's
-    text-to-speech settings. Not yet tested on such a device.
+    readers; the reading line (pinyin or Zhuyin) is not read. A phone
+    with no Mandarin text-to-speech voice reads Chinese text with its
+    default voice, which may spell the characters or skip them; install
+    a Mandarin voice in the system's text-to-speech settings.
 - **Why:** no runtime Unicode normaliser by design; the CJK font is
   planned work (v0.5.0 plan D5).
 - **Status:** accepted for 0.5.0.
