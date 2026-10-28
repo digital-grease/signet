@@ -1,0 +1,27 @@
+Quand quelqu’un qui a la voix de votre mère appelle, paniqué, pour réclamer l’argent d’une caution, Signet vous permet de vérifier que c’est bien elle.
+
+Chaque contact associé produit une phrase de 4 mots qui change sans cesse, et que seul le téléphone de la vraie personne peut produire. Vous lui demandez de lire sa phrase à voix haute ; vous tapez ce que vous entendez. Bandeau vert : vérifié. Bandeau rouge : quelque chose ne va pas. Raccrochez et rappelez-la sur un numéro auquel vous faites déjà confiance.
+
+Signet fonctionne sur n’importe quel canal : appels vocaux, appels vidéo, SMS, e-mail, en personne. La seule condition est que vous vous soyez associés une fois, en personne ou par un canal de confiance, avant la crise.
+
+Conçu pour un monde où le clonage de voix par IA est à la portée de tous. Protège contre :
+
+* les deepfakes vocaux et vidéo en temps réel
+* les messages vocaux truqués préenregistrés
+* l’hameçonnage vocal qui s’appuie sur des informations biographiques glanées en ligne
+* les comptes de messagerie piratés, où l’attaquant a l’historique des discussions mais pas l’appareil associé
+* les détournements de carte SIM
+* les attaques par réflexion : le code change selon le sens, donc un attaquant qui vous répète votre propre phrase échoue
+
+Principes de base :
+
+* Aucun serveur. Aucun cloud. Aucun compte. Aucune autorisation INTERNET.
+* Aucune télémétrie. Aucune statistique d’usage. Aucune publicité.
+* Secrets protégés par le matériel via Android Keystore, et StrongBox quand il est disponible.
+* Hors ligne d’abord : le mode avion ne gêne aucune fonction.
+* Cryptographie validée par des RFC (X25519, HKDF-SHA-256, AES-256-GCM, BIP-39).
+* Logiciel libre, sous licence AGPL-3.0.
+
+Signet propose l’association en personne, l’association à distance, la récupération après la perte d’un téléphone par papier ou par fichier, plusieurs contacts, le renouvellement de la clé en personne, la sauvegarde groupée (tous vos contacts associés dans un seul fichier chiffré, déverrouillé par 8 mots), une grille question-réponse imprimable pour quand l’autre personne n’a pas son téléphone, un geste à vérifier pendant les appels vidéo, et le blocage des captures d’écran sur les écrans sensibles.
+
+Non inclus : les codes sous contrainte (en attente d’une analyse des abus possibles), la récupération de compte (il n’y a pas de compte), la sauvegarde dans le cloud (hors du projet, pour toujours).

@@ -39,12 +39,15 @@ void main() {
     }
   }
 
+  for (final locale in const [Locale('en'), Locale('fr')]) {
+  final l10n = lookupAppLocalizations(locale);
   for (final (size, scale) in const [
     (Size(360, 640), 1.3),
     (Size(360, 640), 2.0),
     (Size(412, 915), 2.0),
   ]) {
-    final tag = '${size.width.toInt()}x${size.height.toInt()} @${scale}x';
+    final tag =
+        '${locale.languageCode} ${size.width.toInt()}x${size.height.toInt()} @${scale}x';
     testWidgets('every pane fits or scrolls, $tag', (tester) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
@@ -56,9 +59,11 @@ void main() {
         container: container,
         child: MediaQuery(
           data: MediaQueryData(size: size, textScaler: TextScaler.linear(scale)),
-          child: const MaterialApp(
+          child: MaterialApp(
+            locale: locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: PairExchangeScreen(),
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const PairExchangeScreen(),
           ),
         ),
       ));
@@ -70,14 +75,13 @@ void main() {
       }
 
       await check('role choice');
-      expect(find.textContaining('never a photo or a video call'),
-          findsOneWidget);
+      expect(find.text(l10n.pairInPersonIntro), findsOneWidget);
 
       await ctrl.begin(InPersonRole.start);
       await check('show QR');
-      expect(find.text('NEXT'), findsOneWidget);
-      await tester.ensureVisible(find.text('Show the code as text'));
-      await tester.tap(find.text('Show the code as text'));
+      expect(find.text(l10n.pairInPersonNextButton), findsOneWidget);
+      await tester.ensureVisible(find.text(l10n.pairInPersonShowAsText));
+      await tester.tap(find.text(l10n.pairInPersonShowAsText));
       await check('show as text');
 
       ctrl.startNext();
@@ -87,15 +91,16 @@ void main() {
       await check('scan with idle hint');
       final cam = tester.getSize(find.byKey(const ValueKey('camera')));
       expect(cam.height, greaterThan(120), reason: 'camera visible: $cam');
-      await tester.tap(find.text('Paste a code instead'));
+      await tester.tap(find.text(l10n.pairInPersonPasteInstead));
       await check('paste');
 
       await ctrl.onScan(PairingCodeV2.encodeKey(Uint8List(32)));
       await check('failed');
-      expect(find.text('START OVER'), findsOneWidget);
+      expect(find.text(l10n.pairInPersonStartOverButton), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox()); // cancel the screen's timers
       await settle(tester);
     });
+  }
   }
 }

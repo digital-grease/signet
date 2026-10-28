@@ -289,7 +289,7 @@
   "homeRowMenuVerifyVideo": "Verify (video call)",
   "@homeRowMenuVerifyVideo": {"description": "Row menu item jumping into verify with video mode pre-enabled."},
 
-  "homeRowMenuVerifyVideoSubtitle": "Adds a physical-action check — deepfake-resistant",
+  "homeRowMenuVerifyVideoSubtitle": "Also checks a gesture. Resists deepfakes.",
   "@homeRowMenuVerifyVideoSubtitle": {"description": "Subtitle of the verify (video call) row menu item."},
 
   "homeRowMenuCrGrid": "Challenge-response grid",
@@ -1400,16 +1400,16 @@
   "verifyVideoModeSemanticsLabel": "Video call mode",
   "@verifyVideoModeSemanticsLabel": {"description": "Semantics label of the video-mode toggle row."},
 
-  "verifyVideoModeSemanticsHint": "Turn on to also check a physical action on video.",
+  "verifyVideoModeSemanticsHint": "Turn on to also check a gesture on video.",
   "@verifyVideoModeSemanticsHint": {"description": "Semantics hint of the video-mode toggle row."},
 
   "verifyVideoModeHeader": "VIDEO CALL //",
   "@verifyVideoModeHeader": {"description": "Monospace header of the video-mode toggle row. Keep the ' //' structure."},
 
-  "verifyVideoModeOnText": "Request a physical action too. Defeats deepfakes.",
-  "@verifyVideoModeOnText": {"description": "Toggle row description while video mode is on."},
+  "verifyVideoModeOnText": "Also checks a gesture. Never say it aloud. Defeats deepfakes.",
+  "@verifyVideoModeOnText": {"description": "Toggle row description while video mode is on. Must tell the verifier not to say the gesture aloud: the other person's phone already shows it, and a deepfake that hears it can perform it."},
 
-  "verifyVideoModeOffText": "Turn on to also check a physical action.",
+  "verifyVideoModeOffText": "Turn on to also check a gesture.",
   "@verifyVideoModeOffText": {"description": "Toggle row description while video mode is off."},
 
   "verifyWatchForHeader": "WATCH FOR //",

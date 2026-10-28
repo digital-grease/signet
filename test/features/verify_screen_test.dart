@@ -1155,4 +1155,79 @@ void main() {
       expect(find.textContaining(action.humanReadable), findsNothing);
     });
   });
+
+  group('VerifyScreen video mode in French', () {
+    // The verifier must be able to read the gesture they are judging, and
+    // the English LivenessAction.humanReadable must not leak into the fr UI.
+    const frAction = <LivenessAction, String>{
+      LivenessAction.lookUp: 'Levez les yeux vers le plafond',
+      LivenessAction.lookDown: 'Baissez les yeux vers le sol',
+      LivenessAction.lookLeft: 'Regardez par-dessus votre épaule gauche',
+      LivenessAction.lookRight: 'Regardez par-dessus votre épaule droite',
+      LivenessAction.touchNose: 'Touchez le bout de votre nez',
+      LivenessAction.touchForehead: 'Touchez votre front',
+      LivenessAction.touchLeftEar: 'Touchez votre oreille gauche',
+      LivenessAction.touchRightEar: 'Touchez votre oreille droite',
+    };
+    const frGerund = <LivenessAction, String>{
+      LivenessAction.lookUp: 'levant les yeux vers le plafond',
+      LivenessAction.lookDown: 'baissant les yeux vers le sol',
+      LivenessAction.lookLeft: 'regardant par-dessus votre épaule gauche',
+      LivenessAction.lookRight: 'regardant par-dessus votre épaule droite',
+      LivenessAction.touchNose: 'touchant le bout de votre nez',
+      LivenessAction.touchForehead: 'touchant votre front',
+      LivenessAction.touchLeftEar: 'touchant votre oreille gauche',
+      LivenessAction.touchRightEar: 'touchant votre oreille droite',
+    };
+
+    test('livenessActionText and livenessGerundText map every action in fr',
+        () {
+      final fr = lookupAppLocalizations(const Locale('fr'));
+      expect(frAction.keys.toSet(), LivenessAction.values.toSet());
+      expect(frGerund.keys.toSet(), LivenessAction.values.toSet());
+      for (final action in LivenessAction.values) {
+        expect(livenessActionText(action, fr), frAction[action],
+            reason: action.name);
+        expect(livenessGerundText(action, fr), frGerund[action],
+            reason: action.name);
+      }
+    });
+
+    testWidgets('WATCH FOR row and the judgment prompt show the fr action',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            secureStoreProvider.overrideWithValue(
+                FakeSecureStore(seeded: _mom, secret: _secret)),
+          ],
+          child: MaterialApp(
+            locale: const Locale('fr'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: _verifyScreen(initialVideoMode: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final action = await TotpWords.deriveLivenessAction(
+        secret: _secret,
+        unixTimeSeconds: _kFixedUnixTime,
+        senderRole: _mom.role.other,
+      );
+      expect(find.textContaining(frAction[action]!), findsWidgets);
+      expect(find.textContaining(action.humanReadable), findsNothing);
+
+      await _enterWords(tester, await _currentWordsFromMom());
+      await tester.pumpAndSettle();
+
+      final fr = lookupAppLocalizations(const Locale('fr'));
+      expect(
+        find.text(fr.verifyActionJudgmentPrompt(_mom.label, frAction[action]!)),
+        findsOneWidget,
+      );
+      expect(find.textContaining(action.humanReadable), findsNothing);
+    });
+  });
 }

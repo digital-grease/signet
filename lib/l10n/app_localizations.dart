@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_fr.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +96,7 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('fr'),
     Locale('zh'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
@@ -720,7 +722,7 @@ abstract class AppLocalizations {
   /// Subtitle of the verify (video call) row menu item.
   ///
   /// In en, this message translates to:
-  /// **'Adds a physical-action check — deepfake-resistant'**
+  /// **'Also checks a gesture. Resists deepfakes.'**
   String get homeRowMenuVerifyVideoSubtitle;
 
   /// Row menu item opening the challenge-response grid viewer.
@@ -2970,7 +2972,7 @@ abstract class AppLocalizations {
   /// Semantics hint of the video-mode toggle row.
   ///
   /// In en, this message translates to:
-  /// **'Turn on to also check a physical action on video.'**
+  /// **'Turn on to also check a gesture on video.'**
   String get verifyVideoModeSemanticsHint;
 
   /// Monospace header of the video-mode toggle row. Keep the ' //' structure.
@@ -2979,16 +2981,16 @@ abstract class AppLocalizations {
   /// **'VIDEO CALL //'**
   String get verifyVideoModeHeader;
 
-  /// Toggle row description while video mode is on.
+  /// Toggle row description while video mode is on. Must tell the verifier not to say the gesture aloud: the other person's phone already shows it, and a deepfake that hears it can perform it.
   ///
   /// In en, this message translates to:
-  /// **'Request a physical action too. Defeats deepfakes.'**
+  /// **'Also checks a gesture. Never say it aloud. Defeats deepfakes.'**
   String get verifyVideoModeOnText;
 
   /// Toggle row description while video mode is off.
   ///
   /// In en, this message translates to:
-  /// **'Turn on to also check a physical action.'**
+  /// **'Turn on to also check a gesture.'**
   String get verifyVideoModeOffText;
 
   /// Header of the expected-action row in video mode. Keep the ' //' structure.
@@ -3483,7 +3485,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'zh'].contains(locale.languageCode);
+      <String>['en', 'fr', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -3506,6 +3508,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'fr':
+      return AppLocalizationsFr();
     case 'zh':
       return AppLocalizationsZh();
   }
