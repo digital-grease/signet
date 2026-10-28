@@ -429,10 +429,13 @@ rendering).
   asks, and it never makes wrong words pass.
 - **Logs.** The scrubber redacts runs of 4 or more words of any shipped
   list or mix of lists (§2.10), and of 4 or more zh-1 words whether
-  they are written in characters (either script, glued or separated) or
-  in pinyin with each word as one token or as spaced syllables, also
-  inside `\uXXXX` and `%XX` escapes. Several pinyin words glued into
-  one token are not recognised.
+  they are written in characters (either script, glued or separated),
+  in pinyin with each word as one token or as spaced syllables, or in
+  Zhuyin, numbered or joined the Chinese way, also inside `\uXXXX`, `%XX`
+  and HTML escapes. Not recognised: several pinyin words glued into one
+  token, characters typed as homophones or read through the reading
+  table, and other encodings (double percent-encoding, `\x` bytes,
+  Kangxi radicals).
 
 ### 3.3 Transport package (long-distance pairing + lost-phone recovery)
 

@@ -46,6 +46,20 @@ String _toneDigits(String pinyin) {
   }).join(' ');
 }
 
+/// Tone marks decomposed (NFD), as macOS and some keyboards write them.
+String _nfd(String pinyin) {
+  const marks = {
+    'ā': 'ā', 'á': 'á', 'ǎ': 'ǎ', 'à': 'à', //
+    'ē': 'ē', 'é': 'é', 'ě': 'ě', 'è': 'è', //
+    'ī': 'ī', 'í': 'í', 'ǐ': 'ǐ', 'ì': 'ì', //
+    'ō': 'ō', 'ó': 'ó', 'ǒ': 'ǒ', 'ò': 'ò', //
+    'ū': 'ū', 'ú': 'ú', 'ǔ': 'ǔ', 'ù': 'ù', //
+    'ü': 'ü', 'ǖ': 'ǖ', 'ǘ': 'ǘ', //
+    'ǚ': 'ǚ', 'ǜ': 'ǜ',
+  };
+  return pinyin.split('').map((c) => marks[c] ?? c).join();
+}
+
 String _escaped(String text) => [
       for (final unit in text.codeUnits)
         '\\u${unit.toRadixString(16).padLeft(4, '0')}',
@@ -92,6 +106,43 @@ void main() {
         .map((ch) => '$ch︀')
         .join(),
     'zero-width spaces': (c) => c.map((w) => w.simplified).join('​'),
+    // From the scrubber review:
+    'Han list numbers': (c) => [
+          for (var i = 0; i < 4; i++) '${'一二三四'[i]}、${c[i].simplified}',
+        ].join('\n'),
+    'ordinal labels': (c) => [
+          for (var i = 0; i < 4; i++) '第${'一二三四'[i]}个：${c[i].simplified}',
+        ].join('，'),
+    'list with 和': (c) => '${c.take(3).map((w) => w.simplified).join('、')}'
+        '和${c[3].simplified}',
+    'list with and': (c) => '${c.take(3).map((w) => w.simplified).join(', ')}'
+        ' and ${c[3].simplified}',
+    'numbered tone digits': (c) => [
+          for (var i = 0; i < 4; i++) '${i + 1}. ${_toneDigits(c[i].pinyin)}',
+        ].join('\n'),
+    'tone digits, commas': (c) =>
+        c.map((w) => _toneDigits(w.pinyin).replaceAll(' ', '')).join(', '),
+    'NFD tone marks': (c) => c.map((w) => _nfd(w.pinyin)).join(' '),
+    'NFD tone marks, uppercase': (c) =>
+        c.map((w) => _nfd(w.pinyin).toUpperCase()).join(' '),
+    'u: for ü': (c) => c.map((w) => w.key.replaceAll('v', 'u:')).join(', '),
+    'characters spaced': (c) =>
+        c.map((w) => w.simplified.split('').join(' ')).join(' '),
+    'characters comma-spaced': (c) =>
+        c.map((w) => w.simplified.split('').join(',')).join(','),
+    'Zhuyin': (c) => c.map((w) => w.zhuyin).join(', '),
+    'Zhuyin toneless, glued per word': (c) => c
+        .map((w) => w.zhuyin.replaceAll(RegExp('[ˊˇˋ˙ ]'), ''))
+        .join(' '),
+    'HTML entities': (c) => [
+          for (final r in c.map((w) => w.simplified).join().runes) '&#$r;',
+        ].join(),
+    'HTML hex entities': (c) => [
+          for (final r in c.map((w) => w.simplified).join().runes)
+            '&#x${r.toRadixString(16)};',
+        ].join(),
+    r'double-escaped \u': (c) =>
+        _escaped(c.map((w) => w.simplified).join()).replaceAll(r'\u', r'\\u'),
   };
 
   group('4 zh-1 words are redacted', () {
@@ -99,7 +150,9 @@ void main() {
       test(name, () {
         for (final code in codes) {
           final input = format(code);
-          final left = _left(LogScrubber.scrub(input));
+          // The label before the first word ("一、", "第一个：") stays.
+          final left = _left(LogScrubber.scrub(input))
+              .replaceFirst(RegExp('^第?一个?[、：]'), '');
           expect(left, isNot(contains(_han)), reason: '$input -> $left');
           expect(left, isNot(contains(_latin)), reason: '$input -> $left');
           expect(left, isNot(contains(RegExp(r'\\u[0-9a-f]{4}'))),
@@ -109,6 +162,48 @@ void main() {
         }
       });
     }
+  });
+
+  test('u: is read as ü (a word with ü is in the code)', () {
+    final lv = zhWordlist.firstWhere((w) => w.key.contains('v'));
+    final input = [lv, ...codes.first.take(3)]
+        .map((w) => _toneDigits(w.pinyin).replaceAll('v', 'u:'))
+        .join(' ');
+    final left = _left(LogScrubber.scrub(input));
+    expect(left, isNot(contains(_latin)), reason: '$input -> $left');
+  });
+
+  test('a pinyin word an earlier pass redacted still counts in the run', () {
+    // A long tone-digit word looks like base64 to the mechanical pass.
+    final long = zhWordlist
+        .firstWhere((w) => _toneDigits(w.pinyin).replaceAll(' ', '').length >= 16);
+    for (final code in codes.take(20)) {
+      final words = [...code.take(2), long, ...code.skip(2).take(2)];
+      final input =
+          words.map((w) => _toneDigits(w.pinyin).replaceAll(' ', '')).join(', ');
+      final left = _left(LogScrubber.scrub(input));
+      expect(left, isNot(contains(_latin)), reason: '$input -> $left');
+      expect(left, isNot(contains(RegExp('[0-9]'))), reason: '$input -> $left');
+    }
+  });
+
+  test('malformed and hostile escapes never throw', () {
+    for (final input in [
+      '%F4%90%80%80', '%ED%A0%80', '%C0%80', '%E0%80%80', '%F8%88%80%80%80',
+      r'\u{110000}', r'\u{}', r'\uD800', '&#1114112;', '&#x;', '&#;',
+    ]) {
+      expect(() => LogScrubber.scrub('x $input y'), returnsNormally,
+          reason: input);
+    }
+  });
+
+  test('a long run of escape starts is quick', () {
+    final sw = Stopwatch()..start();
+    LogScrubber.scrub(r'\u{' * 200000);
+    LogScrubber.scrub('${r'\u{1' * 100000}}');
+    LogScrubber.scrub('&#' * 200000);
+    LogScrubber.scrub('%E5' * 200000);
+    expect(sw.elapsedMilliseconds, lessThan(5000));
   });
 
   test('at either parity: text glued before the words stays', () {
