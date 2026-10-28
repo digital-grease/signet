@@ -187,6 +187,16 @@ void main() {
     }
   });
 
+  test(r'pinyin joined by \n, with words starting n, t or r', () {
+    for (final input in [
+      r'nai cha\nai fen\nai ping\nai you',
+      r'nai1cha1\nai1fen1\nai1ping1\nai1you1',
+    ]) {
+      final left = _left(LogScrubber.scrub(input));
+      expect(left, isNot(contains(_latin)), reason: '$input -> $left');
+    }
+  });
+
   test('malformed and hostile escapes never throw', () {
     for (final input in [
       '%F4%90%80%80', '%ED%A0%80', '%C0%80', '%E0%80%80', '%F8%88%80%80%80',
