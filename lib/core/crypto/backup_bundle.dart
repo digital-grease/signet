@@ -63,13 +63,18 @@ class BackupFiles {
       '$wire\n'
       '$endOfPackageMarker\n';
 
+  /// [language]: the words' language by its own name ("Français"), a
+  /// comment for the person reading the file; parsers skip it, and the
+  /// fingerprint covers only the package.
   static String formatWords({
     required List<String> pakeWords,
     required String fingerprint,
     required DateTime generatedAt,
+    String? language,
   }) =>
       '# Signet backup WORDS · ${_timestamp(generatedAt)}\n'
       '# Fingerprint: $fingerprint\n'
+      '${language == null ? '' : '# Words: $language\n'}'
       '# Keep this apart from the PACKAGE file. Anyone who has both can\n'
       '# restore your pairings. Paper in a safe place is best.\n'
       '${pakeWords.join(' ')}\n';

@@ -12,6 +12,7 @@ import '../../core/crypto/transport_package.dart';
 import '../../core/crypto/verification.dart';
 import '../../core/crypto/wordlists.dart';
 import '../../core/models/relationship.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/models/label_policy.dart';
@@ -19,6 +20,7 @@ import '../../shared/label_input.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/package_error_text.dart';
 import '../../shared/widgets/secure_screen.dart';
+import '../../shared/widgets/word_language_row.dart';
 
 /// Sender side of Phase-10 long-distance pairing. Three linear phases:
 ///
@@ -45,9 +47,9 @@ enum _Phase { setup, shareAndWait, confirm }
 
 class _PairTransportOutScreenState
     extends ConsumerState<PairTransportOutScreen> {
-  /// The list this pairing's words are shown in. English until the
-  /// language row (plan Task 1.5) lets the user choose.
-  final WordList _wordList = WordList.english;
+  /// The list this pairing's words are shown in: the phone's default until
+  /// the user changes it on the setup or confirm pane (plan Task 1.5).
+  late WordList _wordList = ref.read(defaultWordListProvider);
 
   final TextEditingController _labelController = TextEditingController();
   String? _labelError;
@@ -117,6 +119,7 @@ class _PairTransportOutScreenState
         publicKey: keyPair.publicKey,
         labelHint: ownName,
         pakeWords: pakeWords,
+        wordListId: _wordList.id,
       );
       if (!mounted) return;
       setState(() {
@@ -209,6 +212,9 @@ class _PairTransportOutScreenState
           peerPublicKey: ldp.publicKey,
           totpSecret: totpSecret,
           phrase: phrase,
+          // No hint is a v0.4.0 receiver, whose words are English.
+          peerHint: TransportPackage.wordListIdOf(ldp.extensions) ??
+              WordList.english.id,
         );
         _phase = _Phase.confirm;
         _busy = false;
@@ -370,6 +376,14 @@ class _PairTransportOutScreenState
           onChanged: (_) {
             if (_ownNameError != null) setState(() => _ownNameError = null);
           },
+        ),
+        const SizedBox(height: 16),
+        // Before generating: the 8 words are minted in this language and
+        // the request carries it as a hint for the other phone.
+        WordLanguageRow(
+          selected: _wordList,
+          hint: l10n.wordLanguageRowPairingHint,
+          onChanged: _busy ? null : (list) => setState(() => _wordList = list),
         ),
         if (_errorText != null) ...<Widget>[
           const SizedBox(height: 8),
@@ -573,9 +587,23 @@ class _PairTransportOutScreenState
     final gen = _generated!;
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final peer = WordList.byId(conf.peerHint);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // Compare the languages first, then the words; switching re-shows
+        // the same phrase and is what the contact is saved with.
+        WordLanguageRow(
+          selected: _wordList,
+          hint: l10n.wordLanguageRowConfirmHint,
+          note: peer == null
+              ? l10n.wordLanguageTheyChoseUnknown
+              : peer != _wordList
+                  ? l10n.wordLanguageTheyChose(peer.endonym)
+                  : null,
+          onChanged: _busy ? null : (list) => setState(() => _wordList = list),
+        ),
+        const SizedBox(height: 16),
         _SectionHeader(l10n.commonPairTimePhraseHeader),
         const SizedBox(height: 8),
         Text(
@@ -668,7 +696,12 @@ class _ConfirmState {
     required this.peerPublicKey,
     required this.totpSecret,
     required this.phrase,
+    required this.peerHint,
   });
+
+  /// The other phone's word-list id, from its response's hint (`en` when
+  /// it sent none). Display only.
+  final String peerHint;
 
   final List<int> peerPublicKey;
   final List<int> totpSecret;

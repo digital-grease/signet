@@ -3257,7 +3257,7 @@ abstract class AppLocalizations {
   /// Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.
   ///
   /// In en, this message translates to:
-  /// **'The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.'**
+  /// **'The word language saved for {label} came from a damaged backup, so their words cannot be shown. On Home, press and hold {label}, choose Word language and pick the language you both use.'**
   String wordLanguageDamagedMessage(String label);
 
   /// Title of the first-run word-language picker. When the UI is not English the picker also shows the English title under it, so a person who cannot read the UI language still finds the screen.
@@ -3301,6 +3301,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SETTINGS'**
   String get homeWordLanguageNoticeSettings;
+
+  /// The word language of a pairing, a confirm screen or a set of backup words. {language} is the language's own name (English, Français).
+  ///
+  /// In en, this message translates to:
+  /// **'Words: {language}'**
+  String wordLanguageRowLabel(String language);
+
+  /// Button on the word-language row: opens the list of languages.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE'**
+  String get wordLanguageRowChange;
+
+  /// Under the word-language row when starting a pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'The words you will read to each other. Choose the same language on both phones.'**
+  String get wordLanguageRowPairingHint;
+
+  /// Under the word-language row on a pair-time phrase confirm screen. Switching re-shows the same phrase in another language.
+  ///
+  /// In en, this message translates to:
+  /// **'Both screens must show the same language before you compare the words.'**
+  String get wordLanguageRowConfirmHint;
+
+  /// Long-distance pairing confirm screen: the other phone's language choice (a hint carried in its package) differs from this phone's. {language} is its own name.
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone chose {language}. Tap CHANGE and choose {language} so your words match.'**
+  String wordLanguageTheyChose(String language);
+
+  /// Row menu item: change the word language of an existing contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Word language'**
+  String get homeRowMenuWordLanguage;
+
+  /// Body of the per-contact word-language dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with {label}, never because a caller asks you to.'**
+  String wordLanguageDialogBody(String label);
+
+  /// Per-contact word-language dialog: when the language was last changed, so a change a caller talked the user into leaves a visible trace. {date} is a local date.
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed {date}.'**
+  String wordLanguageChangedOn(String date);
+
+  /// Shown after changing a contact's word language.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}\'s words are now in {language}. Change it on {label}\'s phone too.'**
+  String wordLanguageChangedSnackbar(String label, String language);
+
+  /// Bulk restore, under the Overwrite option, when the backup's word language differs from the existing contact's. {language} is its own name.
+  ///
+  /// In en, this message translates to:
+  /// **'Also changes the word language to {language}.'**
+  String bulkImportOverwriteChangesLanguage(String language);
+
+  /// Screen-reader label of the CHANGE button on the word-language row.
+  ///
+  /// In en, this message translates to:
+  /// **'Change word language'**
+  String get wordLanguageRowChangeSemantics;
+
+  /// Subtitle of the Word language menu item when this version lacks the contact's language (or its backup tag was damaged).
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown: update Signet'**
+  String get homeRowMenuWordLanguageUnknown;
+
+  /// Under the 'Words: <language>' label above the 8 backup words: they restore on a phone whose default language differs.
+  ///
+  /// In en, this message translates to:
+  /// **'A Signet set to any language can read these words.'**
+  String get backupWordsAnyLanguage;
+
+  /// Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged).
+  ///
+  /// In en, this message translates to:
+  /// **'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.'**
+  String get wordLanguageTheyChoseUnknown;
 }
 
 class _AppLocalizationsDelegate

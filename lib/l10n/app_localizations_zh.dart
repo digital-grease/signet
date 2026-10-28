@@ -1873,7 +1873,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String wordLanguageDamagedMessage(String label) {
-    return '$label 的单词语言来自一个损坏的备份，因此无法显示其单词。请与 $label 重新配对，最好当面进行。';
+    return '$label 的单词语言来自一个损坏的备份，因此无法显示其单词。请在主屏幕上长按 $label，选择“单词语言”，然后选择你们双方使用的语言。';
   }
 
   @override
@@ -1901,4 +1901,59 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeWordLanguageNoticeSettings => '设置';
+
+  @override
+  String wordLanguageRowLabel(String language) {
+    return '单词：$language';
+  }
+
+  @override
+  String get wordLanguageRowChange => '更改';
+
+  @override
+  String get wordLanguageRowPairingHint => '这是你们要互相读给对方听的单词。请在两部手机上选择相同的语言。';
+
+  @override
+  String get wordLanguageRowConfirmHint => '比对单词之前，两边屏幕必须显示相同的语言。';
+
+  @override
+  String wordLanguageTheyChose(String language) {
+    return '对方手机选择了$language。请点“更改”并选择$language，让你们的单词一致。';
+  }
+
+  @override
+  String get homeRowMenuWordLanguage => '单词语言';
+
+  @override
+  String wordLanguageDialogBody(String label) {
+    return '$label 必须在他们的手机上选择相同的语言。在两部手机一致之前，验证会显示“验证未通过”。请和 $label 一起更改，绝不要因为来电者要求而更改。';
+  }
+
+  @override
+  String wordLanguageChangedOn(String date) {
+    return '上次更改：$date。';
+  }
+
+  @override
+  String wordLanguageChangedSnackbar(String label, String language) {
+    return '$label 的单词现在使用$language。请在 $label 的手机上也进行更改。';
+  }
+
+  @override
+  String bulkImportOverwriteChangesLanguage(String language) {
+    return '同时会把单词语言改为$language。';
+  }
+
+  @override
+  String get wordLanguageRowChangeSemantics => '更改单词语言';
+
+  @override
+  String get homeRowMenuWordLanguageUnknown => '未知：请更新 Signet';
+
+  @override
+  String get backupWordsAnyLanguage => '无论 Signet 设置为哪种语言，都能读取这些单词。';
+
+  @override
+  String get wordLanguageTheyChoseUnknown =>
+      '对方手机选择的单词语言是此版本 Signet 没有的。请更新 Signet，或双方都选择你们共有的语言。';
 }

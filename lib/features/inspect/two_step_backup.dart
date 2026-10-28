@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/crypto/backup_bundle.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/secure_clipboard.dart';
 import '../../shared/share_text_file.dart';
@@ -22,6 +23,7 @@ class TwoStepBackupSaver extends StatefulWidget {
     required this.fingerprint,
     required this.generatedAt,
     required this.onDone,
+    this.wordList,
     this.showQr = true,
     @visibleForTesting this.shareFile = shareTextFile,
     @visibleForTesting this.sweep = sweepSharedExports,
@@ -41,6 +43,13 @@ class TwoStepBackupSaver extends StatefulWidget {
 
   final String wire;
   final List<String> pakeWords;
+
+  /// The language [pakeWords] are in, labelled next to them and in the
+  /// WORDS file (English when null). Any Signet that has the list reads
+  /// them back, whatever its own default.
+  final WordList? wordList;
+
+  WordList get _wordList => wordList ?? WordList.english;
 
   /// Six-digit fingerprint ("123 456") shared by both files.
   final String fingerprint;
@@ -126,6 +135,7 @@ class _TwoStepBackupSaverState extends State<TwoStepBackupSaver> {
         pakeWords: widget.pakeWords,
         fingerprint: widget.fingerprint,
         generatedAt: widget.generatedAt,
+        language: widget._wordList.endonym,
       ),
     );
     if (ok && mounted) setState(() => _wordsSaved = true);
@@ -217,6 +227,12 @@ class _TwoStepBackupSaverState extends State<TwoStepBackupSaver> {
         else ...<Widget>[
           Text(l10n.backupStep2Body, style: muted),
           const SizedBox(height: 10),
+          Text(
+            l10n.wordLanguageRowLabel(widget._wordList.endonym),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          Text(l10n.backupWordsAnyLanguage, style: muted),
+          const SizedBox(height: 6),
           _WordsList(words: widget.pakeWords),
           const SizedBox(height: 6),
           Text(l10n.backupFingerprintLine(widget.fingerprint), style: muted),

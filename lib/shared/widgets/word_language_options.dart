@@ -13,7 +13,8 @@ class WordLanguageOptions extends StatelessWidget {
     required this.onChanged,
   });
 
-  final WordList selected;
+  /// Null selects nothing (a contact whose language this version lacks).
+  final WordList? selected;
   final ValueChanged<WordList> onChanged;
 
   /// The same three indices in every list, so the samples line up.

@@ -9,6 +9,8 @@ import 'package:signet/core/crypto/pairing.dart';
 import 'package:signet/core/crypto/transport_package.dart';
 import 'package:signet/core/crypto/verification.dart';
 import 'package:signet/core/crypto/wordlists.dart';
+import 'package:signet/core/prefs/app_prefs.dart';
+import 'package:signet/core/prefs/settings_controller.dart';
 import 'package:signet/core/providers.dart';
 import 'package:signet/core/theme/signet_theme.dart';
 import 'package:signet/features/pairing/pair_transport_in_screen.dart';
@@ -16,6 +18,7 @@ import 'package:signet/l10n/app_localizations.dart';
 import 'package:signet/shared/secure_clipboard.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 import '../support/secure_clipboard_recorder.dart';
 
 const goodPake = <String>[
@@ -51,6 +54,7 @@ Widget _wrap({required FakeSecureStore store}) {
   return ProviderScope(
     overrides: [
       secureStoreProvider.overrideWithValue(store),
+      appPrefsProvider.overrideWithValue(_prefs),
     ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -79,7 +83,10 @@ List<String> _shownPhrase(WidgetTester tester) => tester
     .map((t) => t.data ?? '')
     .toList();
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
   testWidgets('Unlock pane renders the expected sections', (tester) async {
     await tester.pumpWidget(_wrap(store: FakeSecureStore()));
     await tester.pumpAndSettle();
@@ -591,6 +598,109 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  group('word language (v0.5.0 Task 1.5)', () {
+    testWidgets(
+        'the sender\'s hint preselects; changing re-encodes the response '
+        'and is what the contact is saved with', (tester) async {
+      final senderKp = await PairingHandshake.generateEphemeralKeyPair();
+      final wire = await TransportPackage.encodeLdpRequest(
+        publicKey: senderKp.publicKey,
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+        wordListId: 'fr',
+      );
+      final store = FakeSecureStore();
+      await tester.pumpWidget(_wrap(store: store));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.text('Words: Français'), findsOneWidget);
+
+      Future<LdpPackage> response() {
+        final shown = tester
+            .widgetList<SelectableText>(find.byType(SelectableText))
+            .firstWhere((t) => (t.data ?? '').startsWith('signet:tp1:'))
+            .data!;
+        return TransportPackage.decodeLdpStrict(shown, pakeWords: goodPake);
+      }
+
+      final first = await response();
+      expect(TransportPackage.wordListIdOf(first.extensions), 'fr');
+      final shared = await PairingHandshake.deriveSharedSecret(
+          ours: senderKp, theirPublicKey: first.publicKey);
+      Future<List<String>> phrase(WordList list) =>
+          PairingVerification.deriveLongDistancePhrase(
+            sharedSecret: shared,
+            ownPublicKey: senderKp.publicKey,
+            peerPublicKey: first.publicKey,
+            list: list,
+          );
+      expect(_shownPhrase(tester), await phrase(WordList.french));
+
+      await tester.ensureVisible(find.text('CHANGE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CHANGE'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(_shownPhrase(tester), await phrase(WordList.english));
+      final second = await response();
+      expect(TransportPackage.wordListIdOf(second.extensions), 'en');
+      expect(second.publicKey, first.publicKey);
+
+      await tester.ensureVisible(find.text('COMMIT PAIR'));
+      await tester.tap(find.text('COMMIT PAIR'));
+      await tester.pumpAndSettle();
+      expect((await store.listRelationships()).single.wordLanguage, 'en');
+    });
+
+    testWidgets('a hint this version lacks keeps the default and says so',
+        (tester) async {
+      _prefs = await testPrefs({'signet.word_language': 'fr'});
+      final wire = await TransportPackage.encodeLdpRequest(
+        publicKey: (await PairingHandshake.generateEphemeralKeyPair())
+            .publicKey,
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+        wordListId: 'zh-9',
+      );
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.text('Words: Français'), findsOneWidget);
+      expect(find.textContaining('this version of Signet does not have'),
+          findsOneWidget);
+    });
+
+    testWidgets('no hint (a v0.4.0 sender, English words) preselects English',
+        (tester) async {
+      _prefs = await testPrefs({'signet.word_language': 'fr'});
+      final wire = await TransportPackage.encodeLdpRequest(
+        publicKey: (await PairingHandshake.generateEphemeralKeyPair())
+            .publicKey,
+        labelHint: 'Alice',
+        pakeWords: goodPake,
+      );
+      await tester.pumpWidget(_wrap(store: FakeSecureStore()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, wire);
+      await tester.pumpAndSettle();
+      await _enterPakeWords(tester, goodPake);
+      await tester.ensureVisible(find.text('UNLOCK PACKAGE'));
+      await tester.tap(find.text('UNLOCK PACKAGE'));
+      await tester.pumpAndSettle();
+      expect(find.text('Words: English'), findsOneWidget);
+    });
+  });
 }
 
 String _pad(String s) => s + '=' * ((4 - s.length % 4) % 4);

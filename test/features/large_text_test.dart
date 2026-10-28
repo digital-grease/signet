@@ -19,6 +19,7 @@ import 'package:signet/features/pairing/in_person_pairing_controller.dart';
 import 'package:signet/l10n/app_localizations.dart';
 
 import '../support/fake_secure_store.dart';
+import '../support/test_prefs.dart';
 import '../support/in_person_pairing.dart';
 
 const _cases = <(Size, double)>[
@@ -27,7 +28,10 @@ const _cases = <(Size, double)>[
   (Size(393, 852), 1.5),
 ];
 
+late AppPrefs _prefs;
+
 void main() {
+  setUp(() async => _prefs = await testPrefs());
   Future<void> setScreen(WidgetTester tester, Size size, double scale) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -142,6 +146,7 @@ void main() {
           container: container ??
               ProviderContainer(overrides: [
                 secureStoreProvider.overrideWithValue(FakeSecureStore()),
+                appPrefsProvider.overrideWithValue(_prefs),
               ]),
           child: MaterialApp.router(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -196,6 +201,7 @@ void main() {
     await tester.pumpWidget(UncontrolledProviderScope(
       container: ProviderContainer(overrides: [
         secureStoreProvider.overrideWithValue(FakeSecureStore()),
+        appPrefsProvider.overrideWithValue(_prefs),
       ]),
       child: const MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

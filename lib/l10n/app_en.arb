@@ -1542,7 +1542,7 @@
   "wordLanguageUnknownWarning": "Until this is fixed you cannot check {label}. Do not act on an urgent request: hang up and call {label} back on a number you already know.",
   "@wordLanguageUnknownWarning": {"description": "Second line of the unknown-word-language notice, in the warning colour. The notice must never read as softer than a NOT VERIFIED result: a caller may say 'the app is just out of date, it's fine'.", "placeholders": {"label": {"type": "String"}}},
 
-  "wordLanguageDamagedMessage": "The word language saved for {label} came from a damaged backup, so their words cannot be shown. Pair with {label} again, in person if you can.",
+  "wordLanguageDamagedMessage": "The word language saved for {label} came from a damaged backup, so their words cannot be shown. On Home, press and hold {label}, choose Word language and pick the language you both use.",
   "@wordLanguageDamagedMessage": {"description": "Replaces wordLanguageUnknownMessage when the backup's word-language tag was damaged (not a valid id): updating Signet would not help. Followed by the same warning line.", "placeholders": {"label": {"type": "String"}}},
 
   "wordLanguageTitle": "Word language",
@@ -1564,5 +1564,47 @@
   "@homeWordLanguageNotice": {"description": "One-time notice on Home after upgrading to the first version with word languages, when the phone's language has a word list. {language} is the language's own name (e.g. Français).", "placeholders": {"language": {"type": "String"}}},
 
   "homeWordLanguageNoticeSettings": "SETTINGS",
-  "@homeWordLanguageNoticeSettings": {"description": "Button on the one-time word-language notice: opens Settings."}
+  "@homeWordLanguageNoticeSettings": {"description": "Button on the one-time word-language notice: opens Settings."},
+
+  "wordLanguageRowLabel": "Words: {language}",
+  "@wordLanguageRowLabel": {"description": "The word language of a pairing, a confirm screen or a set of backup words. {language} is the language's own name (English, Français).", "placeholders": {"language": {"type": "String"}}},
+
+  "wordLanguageRowChange": "CHANGE",
+  "@wordLanguageRowChange": {"description": "Button on the word-language row: opens the list of languages."},
+
+  "wordLanguageRowPairingHint": "The words you will read to each other. Choose the same language on both phones.",
+  "@wordLanguageRowPairingHint": {"description": "Under the word-language row when starting a pairing."},
+
+  "wordLanguageRowConfirmHint": "Both screens must show the same language before you compare the words.",
+  "@wordLanguageRowConfirmHint": {"description": "Under the word-language row on a pair-time phrase confirm screen. Switching re-shows the same phrase in another language."},
+
+  "wordLanguageTheyChose": "The other phone chose {language}. Tap CHANGE and choose {language} so your words match.",
+  "@wordLanguageTheyChose": {"description": "Long-distance pairing confirm screen: the other phone's language choice (a hint carried in its package) differs from this phone's. {language} is its own name.", "placeholders": {"language": {"type": "String"}}},
+
+  "homeRowMenuWordLanguage": "Word language",
+  "@homeRowMenuWordLanguage": {"description": "Row menu item: change the word language of an existing contact."},
+
+  "wordLanguageDialogBody": "{label} must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with {label}, never because a caller asks you to.",
+  "@wordLanguageDialogBody": {"description": "Body of the per-contact word-language dialog.", "placeholders": {"label": {"type": "String"}}},
+
+  "wordLanguageChangedOn": "Last changed {date}.",
+  "@wordLanguageChangedOn": {"description": "Per-contact word-language dialog: when the language was last changed, so a change a caller talked the user into leaves a visible trace. {date} is a local date.", "placeholders": {"date": {"type": "String"}}},
+
+  "wordLanguageChangedSnackbar": "{label}'s words are now in {language}. Change it on {label}'s phone too.",
+  "@wordLanguageChangedSnackbar": {"description": "Shown after changing a contact's word language.", "placeholders": {"label": {"type": "String"}, "language": {"type": "String"}}},
+
+  "bulkImportOverwriteChangesLanguage": "Also changes the word language to {language}.",
+  "@bulkImportOverwriteChangesLanguage": {"description": "Bulk restore, under the Overwrite option, when the backup's word language differs from the existing contact's. {language} is its own name.", "placeholders": {"language": {"type": "String"}}},
+
+  "wordLanguageRowChangeSemantics": "Change word language",
+  "@wordLanguageRowChangeSemantics": {"description": "Screen-reader label of the CHANGE button on the word-language row."},
+
+  "homeRowMenuWordLanguageUnknown": "Unknown: update Signet",
+  "@homeRowMenuWordLanguageUnknown": {"description": "Subtitle of the Word language menu item when this version lacks the contact's language (or its backup tag was damaged)."},
+
+  "backupWordsAnyLanguage": "A Signet set to any language can read these words.",
+  "@backupWordsAnyLanguage": {"description": "Under the 'Words: <language>' label above the 8 backup words: they restore on a phone whose default language differs."},
+
+  "wordLanguageTheyChoseUnknown": "The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.",
+  "@wordLanguageTheyChoseUnknown": {"description": "Long-distance pairing: the other phone's language hint names a list this version lacks (or is damaged)."}
 }

@@ -273,6 +273,8 @@ void main() {
 
         await tester.longPress(find.text('Mom'));
         await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Unpair from Mom'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Unpair from Mom'));
         await tester.pumpAndSettle();
 
@@ -297,6 +299,8 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Unpair from Mom'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Unpair from Mom'));
         await tester.pumpAndSettle();
@@ -366,6 +370,8 @@ void main() {
         await tester.pumpWidget(_wrap(store: store));
         await tester.pumpAndSettle();
         await tester.longPress(find.text('Mom'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Unpair from Mom'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Unpair from Mom'));
         await tester.pumpAndSettle();

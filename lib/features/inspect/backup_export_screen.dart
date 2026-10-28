@@ -184,6 +184,7 @@ class _BackupContent extends StatelessWidget {
         TwoStepBackupSaver(
           wire: generated.wire,
           pakeWords: generated.pakeWords,
+          wordList: generated.relationship.wordList,
           fingerprint: generated.fingerprint,
           generatedAt: generated.generatedAt,
           onDone: () => context.go('/'),

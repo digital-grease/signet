@@ -12,6 +12,7 @@ import '../../core/prefs/settings_controller.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
+import '../../shared/widgets/word_language_options.dart';
 import '../../core/models/label_policy.dart';
 import '../../shared/label_input.dart';
 import '../pairing/in_person_pairing_controller.dart';
@@ -36,6 +37,77 @@ class HomeScreen extends ConsumerWidget {
         relationship.copyWith(silentHaptics: !relationship.silentHaptics);
     await ref.read(secureStoreProvider).updateRelationshipMetadataV2(updated);
     ref.invalidate(relationshipsProvider);
+  }
+
+  /// Change an existing contact's word language (plan Task 1.5). The other
+  /// phone must change it too; until then verify fails, which the dialog
+  /// says. The change is dated so it stays visible.
+  Future<void> _editWordLanguage(
+    BuildContext context,
+    WidgetRef ref,
+    Relationship relationship,
+  ) async {
+    final changedAt = relationship.wordLanguageChangedAt;
+    final picked = await showDialog<WordList>(
+      context: context,
+      builder: (dialogContext) {
+        var selected = relationship.knownWordList;
+        return StatefulBuilder(
+          builder: (stfContext, setState) {
+            final l10n = AppLocalizations.of(stfContext);
+            return AlertDialog(
+              title: Text(l10n.homeRowMenuWordLanguage),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // The choices first: at 2x text the body pushed them
+                    // below Save and Cancel.
+                    WordLanguageOptions(
+                      selected: selected,
+                      onChanged: (list) => setState(() => selected = list),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(l10n.wordLanguageDialogBody(relationship.label)),
+                    if (changedAt != null) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(l10n.wordLanguageChangedOn(
+                        MaterialLocalizations.of(stfContext)
+                            .formatMediumDate(changedAt.toLocal()),
+                      )),
+                    ],
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.commonCancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(selected),
+                  child: Text(l10n.homeSaveButton),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (picked == null || picked.id == relationship.wordLanguage) return;
+    await ref.read(secureStoreProvider).updateRelationshipMetadataV2(
+          relationship.copyWith(
+            wordLanguage: picked.id,
+            wordLanguageChangedAt: DateTime.now().toUtc(),
+          ),
+        );
+    ref.invalidate(relationshipsProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(AppLocalizations.of(context)
+          .wordLanguageChangedSnackbar(relationship.label, picked.endonym)),
+    ));
   }
 
   Future<void> _editLabel(
@@ -284,6 +356,18 @@ class HomeScreen extends ConsumerWidget {
                   onTap: () => Navigator.of(sheetCtx).pop('haptics'),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.translate),
+                  title: Text(
+                    AppLocalizations.of(sheetCtx).homeRowMenuWordLanguage,
+                  ),
+                  subtitle: Text(
+                    relationship.knownWordList?.endonym ??
+                        AppLocalizations.of(sheetCtx)
+                            .homeRowMenuWordLanguageUnknown,
+                  ),
+                  onTap: () => Navigator.of(sheetCtx).pop('word-language'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.fingerprint_outlined),
                   title: Text(
                     AppLocalizations.of(sheetCtx).homeRowMenuShowBinding,
@@ -311,17 +395,20 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   onTap: () => Navigator.of(sheetCtx).pop('cr-grid'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.autorenew),
-                  title: Text(
-                    AppLocalizations.of(sheetCtx)
-                        .homeRowMenuRekey(relationship.label),
+                // Not while the language is unknown: the new secret's
+                // words could not be shown here either.
+                if (relationship.knownWordList != null)
+                  ListTile(
+                    leading: const Icon(Icons.autorenew),
+                    title: Text(
+                      AppLocalizations.of(sheetCtx)
+                          .homeRowMenuRekey(relationship.label),
+                    ),
+                    subtitle: Text(
+                      AppLocalizations.of(sheetCtx).homeRowMenuRekeySubtitle,
+                    ),
+                    onTap: () => Navigator.of(sheetCtx).pop('rekey'),
                   ),
-                  subtitle: Text(
-                    AppLocalizations.of(sheetCtx).homeRowMenuRekeySubtitle,
-                  ),
-                  onTap: () => Navigator.of(sheetCtx).pop('rekey'),
-                ),
                 ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: Text(
@@ -354,6 +441,8 @@ class HomeScreen extends ConsumerWidget {
         await _editLabel(context, ref, relationship);
       case 'haptics':
         await _toggleSilentHaptics(ref, relationship);
+      case 'word-language':
+        await _editWordLanguage(context, ref, relationship);
       case 'binding':
         unawaited(context.push('/inspect/binding/${relationship.id}'));
       case 'liveness':
@@ -368,6 +457,7 @@ class HomeScreen extends ConsumerWidget {
         ref.read(inPersonPairingControllerProvider.notifier).startRekey(
               id: relationship.id,
               label: relationship.label,
+              wordList: relationship.knownWordList,
             );
         context.go('/pair/exchange');
       case 'export':

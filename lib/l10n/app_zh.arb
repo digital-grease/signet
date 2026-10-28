@@ -910,7 +910,7 @@
 
   "wordLanguageUnknownWarning": "在此问题解决之前，你无法验证 {label}。不要按紧急要求行事：请挂断电话，用你已知的号码回拨给 {label}。",
 
-  "wordLanguageDamagedMessage": "{label} 的单词语言来自一个损坏的备份，因此无法显示其单词。请与 {label} 重新配对，最好当面进行。",
+  "wordLanguageDamagedMessage": "{label} 的单词语言来自一个损坏的备份，因此无法显示其单词。请在主屏幕上长按 {label}，选择“单词语言”，然后选择你们双方使用的语言。",
 
   "wordLanguageTitle": "单词语言",
 
@@ -924,5 +924,33 @@
 
   "homeWordLanguageNotice": "Signet 现在可以用{language}显示你的单词。要让新联系人使用它，请在设置中选择。已有的联系人仍使用英语，直到你们双方都更改：在主屏幕上长按该联系人。",
 
-  "homeWordLanguageNoticeSettings": "设置"
+  "homeWordLanguageNoticeSettings": "设置",
+
+  "wordLanguageRowLabel": "单词：{language}",
+
+  "wordLanguageRowChange": "更改",
+
+  "wordLanguageRowPairingHint": "这是你们要互相读给对方听的单词。请在两部手机上选择相同的语言。",
+
+  "wordLanguageRowConfirmHint": "比对单词之前，两边屏幕必须显示相同的语言。",
+
+  "wordLanguageTheyChose": "对方手机选择了{language}。请点“更改”并选择{language}，让你们的单词一致。",
+
+  "homeRowMenuWordLanguage": "单词语言",
+
+  "wordLanguageDialogBody": "{label} 必须在他们的手机上选择相同的语言。在两部手机一致之前，验证会显示“验证未通过”。请和 {label} 一起更改，绝不要因为来电者要求而更改。",
+
+  "wordLanguageChangedOn": "上次更改：{date}。",
+
+  "wordLanguageChangedSnackbar": "{label} 的单词现在使用{language}。请在 {label} 的手机上也进行更改。",
+
+  "bulkImportOverwriteChangesLanguage": "同时会把单词语言改为{language}。",
+
+  "wordLanguageRowChangeSemantics": "更改单词语言",
+
+  "homeRowMenuWordLanguageUnknown": "未知：请更新 Signet",
+
+  "backupWordsAnyLanguage": "无论 Signet 设置为哪种语言，都能读取这些单词。",
+
+  "wordLanguageTheyChoseUnknown": "对方手机选择的单词语言是此版本 Signet 没有的。请更新 Signet，或双方都选择你们共有的语言。"
 }

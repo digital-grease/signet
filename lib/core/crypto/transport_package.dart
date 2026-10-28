@@ -147,8 +147,9 @@ class TransportPackage {
   );
 
   /// Non-critical: the word-list id a contact's words use (`en`, `fr`;
-  /// [WordList.id]), as UTF-8, in each LPR and BLK record. Older builds
-  /// ignore it and restore the contact as English. Registered in
+  /// [WordList.id]), as UTF-8, in each LPR and BLK record (older builds
+  /// ignore it and restore the contact as English) and as a display-only
+  /// hint in LDP requests and responses. Registered in
   /// docs/WIRE_FORMAT.md.
   static const int wordListTag = 0x01;
 
@@ -428,10 +429,15 @@ class TransportPackage {
   /// strong-phrase tag. A receiver on Signet 0.3.6 or older cannot read
   /// version 2 (its generic error); one that reads version 2 but not this
   /// tag refuses it as needing a newer Signet.
+  ///
+  /// [wordListId]: the sender's word language for this pair, carried as
+  /// [wordListTag] to preselect the receiver's language row. Display
+  /// only: a stripped or forged hint can only make the phrases differ.
   static Future<String> encodeLdpRequest({
     required List<int> publicKey,
     required String labelHint,
     required List<String> pakeWords,
+    String? wordListId,
     DateTime? now,
     Random? nonceRandom,
   }) => encodeLdp(
@@ -441,14 +447,20 @@ class TransportPackage {
     now: now,
     nonceRandom: nonceRandom,
     version: _versionV2,
-    extensions: const <TransportExtension>[_ldpStrongPhrase],
+    extensions: <TransportExtension>[
+      _ldpStrongPhrase,
+      if (wordListId != null) wordListExtension(wordListId),
+    ],
   );
 
   /// The response to a request accepted by [decodeLdpStrict]: same
   /// version and tag. The receiver's own label is never sent.
+  /// [wordListId] is the receiver's final word language, a display-only
+  /// hint as in [encodeLdpRequest].
   static Future<String> encodeLdpResponse({
     required List<int> publicKey,
     required List<String> pakeWords,
+    String? wordListId,
     DateTime? now,
     Random? nonceRandom,
   }) => encodeLdp(
@@ -458,7 +470,10 @@ class TransportPackage {
     now: now,
     nonceRandom: nonceRandom,
     version: _versionV2,
-    extensions: const <TransportExtension>[_ldpStrongPhrase],
+    extensions: <TransportExtension>[
+      _ldpStrongPhrase,
+      if (wordListId != null) wordListExtension(wordListId),
+    ],
   );
 
   /// [decodeLdp], then require the strong-phrase tag. Without it the

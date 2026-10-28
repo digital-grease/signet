@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/crypto/pair_role.dart';
 import '../../core/crypto/transport_package.dart';
+import '../../core/crypto/wordlists.dart';
 import '../../core/models/label_policy.dart';
 import '../../core/models/relationship.dart';
 import '../../core/providers.dart';
@@ -369,8 +370,24 @@ class _BulkBackupImportScreenState
         ),
       );
     }
+    // Overwrite takes the backup's word language; say so where it differs.
+    final byLabel = <String, Relationship>{
+      for (final r in existing) LabelPolicy.clean(r.label): r,
+    };
+    final languageChanges = <int, String>{};
+    for (final i in _conflictIndexes) {
+      final target = byLabel[_label(i)];
+      final language = TransportPackage.wordListIdOf(
+              widget.decoded.records[i].extensions) ??
+          Relationship.defaultWordLanguage;
+      if (target != null && target.wordLanguage != language) {
+        languageChanges[i] = WordList.byId(language)?.endonym ??
+            AppLocalizations.of(context).homeRowMenuWordLanguageUnknown;
+      }
+    }
     return _PreviewPane(
       records: widget.decoded.records,
+      overwriteLanguageChanges: languageChanges,
       repairedCount: widget.decoded.repairedCount,
       skippedNeedsNewerVersion: widget.decoded.skippedNeedsNewerVersion,
       dispositions: _dispositions,
@@ -400,6 +417,7 @@ PairRole _scratchRole() => PairRole.a;
 class _PreviewPane extends StatelessWidget {
   const _PreviewPane({
     required this.records,
+    required this.overwriteLanguageChanges,
     required this.repairedCount,
     required this.skippedNeedsNewerVersion,
     required this.dispositions,
@@ -412,6 +430,9 @@ class _PreviewPane extends StatelessWidget {
   });
 
   final List<BlkRelationshipRecord> records;
+
+  /// Record index to the language Overwrite would switch its contact to.
+  final Map<int, String> overwriteLanguageChanges;
   final int repairedCount;
   final int skippedNeedsNewerVersion;
   final Map<int, _Disposition> dispositions;
@@ -476,6 +497,7 @@ class _PreviewPane extends StatelessWidget {
             record: records[i],
             isConflict: conflictIndexes.contains(i),
             canOverwrite: !ambiguousIndexes.contains(i),
+            overwriteLanguage: overwriteLanguageChanges[i],
             disposition: dispositions[i] ?? _Disposition.skip,
             onChange: (next) => onChangeDisposition(i, next),
           ),
@@ -518,6 +540,7 @@ class _RecordRow extends StatelessWidget {
     required this.record,
     required this.isConflict,
     required this.canOverwrite,
+    this.overwriteLanguage,
     required this.disposition,
     required this.onChange,
   });
@@ -526,6 +549,9 @@ class _RecordRow extends StatelessWidget {
   final BlkRelationshipRecord record;
   final bool isConflict;
   final bool canOverwrite;
+
+  /// Set when Overwrite would change the contact's word language.
+  final String? overwriteLanguage;
   final _Disposition disposition;
   final ValueChanged<_Disposition> onChange;
 
@@ -651,14 +677,27 @@ class _RecordRow extends StatelessWidget {
               ),
               onChanged: onChange,
             ),
-            if (canOverwrite)
+            if (canOverwrite) ...<Widget>[
               _ConflictRadio(
                 value: _Disposition.overwrite,
                 group: disposition,
                 label: l10n.bulkBackupImportOverwriteOption,
                 onChanged: onChange,
-              )
-            else
+              ),
+              if (overwriteLanguage != null)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 36),
+                  child: Text(
+                    l10n.bulkImportOverwriteChangesLanguage(
+                        overwriteLanguage!),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+            ] else
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(

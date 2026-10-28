@@ -1976,7 +1976,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wordLanguageDamagedMessage(String label) {
-    return 'The word language saved for $label came from a damaged backup, so their words cannot be shown. Pair with $label again, in person if you can.';
+    return 'The word language saved for $label came from a damaged backup, so their words cannot be shown. On Home, press and hold $label, choose Word language and pick the language you both use.';
   }
 
   @override
@@ -2005,4 +2005,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeWordLanguageNoticeSettings => 'SETTINGS';
+
+  @override
+  String wordLanguageRowLabel(String language) {
+    return 'Words: $language';
+  }
+
+  @override
+  String get wordLanguageRowChange => 'CHANGE';
+
+  @override
+  String get wordLanguageRowPairingHint =>
+      'The words you will read to each other. Choose the same language on both phones.';
+
+  @override
+  String get wordLanguageRowConfirmHint =>
+      'Both screens must show the same language before you compare the words.';
+
+  @override
+  String wordLanguageTheyChose(String language) {
+    return 'The other phone chose $language. Tap CHANGE and choose $language so your words match.';
+  }
+
+  @override
+  String get homeRowMenuWordLanguage => 'Word language';
+
+  @override
+  String wordLanguageDialogBody(String label) {
+    return '$label must choose the same language on their phone. Until both phones match, verify says NOT VERIFIED. Change it together with $label, never because a caller asks you to.';
+  }
+
+  @override
+  String wordLanguageChangedOn(String date) {
+    return 'Last changed $date.';
+  }
+
+  @override
+  String wordLanguageChangedSnackbar(String label, String language) {
+    return '$label\'s words are now in $language. Change it on $label\'s phone too.';
+  }
+
+  @override
+  String bulkImportOverwriteChangesLanguage(String language) {
+    return 'Also changes the word language to $language.';
+  }
+
+  @override
+  String get wordLanguageRowChangeSemantics => 'Change word language';
+
+  @override
+  String get homeRowMenuWordLanguageUnknown => 'Unknown: update Signet';
+
+  @override
+  String get backupWordsAnyLanguage =>
+      'A Signet set to any language can read these words.';
+
+  @override
+  String get wordLanguageTheyChoseUnknown =>
+      'The other phone chose a word language this version of Signet does not have. Update Signet, or both choose a language you both have.';
 }

@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/crypto/wordlists.dart';
+import '../../core/prefs/settings_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/fill_or_scroll.dart';
 import '../../shared/label_input.dart';
 import '../../shared/widgets/big_button.dart';
+import '../../shared/widgets/word_language_row.dart';
 import '../../core/models/label_policy.dart';
 import 'in_person_pairing_controller.dart';
 
@@ -23,6 +26,10 @@ class PairStartScreen extends ConsumerStatefulWidget {
 class _PairStartScreenState extends ConsumerState<PairStartScreen> {
   final TextEditingController _label = TextEditingController();
   String _error = '';
+
+  /// The word language for this pairing: the phone's default until the
+  /// user changes it, so keeping it costs no tap (plan Task 1.5).
+  late WordList _wordList = ref.read(defaultWordListProvider);
 
   @override
   void initState() {
@@ -43,7 +50,9 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
           : labelRejectionText(rejection, l10n));
       return;
     }
-    ref.read(inPersonPairingControllerProvider.notifier).setLabel(label);
+    ref
+        .read(inPersonPairingControllerProvider.notifier)
+        .setLabel(label, wordList: _wordList);
     context.go('/pair/exchange');
   }
 
@@ -105,6 +114,12 @@ class _PairStartScreenState extends ConsumerState<PairStartScreen> {
                 onChanged: (_) {
                   if (_error.isNotEmpty) setState(() => _error = '');
                 },
+              ),
+              const SizedBox(height: 16),
+              WordLanguageRow(
+                selected: _wordList,
+                hint: l10n.wordLanguageRowPairingHint,
+                onChanged: (list) => setState(() => _wordList = list),
               ),
               const Spacer(),
               BigButton(
