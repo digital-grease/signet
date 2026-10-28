@@ -881,7 +881,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pairCompletePracticeBody(String label) {
-    return '现在练习验证最容易。请 $label 打开 Signet，点你的名字，念出“显示我的单词”界面上的 4 个单词。把你听到的输入到验证输入框。绿色横幅出现时，你就知道它是真实可用的。';
+    return '现在练习验证最容易。请 $label 打开 Signet，点你的名字，念出“显示我的 4 个单词”界面上的 4 个单词。把你听到的输入到验证输入框。绿色横幅出现时，你就知道它是真实可用的。';
   }
 
   @override
@@ -889,7 +889,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pairCompleteRemoteBody(String label) {
-    return '下次和 $label 说话时，请对方打开 Signet，点你的名字，念出“显示我的单词”界面上的 4 个单词。把你听到的输入到验证输入框。绿色横幅出现时，你就知道它是真实可用的。';
+    return '下次和 $label 说话时，请对方打开 Signet，点你的名字，念出“显示我的 4 个单词”界面上的 4 个单词。把你听到的输入到验证输入框。绿色横幅出现时，你就知道它是真实可用的。';
   }
 
   @override
@@ -1361,7 +1361,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return '这 4 个单词来自你和 $label 共享的密钥，可能与你们最初配对时核对的单词不同，这是正常的。请 $label 打开 Signet，进入同一个界面。当面比对，或拨打你原本就有的号码比对。如果两部手机现在显示相同的 4 个单词，说明配对完好。';
+    return '这 4 个单词来自你和 $label 共享的密钥，可能与你们最初配对时核对的单词不同，这是正常的。请 $label 打开 Signet，进入同一个界面。当面比对，或拨打你原本就有的对方号码比对。如果两部手机现在显示相同的 4 个单词，说明配对完好。';
   }
 
   @override
@@ -1988,7 +1988,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get faqA15 =>
-      'Signet 的中文单词是借助词典、词频数据、计算机听辨测试和 AI 模型审阅挑选的，确保在普通话里任意两个单词听起来都不相同。目前还没有以中文为母语的人审核过这份词表，中文界面也是同样翻译和检查的。\n\n这些单词与英文或法文单词同样安全。如果某个单词难说、难听清，或容易和别的单词混淆，请通过下方的“联系我们”告诉我们。这份词表本身不会改变，所以你的配对会继续有效，但以后的新词表可以修正它。';
+      'Signet 的中文单词是借助词典、词频数据、计算机听辨测试和 AI 模型审阅挑选的，目的是让任意两个单词在普通话里听起来都不相似。目前还没有以中文为母语的人审核过这份词表或中文界面，中文界面同样是这样翻译的。\n\n这些单词与英文或法文单词同样安全。如果某个单词不好念、不容易听清，或容易和别的单词混淆，请通过下方的“联系我们”告诉我们。这份词表本身不会改变，所以你的配对会继续有效，但以后的新词表可以修正这类问题。';
 
   @override
   String get aboutLicensesButton => '开源许可';
@@ -2887,7 +2887,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String pairCompleteRemoteBody(String label) {
-    return '下次和 $label 說話時，請對方打開 Signet，點選你的名字，唸出「顯示我的字詞」畫面上的 4 個字詞。把你聽到的輸入到驗證欄位。綠色橫幅出現時，你就知道它真的可用。';
+    return '下次和 $label 說話時，請對方開啟 Signet，點你的名字，唸出「顯示我的 4 個字詞」畫面上的 4 個字詞。把你聽到的輸入驗證欄位。綠色橫幅出現時，你就知道它真的可用。';
   }
 
   @override
@@ -3359,7 +3359,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String bindingPhraseExplanation(String label) {
-    return '這 4 個字詞來自你和 $label 共享的金鑰，可能與你們最初配對時核對的字詞不同，這是正常的。請 $label 開啟 Signet，點開同一個畫面。當面比對，或打電話到你原本就有的號碼比對。如果兩部手機現在顯示相同的 4 個字詞，就表示配對完好。';
+    return '這 4 個字詞來自你和 $label 共享的金鑰，可能與你們最初配對時核對的字詞不同，這是正常的。請 $label 開啟 Signet，點開同一個畫面。當面比對，或撥打你原本就有的對方號碼比對。如果兩部手機現在顯示相同的 4 個字詞，就表示配對完好。';
   }
 
   @override
@@ -3986,7 +3986,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get faqA15 =>
-      'Signet 的中文字詞是借助辭典、詞頻資料、電腦聽辨測試和 AI 模型審閱挑選的，確保在國語裡任兩個字詞聽起來都不相同。目前還沒有以中文為母語的人審核過這份字詞表，中文介面也是同樣翻譯和檢查的。\n\n這些字詞與英文或法文字詞同樣安全。如果某個字詞難說、難聽清楚，或容易和別的字詞混淆，請透過下方的「聯絡我們」告訴我們。這份字詞表本身不會改變，所以你的配對會繼續有效，但日後的新字詞表可以修正它。';
+      'Signet 的中文字詞是借助辭典、詞頻資料、電腦聽辨測試和 AI 模型審閱挑選的，目的是讓任兩個字詞在國語裡聽起來都不相似。目前還沒有以中文為母語的人審核過這份字詞表或中文介面，中文介面同樣是這樣翻譯的。\n\n這些字詞與英文或法文字詞同樣安全。如果某個字詞不好唸、不容易聽清楚，或容易和別的字詞混淆，請透過下方的「聯絡我們」告訴我們。這份字詞表本身不會改變，所以你的配對會繼續有效，但日後的新字詞表可以修正這類問題。';
 
   @override
   String get aboutLicensesButton => '開放原始碼授權';
@@ -3996,5 +3996,5 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsChineseScriptBody =>
-      '這支手機上中文字詞的寫法。兩種寫法是同一組字詞，所以聯絡人可以使用另一種寫法。';
+      '這部手機上中文字詞的寫法。兩種寫法是同一組字詞，所以聯絡人可以使用另一種寫法。';
 }
