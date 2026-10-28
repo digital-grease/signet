@@ -128,6 +128,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Latin subset of Noto Sans for the printed challenge grid card, which
+  # must render French text (built by tool/fonts/subset_noto.sh; OFL 1.1,
+  # assets/fonts/OFL.txt).
+  assets:
+    - assets/fonts/NotoSans-Regular-Latin.ttf
+    - assets/fonts/NotoSans-Bold-Latin.ttf
+    - assets/fonts/OFL.txt
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

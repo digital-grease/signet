@@ -80,11 +80,13 @@ class _CrGridScreenState extends ConsumerState<CrGridScreen> {
     final grid = _grid;
     final relationship = _relationship;
     if (grid == null || relationship == null) return;
+    final locale = Localizations.localeOf(context);
     await Printing.layoutPdf(
       onLayout: (format) => CrGridPdf.build(
         peerLabel: relationship.label,
         grid: grid,
         generatedAt: DateTime.now(),
+        uiLocale: locale,
       ),
       name: 'signet-cr-${relationship.label}.pdf',
     );

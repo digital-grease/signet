@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' show Locale;
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -20,27 +21,57 @@ import '../../l10n/app_localizations.dart';
 class CrGridPdf {
   const CrGridPdf._();
 
-  /// String catalog used for the printed card. See [build].
-  static final AppLocalizations printCatalog =
-      lookupAppLocalizations(const Locale('en'));
+  /// UI languages the embedded font can print (v0.5.0 plan Task 1.7).
+  /// Chinese waits for the CJK subset font (plan decision D5); until then a
+  /// Chinese UI prints the English card rather than blank headers and a
+  /// blank safety warning.
+  static const Set<String> printableLanguages = <String>{'en', 'fr'};
 
-  /// Build the PDF bytes. Synchronous because neither the layout DSL nor
-  /// the grid derivation are I/O-bound. Caller hands the result to
+  /// The catalog the card is printed in for a UI in [uiLocale]: the UI's
+  /// own when the font covers it and the app has it, else English.
+  static AppLocalizations printCatalogFor(Locale uiLocale) {
+    final code = uiLocale.languageCode;
+    final supported = AppLocalizations.supportedLocales
+        .any((l) => l.languageCode == code);
+    return lookupAppLocalizations(
+      printableLanguages.contains(code) && supported
+          ? Locale(code)
+          : const Locale('en'),
+    );
+  }
+
+  /// The embedded Latin subset of Noto Sans (tool/fonts/subset_noto.sh):
+  /// the pdf package's built-in Helvetica covers only U+0000-00FF, which
+  /// lacks French ’ (U+2019) and œ (U+0153).
+  static const String regularFontAsset =
+      'assets/fonts/NotoSans-Regular-Latin.ttf';
+  static const String boldFontAsset = 'assets/fonts/NotoSans-Bold-Latin.ttf';
+
+  static Future<pw.ThemeData> printTheme() async {
+    final regular = await rootBundle.load(regularFontAsset);
+    final bold = await rootBundle.load(boldFontAsset);
+    return pw.ThemeData.withFont(
+      base: pw.Font.ttf(regular),
+      bold: pw.Font.ttf(bold),
+    );
+  }
+
+  /// Build the PDF bytes. Caller hands the result to
   /// `Printing.layoutPdf(onLayout: (_) => bytes)` to open the platform
-  /// print dialog, or writes to a file. PDF text is user-visible printed
-  /// content. The card is always printed from the English catalog,
-  /// whatever the device locale: the pdf package's default Helvetica has
-  /// no CJK glyphs, so a localized card would print blank headers and a
-  /// blank safety warning. English also keeps the paper artifact readable
-  /// by anyone who helps the holder later. Switch to the device locale
-  /// only together with an embedded font that covers it.
+  /// print dialog, or writes to a file. The card is printed in the UI's
+  /// language when [printableLanguages] has it ([printCatalogFor]), with
+  /// the grid's words in the contact's list, as on screen.
   static Future<Uint8List> build({
     required String peerLabel,
     required ChallengeResponseGrid grid,
     required DateTime generatedAt,
+    Locale uiLocale = const Locale('en'),
   }) async {
-    final l10n = printCatalog;
-    final doc = pw.Document(title: l10n.crPdfDocTitle(peerLabel));
+    final l10n = printCatalogFor(uiLocale);
+    final doc = pw.Document(
+      title: l10n.crPdfDocTitle(peerLabel),
+      theme: await printTheme(),
+    );
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.letter,
