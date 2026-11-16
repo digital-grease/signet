@@ -60,7 +60,7 @@ dependencies:
   # because mobile_scanner bundles Google ML Kit + Play Services as native
   # code (proprietary), which blocks F-Droid inclusion (Inclusion Policy
   # item 5). flutter_zxing is MIT, no GMS deps.
-  flutter_zxing: ^2.3.0
+  flutter_zxing: ^3.0.0
   # Direct dep on `camera` so we can name `CameraException` in the
   # permission-denial fallback. flutter_zxing pulls camera in transitively
   # but its `export` clause omits CameraException specifically.
